@@ -1,0 +1,46 @@
+---
+// Talent priority — targets "X talent priority", "what to level first",
+// "X burst or skill first" long-tail queries. Static, crawlable content.
+const priorities = [
+  { name: 'Raiden Shogun', order: 'Burst > Skill > Normal', detail: 'Q to 10 (her whole kit), E to 9 for the team Burst buff, normal attacks optional.' },
+  { name: 'Hu Tao', order: 'Normal > Skill > Burst', detail: 'Normal to 10 — her charged attacks are the entire build. Skill to 9, Burst to 9.' },
+  { name: 'Neuvillette', order: 'Normal > Skill > Burst', detail: 'Normal (charged attack) to 10 first, Skill and Burst to 9 after.' },
+  { name: 'Furina', order: 'Skill > Burst > Normal', detail: 'Skill to 10 (main off-field damage), Burst to 9-10 for the team buff, normal unused.' },
+  { name: 'Arlecchino', order: 'Normal > Skill > Burst', detail: 'Normal to 10 (her only damage source), Skill to 8-9, Burst to 8.' },
+  { name: 'Mavuika', order: 'Burst > Skill > Normal', detail: 'Burst to 10 (the nuke), Skill to 9 for off-field support, normal optional.' },
+  { name: 'Navia', order: 'Skill > Burst > Normal', detail: 'Skill to 10 (the umbrella shotgun is her damage), Burst to 8-9, normal optional.' },
+  { name: 'Nahida', order: 'Skill > Burst > Normal', detail: 'Skill to 10 (her entire kit), Burst to 8-9, normal unused.' },
+  { name: 'Zhongli', order: 'Skill > Burst > Normal', detail: 'Skill to 9-10 for the shield, Burst to 8-9 for the nuke, normal unused.' },
+  { name: 'Bennett', order: 'Burst > Skill > Normal', detail: 'Burst to 10 (his buff scales with it), Skill to 8 for energy, normal unused.' },
+  { name: 'Xiangling', order: 'Burst > Skill > Normal', detail: 'Burst to 10 (Pyronado is everything), Skill to 8, normal unused.' },
+  { name: 'Alhaitham', order: 'Skill > Burst > Normal', detail: 'Skill to 10 (drives the projection attacks), Burst to 9, normal to 8.' },
+  { name: 'Kamisato Ayaka', order: 'Burst > Normal > Skill', detail: 'Burst to 10 (the bulk of her damage), Normal to 9, Skill to 8.' },
+  { name: 'Yelan', order: 'Burst > Skill > Normal', detail: 'Burst to 10 (off-field Hydro), Skill to 9, normal unused.' },
+];
+---
+
+<section id="talents" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">What to level first</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    A talent level is a guaranteed 6-7% damage increase with zero RNG — yet most players farm artifacts for weeks
+    first. Level talents in this order and you will gain more damage per resin than almost any artifact upgrade.
+  </p>
+
+  <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+    {priorities.map((p) => (
+      <div class="panel p-5">
+        <div class="flex items-baseline justify-between gap-3">
+          <h3 class="font-semibold text-[var(--text)]">{p.name}</h3>
+          <span class="shrink-0 text-sm font-medium text-gold-300">{p.order}</span>
+        </div>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">{p.detail}</p>
+      </div>
+    ))}
+  </div>
+
+  <p class="mt-6 max-w-[65ch] text-sm text-[var(--muted)]">
+    The universal rule: the talent your character actually deals damage with goes to 9 or 10 first, and the talents
+    they never use can stay at level 1. If you are unsure, hover the character's note in the roster above — it names
+    their signature skill.
+  </p>
+</section>

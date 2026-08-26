@@ -1,0 +1,141 @@
+---
+// "How to increase damage" + weapon selection + crit ratio — high-intent
+// decision long-tail content.
+---
+
+<section id="increase-damage" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">How to increase your damage</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    Players almost always farm artifacts first and level talents last — the exact reverse of the optimal order.
+    Here is the priority path, ranked by damage gained per resin spent.
+  </p>
+
+  <div class="mt-8 space-y-4">
+    <div class="panel p-5">
+      <div class="flex items-start gap-4">
+        <span class="tnum text-2xl font-semibold text-gold-400/60">1</span>
+        <div>
+          <h3 class="font-semibold text-[var(--text)]">Level your main talent to 9 or 10</h3>
+          <p class="mt-1.5 text-sm text-[var(--muted)]">
+            Each talent level is a guaranteed 6-7% multiplier on that skill — no RNG. Leveling a talent from 8 to 10 is
+            often worth more than weeks of artifact farming. Do this before anything else.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="panel p-5">
+      <div class="flex items-start gap-4">
+        <span class="tnum text-2xl font-semibold text-gold-400/60">2</span>
+        <div>
+          <h3 class="font-semibold text-[var(--text)]">Level to 90 for reaction &amp; DEF scaling</h3>
+          <p class="mt-1.5 text-sm text-[var(--muted)]">
+            For transformative and Quicken teams, going 80→90 raises reaction damage ~34%. For ATK/CRIT carries it is
+            less critical (the DEF multiplier gain is small), but still helps against high-level enemies.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="panel p-5">
+      <div class="flex items-start gap-4">
+        <span class="tnum text-2xl font-semibold text-gold-400/60">3</span>
+        <div>
+          <h3 class="font-semibold text-[var(--text)]">Fix your Crit Ratio toward 1:2</h3>
+          <p class="mt-1.5 text-sm text-[var(--muted)]">
+            Rebalancing 50/200 into 70/160 is a ~6% gain from the same artifacts. Use the breakdown panel to see your
+            current Crit multiplier and the advisor list to see what a Crit roll is worth on your build.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="panel p-5">
+      <div class="flex items-start gap-4">
+        <span class="tnum text-2xl font-semibold text-gold-400/60">4</span>
+        <div>
+          <h3 class="font-semibold text-[var(--text)]">Run an Anemo unit with Viridescent Venerer</h3>
+          <p class="mt-1.5 text-sm text-[var(--muted)]">
+            40% RES shred is a ~28% damage increase against most enemies — larger than almost any artifact upgrade.
+            Kazuha, Sucrose or Venti holding VV belongs in every reaction team.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="panel p-5">
+      <div class="flex items-start gap-4">
+        <span class="tnum text-2xl font-semibold text-gold-400/60">5</span>
+        <div>
+          <h3 class="font-semibold text-[var(--text)]">Add Bennett or an equivalent buffer</h3>
+          <p class="mt-1.5 text-sm text-[var(--muted)]">
+            Bennett's flat ATK buff is the single biggest common buff in the game. Noblesse 4pc (+20% ATK) and
+            Thrilling Tales (+48% ATK on a catalyst support) are free additions on top.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="panel p-5">
+      <div class="flex items-start gap-4">
+        <span class="tnum text-2xl font-semibold text-gold-400/60">6</span>
+        <div>
+          <h3 class="font-semibold text-[var(--text)]">Farm artifacts last</h3>
+          <p class="mt-1.5 text-sm text-[var(--muted)]">
+            Artifact sub-stat farming has the worst return per resin because it is pure RNG. Once your talents, level,
+            and team are set, farm for the correct main stats first, then refine sub-stats toward 1:2 Crit.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weapon selection -->
+  <h3 class="mt-10 text-2xl font-semibold tracking-tight text-[var(--text)]">How to choose between two weapons</h3>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    The honest way to compare weapons is to change nothing but the weapon and watch the expected damage. Here is the
+    framework the calculator follows:
+  </p>
+  <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div class="panel p-5">
+      <h4 class="font-semibold text-[var(--text)]">1. Secondary stat first</h4>
+      <p class="mt-2 text-sm text-[var(--muted)]">A CRIT sub-stat weapon often beats a higher-base-ATK weapon, because CRIT is so scarce and hard to farm elsewhere.</p>
+    </div>
+    <div class="panel p-5">
+      <h4 class="font-semibold text-[var(--text)]">2. Passive must trigger</h4>
+      <p class="mt-2 text-sm text-[var(--muted)]">A weapon whose passive you can't reliably activate is just a stat stick. Read the trigger condition before assuming it works.</p>
+    </div>
+    <div class="panel p-5">
+      <h4 class="font-semibold text-[var(--text)]">3. Scaling type matters</h4>
+      <p class="mt-2 text-sm text-[var(--muted)]">HP- and DEF-scaling characters care far less about base ATK. Match the weapon to how the character actually scales.</p>
+    </div>
+  </div>
+  <p class="mt-4 max-w-[65ch] text-[var(--muted)]">
+    To compare directly: pick your character, set the first weapon, press <strong class="text-[var(--text)]">"Pin current
+    as baseline"</strong>, then switch to the second weapon. The result panel shows the exact percentage gain or loss.
+  </p>
+
+  <!-- Crit ratio table -->
+  <h3 class="mt-10 text-2xl font-semibold tracking-tight text-[var(--text)]">The 1:2 Crit Ratio, in numbers</h3>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    Because a Crit Rate roll is worth half a Crit DMG roll, the optimal balance is always 1:2. Here is what that looks
+    like in practice:
+  </p>
+  <div class="mt-4 overflow-x-auto">
+    <table class="w-full min-w-[420px] text-left text-sm">
+      <thead>
+        <tr class="border-b border-[var(--line)] text-[var(--muted)]">
+          <th class="py-2 pr-4 font-medium">Crit Rate</th>
+          <th class="py-2 pr-4 font-medium">Crit DMG</th>
+          <th class="py-2 font-medium">Crit multiplier (1 + CR×CD)</th>
+        </tr>
+      </thead>
+      <tbody class="text-[var(--text)]">
+        <tr class="border-b border-[var(--line)]"><td class="tnum py-2.5 pr-4">50%</td><td class="tnum py-2.5 pr-4">100%</td><td class="tnum py-2.5 text-gold-300">1.50</td></tr>
+        <tr class="border-b border-[var(--line)]"><td class="tnum py-2.5 pr-4">60%</td><td class="tnum py-2.5 pr-4">120%</td><td class="tnum py-2.5 text-gold-300">1.72</td></tr>
+        <tr class="border-b border-[var(--line)]"><td class="tnum py-2.5 pr-4">70%</td><td class="tnum py-2.5 pr-4">140%</td><td class="tnum py-2.5 text-gold-300">1.98</td></tr>
+        <tr class="border-b border-[var(--line)]"><td class="tnum py-2.5 pr-4">75%</td><td class="tnum py-2.5 pr-4">150%</td><td class="tnum py-2.5 text-gold-300">2.13</td></tr>
+        <tr><td class="tnum py-2.5 pr-4">80%</td><td class="tnum py-2.5 pr-4">160%</td><td class="tnum py-2.5 text-gold-300">2.28</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-4 max-w-[65ch] text-[var(--muted)]">
+    Notice how the multiplier climbs fastest when both stats rise together. A 60/120 build (1.72) beats a 50/140 build
+    (1.70) despite the second looking flashier — this is why "more Crit DMG" is usually the wrong instinct.
+  </p>
+</section>

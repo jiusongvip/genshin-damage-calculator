@@ -1,0 +1,15 @@
+# Genshin Damage Calculator
+
+> Free Genshin Impact damage calculator for every character. Compare weapons and artifacts, import your UID, and see your exact damage.
+
+## Core content
+
+- https://www.genshindamagecalculator.com/ : Calculator with full character presets, the five-multiplier damage formula breakdown, elemental reaction explanations, weapon rankings, constellation value tables, talent priority, and FAQ.
+
+## Key facts
+
+- The damage formula is: Total ATK × Skill Multiplier × (1 + DMG Bonus) × CRIT × Reaction × DEF × RES.
+- Amplifying reactions: Vaporize ×1.5, Melt ×2.0; Elemental Mastery scales by 2.78 × EM ÷ (EM + 1400).
+- Transformative reactions ignore ATK and CRIT; they scale with level and EM (level-90 multiplier 1446.85).
+- UID import pulls showcased builds via the public Enka.network API (no login).
+- Independent fan-made tool, not affiliated with HoYoverse/miHoYo/Cognosphere.

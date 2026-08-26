@@ -1,0 +1,125 @@
+---
+// Elemental reactions deep dive — targets "vaporize vs melt", "elemental
+// mastery calculator", "reaction damage" long-tail queries.
+---
+
+<section id="reactions" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Elemental reactions explained</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    Reactions fall into three families that scale in completely different ways. Knowing which family your team uses
+    determines your entire build — a mistake here (like building CRIT on a Hyperbloom trigger) can cost you half your
+    damage.
+  </p>
+
+  <!-- Amplifying reactions -->
+  <div class="mt-8 panel p-6">
+    <h3 class="text-xl font-semibold text-[var(--text)]">Amplifying reactions: Vaporize &amp; Melt</h3>
+    <p class="mt-3 text-[var(--muted)]">
+      These <strong class="text-[var(--text)]">multiply your entire hit</strong>, including all your ATK, CRIT and DMG
+      Bonus — which is why Vaporize and Melt carries are the game's highest single-hit damage dealers. The multiplier
+      depends on which element triggers:
+    </p>
+    <div class="mt-4 overflow-x-auto">
+      <table class="w-full min-w-[520px] text-left text-sm">
+        <thead>
+          <tr class="border-b border-[var(--line)] text-[var(--muted)]">
+            <th class="py-2 pr-4 font-medium">Reaction</th>
+            <th class="py-2 pr-4 font-medium">Trigger order</th>
+            <th class="py-2 pr-4 font-medium">Multiplier</th>
+            <th class="py-2 font-medium">Example</th>
+          </tr>
+        </thead>
+        <tbody class="text-[var(--text)]">
+          <tr class="border-b border-[var(--line)]">
+            <td class="py-2.5 pr-4">Vaporize</td>
+            <td class="py-2.5 pr-4">Hydro on Pyro</td>
+            <td class="tnum py-2.5 pr-4 text-gold-300">2.0×</td>
+            <td class="py-2.5">Reverse Vaporize</td>
+          </tr>
+          <tr class="border-b border-[var(--line)]">
+            <td class="py-2.5 pr-4">Vaporize</td>
+            <td class="py-2.5 pr-4">Pyro on Hydro</td>
+            <td class="tnum py-2.5 pr-4 text-gold-300">1.5×</td>
+            <td class="py-2.5">Forward Vaporize</td>
+          </tr>
+          <tr class="border-b border-[var(--line)]">
+            <td class="py-2.5 pr-4">Melt</td>
+            <td class="py-2.5 pr-4">Pyro on Cryo</td>
+            <td class="tnum py-2.5 pr-4 text-gold-300">2.0×</td>
+            <td class="py-2.5">Forward Melt</td>
+          </tr>
+          <tr>
+            <td class="py-2.5 pr-4">Melt</td>
+            <td class="py-2.5 pr-4">Cryo on Pyro</td>
+            <td class="tnum py-2.5 pr-4 text-gold-300">1.5×</td>
+            <td class="py-2.5">Reverse Melt</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-4 text-[var(--muted)]">
+      Elemental Mastery scales the multiplier further by
+      <span class="tnum text-[var(--text)]">2.78 × EM ÷ (EM + 1400)</span>. At 100 EM that's about +18.5% on top of the
+      base multiplier, at 200 EM about +35%, but by 400 EM the returns have flattened to about +62% — the first 100 EM
+      is worth nearly as much as the next 300. That is why reaction carries aim for roughly 100-200 EM and spend the
+      rest of their budget on CRIT.
+    </p>
+  </div>
+
+  <!-- Transformative reactions -->
+  <div class="mt-6 panel p-6">
+    <h3 class="text-xl font-semibold text-[var(--text)]">Transformative reactions: Overload, Bloom &amp; more</h3>
+    <p class="mt-3 text-[var(--muted)]">
+      These deal a <strong class="text-[var(--text)]">separate, fixed hit</strong> that ignores ATK, talent multiplier
+      and CRIT entirely. Their damage depends only on the triggering character's <strong class="text-[var(--text)]">level</strong>,
+      their <strong class="text-[var(--text)]">Elemental Mastery</strong>, and the enemy's RES. The formula is:
+    </p>
+    <p class="tnum mt-3 rounded-[10px] bg-[var(--surface-2)] p-4 text-center text-sm text-[var(--text)]">
+      Transformative Damage = Level Multiplier × Reaction Coefficient × (1 + EM bonus) × RES multiplier
+    </p>
+    <div class="mt-4 overflow-x-auto">
+      <table class="w-full min-w-[520px] text-left text-sm">
+        <thead>
+          <tr class="border-b border-[var(--line)] text-[var(--muted)]">
+            <th class="py-2 pr-4 font-medium">Reaction</th>
+            <th class="py-2 pr-4 font-medium">Coefficient</th>
+            <th class="py-2 pr-4 font-medium">Elements</th>
+            <th class="py-2 font-medium">Typical build</th>
+          </tr>
+        </thead>
+        <tbody class="text-[var(--text)]">
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Overload</td><td class="tnum py-2.5 pr-4">4</td><td class="py-2.5 pr-4">Pyro + Electro</td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Superconduct</td><td class="tnum py-2.5 pr-4">1</td><td class="py-2.5 pr-4">Cryo + Electro</td><td class="py-2.5">Support only</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Electro-Charged</td><td class="tnum py-2.5 pr-4">4.8</td><td class="py-2.5 pr-4">Hydro + Electro</td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Swirl</td><td class="tnum py-2.5 pr-4">1.2</td><td class="py-2.5 pr-4">Anemo + element</td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Bloom</td><td class="tnum py-2.5 pr-4">4</td><td class="py-2.5 pr-4">Hydro + Dendro</td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Hyperbloom</td><td class="tnum py-2.5 pr-4">6</td><td class="py-2.5 pr-4">Dendro core + Electro</td><td class="py-2.5">Full EM</td></tr>
+          <tr><td class="py-2.5 pr-4">Burgeon</td><td class="tnum py-2.5 pr-4">6</td><td class="py-2.5 pr-4">Dendro core + Pyro</td><td class="py-2.5">Full EM</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-4 text-[var(--muted)]">
+      The level multiplier at character level 90 is <span class="tnum text-[var(--text)]">1446.85</span> (at 80 it is
+      1077.44 — a ~34% jump from 80 to 90). EM scales by <span class="tnum text-[var(--text)]">16 × EM ÷ (EM + 2000)</span>.
+      Because these reactions ignore CRIT, a Hyperbloom trigger wants <em>only</em> EM and level — a 900 EM level-90
+      Hyperbloom deals roughly 30,000+ per seed before resistance, which is why Hyperbloom teams are the cheapest
+      high-damage option in the game.
+    </p>
+  </div>
+
+  <!-- Quicken reactions -->
+  <div class="mt-6 panel p-6">
+    <h3 class="text-xl font-semibold text-[var(--text)]">Quicken reactions: Aggravate &amp; Spread</h3>
+    <p class="mt-3 text-[var(--muted)]">
+      Dendro's Quicken (and its Aggravate / Spread follow-ups) is a <strong class="text-[var(--text)]">third family</strong>:
+      it adds a flat damage bonus to the triggering Electro or Dendro hit, scaling with level and EM but still
+      <em>benefiting from CRIT and DMG Bonus</em>. That means an Aggravate Keqing or Spread Alhaitham still wants a
+      normal CRIT build — just with an EM sands instead of ATK%. This is the single most common build mistake players
+      make with Dendro teams: applying Bloom's full-EM logic to a Quicken carry.
+    </p>
+    <p class="mt-3 text-[var(--muted)]">
+      Practical rule: <strong class="text-[var(--text)]">Quicken carries build CRIT + EM sands; Bloom-family triggers
+      build pure EM.</strong> Identify which reaction your team actually triggers before farming artifacts.
+    </p>
+  </div>
+</section>

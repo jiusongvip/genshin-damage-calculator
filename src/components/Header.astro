@@ -1,0 +1,76 @@
+---
+const navItems = [
+  { label: 'Calculator', href: '#calculator' },
+  { label: 'Presets', href: '#presets' },
+  { label: 'Formula', href: '#formula' },
+  { label: 'Reactions', href: '#reactions' },
+  { label: 'Constellations', href: '#constellations' },
+  { label: 'Weapons', href: '#weapons' },
+  { label: 'Artifacts', href: '#artifacts' },
+  { label: 'Buffs', href: '#buffs' },
+  { label: 'Guide', href: '#guide' },
+  { label: 'FAQ', href: '#faq' },
+];
+---
+
+<header class="sticky top-0 z-50 border-b border-[var(--line)] bg-[#0b1224]/90 backdrop-blur">
+  <nav class="page-shell flex h-16 items-center justify-between" aria-label="Main navigation">
+    <a href="/" class="flex min-w-0 items-center gap-2.5 font-semibold tracking-[-0.02em] text-[var(--text)]">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gold-400">
+        <path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2z" fill="currentColor" />
+        <path d="M12 6l1.1 4.9L18 12l-4.9 1.1L12 18l-1.1-4.9L6 12l4.9-1.1L12 6z" fill="#0b1224" />
+      </svg>
+      <span class="truncate">Genshin Damage Calculator</span>
+    </a>
+
+    <div class="hidden items-center gap-1 lg:flex">
+      {navItems.map((item) => (
+        <a
+          href={item.href}
+          class="rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-[var(--soft)] hover:text-[var(--text)]"
+        >
+          {item.label}
+        </a>
+      ))}
+    </div>
+
+    <button
+      id="mobile-menu-btn"
+      class="inline-flex items-center justify-center rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--soft)] lg:hidden"
+      aria-label="Toggle menu"
+      type="button"
+    >
+      <svg id="menu-icon-open" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+      <svg id="menu-icon-close" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="hidden" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
+  </nav>
+
+  <div id="mobile-nav" class="hidden border-t border-[var(--line)] bg-[#0b1224] pb-3 pt-2 lg:hidden">
+    <div class="page-shell flex flex-col">
+      {navItems.map((item) => (
+        <a
+          href={item.href}
+          class="rounded-lg px-3 py-2 text-base font-medium text-[var(--muted)] transition-colors hover:bg-[var(--soft)] hover:text-[var(--text)]"
+        >
+          {item.label}
+        </a>
+      ))}
+    </div>
+  </div>
+</header>
+
+<script>
+  const btn = document.getElementById('mobile-menu-btn');
+  const nav = document.getElementById('mobile-nav');
+  const iconOpen = document.getElementById('menu-icon-open');
+  const iconClose = document.getElementById('menu-icon-close');
+  btn?.addEventListener('click', () => {
+    nav?.classList.toggle('hidden');
+    iconOpen?.classList.toggle('hidden');
+    iconClose?.classList.toggle('hidden');
+  });
+</script>

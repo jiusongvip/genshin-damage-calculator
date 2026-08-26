@@ -1,0 +1,77 @@
+---
+// Common mistakes deep dive — answer-type content for "why is my damage low".
+---
+
+<section id="mistakes" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Common damage mistakes (and how to fix them)</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    Most "why is my damage low?" posts trace back to one of these eight mistakes. Check your build against each.
+  </p>
+
+  <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
+    <div class="panel p-6">
+      <h3 class="font-semibold text-[var(--text)]">1. Testing against the wrong enemy</h3>
+      <p class="mt-2 text-sm text-[var(--muted)]">
+        A low-level Hilichurl takes roughly double the damage of a level-90 enemy because of the DEF multiplier. If
+        your "real" numbers are half what a streamer shows, check the enemy level first — not your artifacts. Always
+        test against a level-90 target with known resistance.
+      </p>
+    </div>
+    <div class="panel p-6">
+      <h3 class="font-semibold text-[var(--text)]">2. Chasing Crit DMG while ignoring Crit Rate</h3>
+      <p class="mt-2 text-sm text-[var(--muted)]">
+        A 50/200 build deals <em>less</em> average damage than a 70/160 build, even though the 200 number looks better
+        in screenshots. Expected damage is 1 + Crit Rate × Crit DMG — both matter. If your Crit Rate is under 60%,
+        every Crit DMG roll you add is half-wasted on non-crits.
+      </p>
+    </div>
+    <div class="panel p-6">
+      <h3 class="font-semibold text-[var(--text)]">3. Stacking too much ATK%</h3>
+      <p class="mt-2 text-sm text-[var(--muted)]">
+        Once Bennett or Thrilling Tales is in the team, ATK% has steep diminishing returns. At that point an EM sands
+        (for reaction carries) or a DMG goblet is almost always a bigger gain than another ATK% roll. Watch the
+        advisor list — if "Add +20% ATK" ranks at the bottom, you have too much already.
+      </p>
+    </div>
+    <div class="panel p-6">
+      <h3 class="font-semibold text-[var(--text)]">4. Forgetting resistance shred</h3>
+      <p class="mt-2 text-sm text-[var(--muted)]">
+        Viridescent Venerer's 40% RES shred is a ~28% damage increase against most enemies — bigger than almost any
+        artifact upgrade. A reaction team without an Anemo VV holder is leaving a full multiplier on the table, no
+        matter how good the carry's artifacts are.
+      </p>
+    </div>
+    <div class="panel p-6">
+      <h3 class="font-semibold text-[var(--text)]">5. Building CRIT on a transformative trigger</h3>
+      <p class="mt-2 text-sm text-[var(--muted)]">
+        Hyperbloom, Burgeon and Overload damage ignores ATK and CRIT entirely — it scales only with level and EM. A
+        Hyperbloom trigger built with a Crit circlet does almost no reaction damage. If your team is Bloom-family, the
+        trigger character wants pure EM and level, nothing else.
+      </p>
+    </div>
+    <div class="panel p-6">
+      <h3 class="font-semibold text-[var(--text)]">6. Neglecting talent levels</h3>
+      <p class="mt-2 text-sm text-[var(--muted)]">
+        A talent level is a guaranteed 6-7% multiplier, yet players farm artifacts for weeks instead of spending a few
+        days on talent books. Leveling your main skill from 6 to 10 is a ~35% damage increase with zero RNG — check
+        your talent levels before blaming your artifacts.
+      </p>
+    </div>
+    <div class="panel p-6">
+      <h3 class="font-semibold text-[var(--text)]">7. Leaving reaction carries at level 80</h3>
+      <p class="mt-2 text-sm text-[var(--muted)]">
+        For transformative and Quicken teams, level 80→90 raises reaction damage by roughly 34%. For Hyperbloom and
+        Aggravate carries that is a bigger jump than a full set of better artifacts. If your team relies on reactions,
+        level the trigger character to 90.
+      </p>
+    </div>
+    <div class="panel p-6">
+      <h3 class="font-semibold text-[var(--text)]">8. Ignoring Elemental Mastery on Vaporize/Melt carries</h3>
+      <p class="mt-2 text-sm text-[var(--muted)]">
+        The first 100 EM adds ~18.5% to a Vaporize hit — more than most ATK% rolls. If your Hu Tao, Xiangling or Ganyu
+        is sitting at 0 EM, an EM sands (or EM sub-stats) is likely your biggest single upgrade. Push to 100-200 EM,
+        then stop — the returns flatten fast.
+      </p>
+    </div>
+  </div>
+</section>

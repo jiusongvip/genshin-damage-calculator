@@ -1,0 +1,117 @@
+---
+// Artifact set library — targets "best artifact set for X", "emblem of severed
+// fate", "which artifact set" long-tail queries. Static content, fully crawlable.
+const sets = [
+  {
+    name: 'Emblem of Severed Fate',
+    bonus: '2pc: +20% ER · 4pc: Burst DMG +25% of ER (up to +75%)',
+    bestFor: 'Raiden Shogun, Xiangling, Yelan, Xingqiu, Beidou, Mona',
+    tip: 'The default for any Burst-focused character. ER becomes a damage stat.',
+  },
+  {
+    name: 'Crimson Witch of Flames',
+    bonus: '2pc: +15% Pyro DMG · 4pc: Vaporize/Melt multiplier up',
+    bestFor: 'Hu Tao, Diluc, Klee, Gaming',
+    tip: 'Best on Vaporize and Melt Pyro carries.',
+  },
+  {
+    name: 'Marechaussee Hunter',
+    bonus: '2pc: +15% NA/CA DMG · 4pc: up to +36% Crit Rate on HP change',
+    bestFor: 'Neuvillette, Lyney, Wriothesley, Gaming',
+    tip: 'The free Crit Rate lets you stack Crit DMG hard.',
+  },
+  {
+    name: 'Blizzard Strayer',
+    bonus: '2pc: +15% Cryo DMG · 4pc: +20% Crit Rate vs Cryo, +20% more vs Frozen',
+    bestFor: 'Ayaka, Freeze Ganyu',
+    tip: 'With Cryo Resonance you can stop at ~45% Crit Rate.',
+  },
+  {
+    name: 'Golden Troupe',
+    bonus: '2pc: +20% Skill DMG · 4pc: +25% more, doubled off-field',
+    bestFor: 'Furina, Fischl, Yae Miko, Albedo',
+    tip: 'The off-field damage king — not for on-field carries.',
+  },
+  {
+    name: 'Gilded Dreams',
+    bonus: '2pc: +80 EM · 4pc: ATK% or EM from party elements',
+    bestFor: 'Alhaitham, Cyno, Tighnari, Kaveh',
+    tip: 'Best on reaction carries who want both EM and damage.',
+  },
+  {
+    name: 'Deepwood Memories',
+    bonus: '2pc: +15% Dendro DMG · 4pc: −30% enemy Dendro RES',
+    bestFor: 'Nahida, Collei, Yaoyao, any Dendro support',
+    tip: 'One Dendro unit must hold this in every Dendro team.',
+  },
+  {
+    name: 'Obsidian Codex',
+    bonus: '2pc: +15% DMG · 4pc: +40% Crit Rate after Nightsoul use',
+    bestFor: 'Mavuika, Kinich, Chasca, Mualani, Varesa',
+    tip: 'The Natlan carry set — massive Crit Rate on demand.',
+  },
+  {
+    name: 'Viridescent Venerer',
+    bonus: '2pc: +15% Anemo DMG · 4pc: Swirl shreds 40% enemy RES',
+    bestFor: 'Kazuha, Sucrose, Venti, any Anemo support',
+    tip: 'The single highest-value support set in the game (~+28% team damage).',
+  },
+  {
+    name: 'Noblesse Oblige',
+    bonus: '2pc: +20% Burst DMG · 4pc: party +20% ATK after Burst',
+    bestFor: 'Bennett, Diona, Shenhe, Rosaria',
+    tip: 'The classic team-buff set for supports.',
+  },
+  {
+    name: 'Husk of Opulent Dreams',
+    bonus: '2pc: +30% DEF · 4pc: stacking DEF + Geo DMG',
+    bestFor: 'Arataki Itto, Albedo, Noelle',
+    tip: 'The DEF-scaling Geo carry set.',
+  },
+  {
+    name: 'Fragment of Harmonic Whimsy',
+    bonus: '2pc: +18% ATK · 4pc: +DMG under Bond of Life',
+    bestFor: 'Arlecchino, Clorinde',
+    tip: 'Tailor-made for Bond of Life mechanics.',
+  },
+  {
+    name: 'Tenacity of the Millelith',
+    bonus: '2pc: +20% HP · 4pc: party +20% ATK +30% shield',
+    bestFor: 'Zhongli, Layla',
+    tip: 'Best on shielders who want to buff the whole team.',
+  },
+  {
+    name: 'Heart of Depth',
+    bonus: '2pc: +15% Hydro DMG · 4pc: +30% NA/CA after Skill',
+    bestFor: 'Tartaglia, Kamisato Ayato',
+    tip: 'The on-field Hydro carry set.',
+  },
+];
+---
+
+<section id="artifacts" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Artifact sets, at a glance</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    The set you farm decides your damage ceiling. Here is every meta 4-piece set, what it does, and who it is for —
+    pick the set that matches the reaction your team actually triggers.
+  </p>
+
+  <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+    {sets.map((s) => (
+      <div class="panel p-5">
+        <h3 class="font-semibold text-[var(--text)]">{s.name}</h3>
+        <p class="mt-1.5 text-sm text-gold-300/90">{s.bonus}</p>
+        <p class="mt-2 text-sm text-[var(--muted)]">
+          <span class="font-medium text-[var(--text)]">Best for:</span> {s.bestFor}
+        </p>
+        <p class="mt-1 text-xs text-[var(--muted)]/80">{s.tip}</p>
+      </div>
+    ))}
+  </div>
+
+  <p class="mt-6 max-w-[65ch] text-sm text-[var(--muted)]">
+    A common mistake is farming a set that does not match your team's reaction — e.g. building Crit on a Bloom trigger
+    or using Gilded Dreams on a Freeze carry. Identify which reaction your team triggers, then farm the set above that
+    feeds it.
+  </p>
+</section>

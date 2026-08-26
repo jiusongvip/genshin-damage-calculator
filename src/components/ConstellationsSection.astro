@@ -1,0 +1,159 @@
+---
+// Constellation value deep-dive — targets "raiden c2", "hu tao c1",
+// "is X constellation worth it" long-tail queries. Static SSR output so
+// every word is crawlable.
+//
+// Gains are approximate, community-sourced estimates for a typical end-game
+// build; exact values depend on the player's stats, team and rotation.
+const constellations = [
+  {
+    name: 'Raiden Shogun',
+    best: 'C2',
+    note: 'C2 is one of the best single constellations in the game — her Burst ignores 60% of enemy DEF.',
+    levels: [
+      { l: 'C1', gain: '+5%', desc: 'Resolve stacks faster.' },
+      { l: 'C2', gain: '+40%', desc: 'Burst ignores 60% DEF.' },
+      { l: 'C3', gain: '+15%', desc: 'Burst talent +3.' },
+      { l: 'C4', gain: '+5%', desc: 'Party ATK% after Burst.' },
+      { l: 'C5', gain: '+3%', desc: 'Skill talent +3.' },
+      { l: 'C6', gain: '+10%', desc: 'Burst cooldown reduction.' },
+    ],
+  },
+  {
+    name: 'Hu Tao',
+    best: 'C1',
+    note: 'C1 removes charged-attack stamina cost — a big damage and comfort gain. Best QoL constellation in the game.',
+    levels: [
+      { l: 'C1', gain: '+20%', desc: 'No stamina cost on charged attacks.' },
+      { l: 'C2', gain: '+10%', desc: 'Blood Blossom damage up.' },
+      { l: 'C3', gain: '+10%', desc: 'Skill talent +3.' },
+      { l: 'C4', gain: '+5%', desc: 'Party Crit Rate after kill.' },
+      { l: 'C5', gain: '+8%', desc: 'Burst talent +3.' },
+      { l: 'C6', gain: '+15%', desc: 'Near-death guaranteed Crit.' },
+    ],
+  },
+  {
+    name: 'Furina',
+    best: 'C2',
+    note: 'C2 dramatically speeds up her Burst stacking, unlocking her full team DMG bonus far faster.',
+    levels: [
+      { l: 'C1', gain: '+10%', desc: 'Starts with more Fanfare.' },
+      { l: 'C2', gain: '+30%', desc: 'Fanfare stacks much faster.' },
+      { l: 'C3', gain: '+15%', desc: 'Burst talent +3.' },
+      { l: 'C4', gain: '+8%', desc: 'Energy refund.' },
+      { l: 'C5', gain: '+5%', desc: 'Skill talent +3.' },
+      { l: 'C6', gain: '+40%', desc: 'Unlocks on-field DPS mode.' },
+    ],
+  },
+  {
+    name: 'Nahida',
+    best: 'C2',
+    note: 'C2 lets Dendro reactions crit — a huge team-wide buff for Bloom, Hyperbloom and Quicken teams.',
+    levels: [
+      { l: 'C1', gain: '+5%', desc: 'Burst counts extra elements.' },
+      { l: 'C2', gain: '+25%', desc: 'Dendro reactions can Crit.' },
+      { l: 'C3', gain: '+10%', desc: 'Skill talent +3.' },
+      { l: 'C4', gain: '+8%', desc: 'EM from linked enemies.' },
+      { l: 'C5', gain: '+5%', desc: 'Burst talent +3.' },
+      { l: 'C6', gain: '+30%', desc: 'On-field bonus hits.' },
+    ],
+  },
+  {
+    name: 'Neuvillette',
+    best: 'C1',
+    note: 'C1 grants interruption resistance and a stacking DMG bonus — the single best QoL breakpoint for him.',
+    levels: [
+      { l: 'C1', gain: '+15%', desc: 'Interruption resistance + DMG.' },
+      { l: 'C2', gain: '+10%', desc: 'Bonus Crit DMG per stack.' },
+      { l: 'C3', gain: '+15%', desc: 'Normal attack talent +3.' },
+      { l: 'C4', gain: '+5%', desc: 'Extra droplet generation.' },
+      { l: 'C5', gain: '+5%', desc: 'Burst talent +3.' },
+      { l: 'C6', gain: '+40%', desc: 'Extended charged attack.' },
+    ],
+  },
+  {
+    name: 'Mavuika',
+    best: 'C2',
+    note: 'C2 is a large, always-on damage spike for both her Burst and off-field support.',
+    levels: [
+      { l: 'C1', gain: '+10%', desc: 'More Night Soul uptime.' },
+      { l: 'C2', gain: '+25%', desc: 'Burst and support damage up.' },
+      { l: 'C3', gain: '+15%', desc: 'Burst talent +3.' },
+      { l: 'C4', gain: '+5%', desc: 'Consistent buff uptime.' },
+      { l: 'C5', gain: '+3%', desc: 'Skill talent +3.' },
+      { l: 'C6', gain: '+35%', desc: 'Massive Burst nuke upgrade.' },
+    ],
+  },
+  {
+    name: 'Arlecchino',
+    best: 'C1',
+    note: 'C1 adds interruption resistance and bonus damage — a strong early breakpoint.',
+    levels: [
+      { l: 'C1', gain: '+15%', desc: 'Interruption resistance + DMG.' },
+      { l: 'C2', gain: '+10%', desc: 'Skill upgrade.' },
+      { l: 'C3', gain: '+12%', desc: 'Normal attack talent +3.' },
+      { l: 'C4', gain: '+5%', desc: 'Bond of Life management.' },
+      { l: 'C5', gain: '+5%', desc: 'Burst talent +3.' },
+      { l: 'C6', gain: '+40%', desc: 'Massive Burst nuke upgrade.' },
+    ],
+  },
+  {
+    name: 'Kamisato Ayaka',
+    best: 'C4',
+    note: 'C4 shreds 30% DEF on her Burst — the highest-value breakpoint for Freeze Ayaka.',
+    levels: [
+      { l: 'C1', gain: '+8%', desc: 'Skill cooldown reduction.' },
+      { l: 'C2', gain: '+15%', desc: 'Two extra Burst blades.' },
+      { l: 'C3', gain: '+15%', desc: 'Burst talent +3.' },
+      { l: 'C4', gain: '+25%', desc: 'Burst shreds 30% DEF.' },
+      { l: 'C5', gain: '+5%', desc: 'Skill talent +3.' },
+      { l: 'C6', gain: '+20%', desc: 'Charged attack nuke.' },
+    ],
+  },
+];
+---
+
+<section id="constellations" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Constellation value, ranked</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    Not every constellation is worth your primogems. The tables below show the approximate damage gain of each
+    constellation for popular carries, so you can see exactly where the breakpoints are before you pull.
+    <span class="text-[var(--muted)]/70">Gains are community-sourced estimates for a typical end-game build — your exact
+    number depends on your stats and team.</span>
+  </p>
+
+  <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
+    {constellations.map((c) => (
+      <div class="panel p-6">
+        <div class="flex items-baseline justify-between gap-3">
+          <h3 class="text-lg font-semibold text-[var(--text)]">{c.name}</h3>
+          <span class="shrink-0 text-xs font-medium text-gold-300">pull to {c.best}</span>
+        </div>
+        <p class="mt-2 text-sm text-[var(--muted)]">{c.note}</p>
+        <div class="mt-4 overflow-hidden rounded-[10px] border border-[var(--line)]">
+          <table class="w-full text-left text-sm">
+            <tbody>
+              {c.levels.map((lv) => (
+                <tr class="border-b border-[var(--line)] last:border-b-0">
+                  <td class="tnum w-12 px-3 py-2 font-medium text-[var(--text)]">{lv.l}</td>
+                  <td class="tnum w-16 px-3 py-2 font-semibold text-dendro">{lv.gain}</td>
+                  <td class="px-3 py-2 text-[var(--muted)]">{lv.desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <div class="panel mt-6 border-gold-400/40 bg-gold-400/5 p-6">
+    <h3 class="text-lg font-semibold text-gold-300">The rule of thumb</h3>
+    <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+      A new character almost always beats a constellation <em>unless</em> that constellation is a documented breakpoint.
+      The breakpoints that actually matter are the ones that ignore DEF (Raiden C2, Ayaka C4), let reactions crit
+      (Nahida C2), remove a core limitation (Hu Tao C1, Neuvillette C1), or speed up a stacking mechanic (Furina C2).
+      Most C3, C4 and C5 constellations are small — verify before you spend.
+    </p>
+  </div>
+</section>

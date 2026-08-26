@@ -1,0 +1,150 @@
+---
+// Five-multiplier deep dive — the information gain competitors' tool pages
+// don't provide. Rendered statically so search engines crawl every word.
+---
+
+<section id="formula" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">How Genshin damage is actually calculated</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    Every non-transformative hit is one multiplication of seven factors. If you understand each one, you can
+    diagnose exactly why a hit deals the number it does — and which single upgrade will move it the most. The
+    calculator above breaks your exact panel into these same factors. The math follows the official damage formula,
+    cross-checked against the
+    <a href="https://genshin-impact.fandom.com/wiki/Damage" target="_blank" rel="noopener" class="text-gold-300 underline decoration-gold-400/40 underline-offset-2 hover:text-gold-200">Genshin Impact wiki damage formula</a>.
+  </p>
+
+  <div class="panel mt-8 overflow-x-auto p-6">
+    <p class="tnum whitespace-nowrap text-center text-sm text-[var(--muted)] md:text-base">
+      <span class="text-gold-300">Total ATK</span>
+      <span class="mx-2">×</span> Skill Multiplier
+      <span class="mx-2">×</span> (1 + <span class="text-hydro">DMG Bonus</span>)
+      <span class="mx-2">×</span> <span class="text-cryo">CRIT</span>
+      <span class="mx-2">×</span> <span class="text-pyro">Reaction</span>
+      <span class="mx-2">×</span> <span class="text-dendro">DEF</span>
+      <span class="mx-2">×</span> <span class="text-electro">RES</span>
+    </p>
+  </div>
+
+  <div class="mt-8 space-y-6">
+    <!-- 1. ATK -->
+    <div class="panel p-6">
+      <h3 class="text-xl font-semibold text-[var(--text)]">1. Total ATK <span class="text-gold-300">— the base of everything</span></h3>
+      <p class="mt-3 text-[var(--muted)]">
+        Total ATK is built from three parts: <strong class="text-[var(--text)]">Base ATK</strong> (your character's
+        white number plus your weapon's base attack — <em>not</em> the flat attack from artifacts), multiplied by
+        <strong class="text-[var(--text)]">ATK%</strong> bonuses (artifact sands, sub-stats, weapon passives, team
+        buffs), then plus <strong class="text-[var(--text)]">Flat ATK</strong> (the feather artifact's +311, and
+        Bennett's buff). The formula is:
+      </p>
+      <p class="tnum mt-3 rounded-[10px] bg-[var(--surface-2)] p-4 text-center text-sm text-[var(--text)]">
+        Total ATK = (Base ATK) × (1 + ATK%) + Flat ATK
+      </p>
+      <p class="mt-3 text-[var(--muted)]">
+        Worked example: a level-90 character with 800 base ATK, a 46.6% ATK sands, 20% from sub-stats, and a +311
+        feather has <span class="tnum text-[var(--text)]">800 × 1.666 + 311 ≈ 1,644 ATK</span>. The key insight is
+        that <strong class="text-[var(--text)]">ATK% only multiplies Base ATK</strong> — so on a low-base-ATK character
+        like Hu Tao (106 base ATK), ATK% is nearly worthless and HP or Elemental Mastery scales far better.
+      </p>
+    </div>
+
+    <!-- 2. Skill multiplier -->
+    <div class="panel p-6">
+      <h3 class="text-xl font-semibold text-[var(--text)]">2. Skill multiplier <span class="text-gold-300">— your talent number</span></h3>
+      <p class="mt-3 text-[var(--muted)]">
+        Every talent has a multiplier expressed as a percentage of ATK — a "300%" talent means the hit deals 3.0× your
+        Total ATK before any other factor. This is the single most underrated upgrade in the game: each talent level
+        from 8 to 10 is a guaranteed <strong class="text-[var(--text)]">6-7% damage increase</strong> on that skill,
+        with no RNG, no farming, no resin lottery. Leveling your main talent to 9 or 10 is almost always the highest
+        return-per-resin action you can take, which is why the calculator defaults to a talent-10 reference panel.
+      </p>
+      <p class="mt-3 text-[var(--muted)]">
+        When comparing characters, remember that a character's power is the product of their talent multipliers
+        <em>and</em> how often those hits land. A 900% single hit (Zhongli's Planet Befall) and a 200% hit that
+        repeats twenty times (Ayaka's burst) can deal similar total damage.
+      </p>
+    </div>
+
+    <!-- 3. DMG Bonus -->
+    <div class="panel p-6">
+      <h3 class="text-xl font-semibold text-[var(--text)]">3. DMG Bonus <span class="text-hydro">— elemental &amp; weapon bonuses</span></h3>
+      <p class="mt-3 text-[var(--muted)]">
+        Your elemental goblet (46.6%), weapon passives, artifact set bonuses (Crimson Witch's Pyro bonus, Emblem's
+        burst bonus), and supports like Kazuha or Yelan all add into <strong class="text-[var(--text)]">one single
+        multiplier</strong>: (1 + total DMG Bonus). Because they stack additively, the more DMG Bonus you already
+        have, the less each additional 46.6% is worth <em>relatively</em>. This is exactly why an ATK% goblet can beat
+        an elemental goblet when a character already has a huge DMG Bonus from their kit.
+      </p>
+      <p class="mt-3 text-[var(--muted)]">
+        The general rule: if your DMG Bonus (goblet + weapon + set) is under ~100%, an elemental goblet is almost
+        always best. Past ~150% total bonus, a well-rolled ATK% goblet becomes competitive. The calculator's
+        "Add +46.6% DMG bonus" advisor row shows exactly how much an elemental goblet is worth on your current build.
+      </p>
+    </div>
+
+    <!-- 4. CRIT -->
+    <div class="panel p-6">
+      <h3 class="text-xl font-semibold text-[var(--text)]">4. CRIT <span class="text-cryo">— the 1:2 balancing act</span></h3>
+      <p class="mt-3 text-[var(--muted)]">
+        A crit multiplies the hit by (1 + Crit DMG). Averaged over many hits, your expected damage uses the multiplier
+        <strong class="text-[var(--text)]">(1 + Crit Rate × Crit DMG)</strong>. Because Crit Rate and Crit DMG multiply
+        each other, and because a single Crit Rate roll (max 3.9%) is worth exactly half a Crit DMG roll (max 7.8%),
+        the mathematically optimal balance is <strong class="text-[var(--text)]">1:2</strong>.
+      </p>
+      <p class="mt-3 text-[var(--muted)]">
+        Concretely: a 50% / 200% build has a crit multiplier of 1 + 0.5 × 2.0 = <span class="tnum text-[var(--text)]">2.0</span>,
+        while a 70% / 160% build with the same total investment reaches 1 + 0.7 × 1.6 =
+        <span class="tnum text-[var(--text)]">2.12</span> — a genuine ~6% damage gain just from rebalancing. Aim for at
+        least 60% Crit Rate on a main DPS before stacking more Crit DMG.
+      </p>
+    </div>
+
+    <!-- 5. Reaction -->
+    <div class="panel p-6">
+      <h3 class="text-xl font-semibold text-[var(--text)]">5. Reaction <span class="text-pyro">— Vaporize &amp; Melt amplify</span></h3>
+      <p class="mt-3 text-[var(--muted)]">
+        Vaporize multiplies the entire hit by 1.5×, Melt by 2.0× (when the correct element triggers). Elemental
+        Mastery then scales that bonus by <span class="tnum text-[var(--text)]">2.78 × EM ÷ (EM + 1400)</span>, so the
+        first 100 EM is worth far more than the next 100 — this steep drop-off is why reaction carries want
+        <em>some</em> EM (roughly 100-200) but rarely stack it past 300. Transformative reactions (Overload, Bloom,
+        Hyperbloom) work differently and are covered in the next section.
+      </p>
+    </div>
+
+    <!-- 6. DEF -->
+    <div class="panel p-6">
+      <h3 class="text-xl font-semibold text-[var(--text)]">6. DEF multiplier <span class="text-dendro">— why level matters</span></h3>
+      <p class="mt-3 text-[var(--muted)]">
+        Enemy defense reduces your damage by
+        <span class="tnum text-[var(--text)]">(Character Level + 100) ÷ ((Character Level + 100) + (Enemy Level + 100) × (1 − DEF Shred))</span>.
+        Against a same-level enemy this is exactly 0.5 — you deal half your pre-defense damage. Against a level-100
+        enemy it drops to ~0.487, which is why a level-80 carry loses noticeable damage against high-level Abyss
+        floors. DEF Shred (Lisa, Klee C2, Ayaka C4, Raiden C2) directly raises this term and is one of the rarest,
+        highest-value buffs in the game.
+      </p>
+    </div>
+
+    <!-- 7. RES -->
+    <div class="panel p-6">
+      <h3 class="text-xl font-semibold text-[var(--text)]">7. RES multiplier <span class="text-electro">— shred beats stats</span></h3>
+      <p class="mt-3 text-[var(--muted)]">
+        Most enemies have 10% resistance, so the baseline multiplier is 0.9. The Viridescent Venerer 4-piece set
+        shreds 40% RES, dropping a 10% enemy to −30%, which flips the multiplier to 1.15 — a
+        <strong class="text-[var(--text)]">~28% damage increase</strong> from a single support. That is why an Anemo
+        unit holding VV is in nearly every reaction team: no artifact sub-stat roll can match it. Below 0 RES each
+        point of shred is worth half, so extra shred past 0 has diminishing returns.
+      </p>
+    </div>
+
+    <!-- Why it matters -->
+    <div class="panel border-gold-400/40 bg-gold-400/5 p-6">
+      <h3 class="text-xl font-semibold text-gold-300">Why this matters: multiplying, not adding</h3>
+      <p class="mt-3 text-[var(--muted)]">
+        Because all seven factors <em>multiply</em>, raising your weakest factor is worth far more than pushing an
+        already-high factor even higher. If your Crit multiplier is 1.3 while your DMG Bonus is already 1.8, one more
+        Crit roll beats another DMG bonus every time. The calculator's damage breakdown highlights your weakest
+        multiplier in red — start there. This is the entire philosophy behind the "highest-value upgrades" list:
+        it re-simulates each change and tells you which one actually moves the number.
+      </p>
+    </div>
+  </div>
+</section>

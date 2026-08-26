@@ -1,0 +1,208 @@
+@import "tailwindcss";
+@import "@fontsource-variable/outfit";
+
+@theme {
+  /* Night-sky base (deep blue, not pure black) */
+  --color-night-50: #f2f4fb;
+  --color-night-100: #e2e7f5;
+  --color-night-200: #c3cde8;
+  --color-night-300: #97a8d4;
+  --color-night-400: #6480bb;
+  --color-night-500: #405f9c;
+  --color-night-600: #2f4a7e;
+  --color-night-700: #243a63;
+  --color-night-800: #1a2a49;
+  --color-night-900: #121d36;
+  --color-night-950: #0b1224;
+
+  /* Amber-gold accent (stardust / rarity gold) */
+  --color-gold-50: #fdf9ee;
+  --color-gold-100: #faf0d2;
+  --color-gold-200: #f4dfa1;
+  --color-gold-300: #ecc767;
+  --color-gold-400: #e3ad3d;
+  --color-gold-500: #d7952a;
+  --color-gold-600: #b97620;
+  --color-gold-700: #94571d;
+  --color-gold-800: #7a461e;
+  --color-gold-900: #663b1d;
+
+  /* Element semantic colors (data-viz only, not accents) */
+  --color-pyro: #ff7a6e;
+  --color-hydro: #4cc3f0;
+  --color-electro: #b98cff;
+  --color-cryo: #7ad7e8;
+  --color-anemo: #6ee0c0;
+  --color-geo: #f2c14e;
+  --color-dendro: #8fd460;
+}
+
+:root {
+  color-scheme: dark;
+  --background: #0b1224;
+  --surface: #141d37;
+  --surface-2: #1a2442;
+  --line: #25304f;
+  --text: #e8ecf6;
+  --muted: #9aa5c0;
+  --soft: #1a2442;
+  --accent: #e3ad3d;
+  --accent-hover: #f4dfa1;
+  --accent-soft: #2a2313;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: "Outfit Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  font-feature-settings: "ss01" 1, "cv11" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+textarea,
+select,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+::selection {
+  background: #e3ad3d;
+  color: #0b1224;
+}
+
+/* Stardust background — layered radial glows over the night base */
+.stardust {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(1000px 500px at 85% -10%, rgb(227 173 61 / 0.07), transparent 60%),
+    radial-gradient(800px 500px at -10% 20%, rgb(100 128 187 / 0.10), transparent 60%),
+    radial-gradient(1.5px 1.5px at 12% 30%, rgb(232 236 246 / 0.5), transparent 100%),
+    radial-gradient(1px 1px at 38% 62%, rgb(232 236 246 / 0.35), transparent 100%),
+    radial-gradient(1.5px 1.5px at 64% 22%, rgb(232 236 246 / 0.4), transparent 100%),
+    radial-gradient(1px 1px at 80% 70%, rgb(232 236 246 / 0.3), transparent 100%),
+    radial-gradient(1px 1px at 52% 84%, rgb(232 236 246 / 0.35), transparent 100%),
+    radial-gradient(1.5px 1.5px at 26% 12%, rgb(232 236 246 / 0.3), transparent 100%);
+}
+
+.page-shell {
+  width: min(100% - 2rem, 1180px);
+  margin-inline: auto;
+}
+
+.section-pad {
+  padding-block: 5rem;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Tabular numbers for damage figures */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cards / panels */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+/* Element badge dot */
+.element-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: none;
+}
+
+/* Range input styling (dark) */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: #25304f;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #e3ad3d;
+  border: 3px solid #0b1224;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #e3ad3d;
+  border: 3px solid #0b1224;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+  cursor: pointer;
+}
+
+input[type="range"]:focus-visible {
+  box-shadow: 0 0 0 3px rgb(227 173 61 / 0.4);
+}
+
+/* Select & number input (dark) */
+select,
+input[type="number"],
+input[type="text"] {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 10px;
+}
+
+select:focus-visible,
+input[type="number"]:focus-visible,
+input[type="text"]:focus-visible {
+  outline: 2px solid #e3ad3d;
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,81 @@
+---
+// Team buff library — targets "bennett buff", "kazuha buff", "best support",
+// "how much does X buff" long-tail queries. Static, crawlable content.
+const buffs = [
+  {
+    name: "Bennett's Fantastic Voyage (Q)",
+    value: 'Flat ATK ≈ 900–1,200 + 20% ATK at C1',
+    impact: 'Single biggest common buff',
+    note: 'Scales off his base ATK only — artifacts do not count.',
+  },
+  {
+    name: 'Kazuha (A4 passive + VV)',
+    value: '40% RES shred + ≈4% DMG per 100 EM',
+    impact: '≈ +50–60% team damage at 1,000 EM',
+    note: '1000 EM ≈ 40% elemental DMG bonus for the whole team.',
+  },
+  {
+    name: 'Viridescent Venerer (4pc)',
+    value: 'Swirl shreds 40% enemy RES',
+    impact: '≈ +28% damage vs 10% RES enemies',
+    note: 'No artifact roll can match a VV holder — run one in every reaction team.',
+  },
+  {
+    name: "Furina's Let the People Rejoice (Q)",
+    value: 'Team DMG bonus up to ≈75% at max Fanfare',
+    impact: 'Highest ceiling team-wide DMG buff',
+    note: 'Needs a healer to stack Fanfare fast (or her C2).',
+  },
+  {
+    name: "Zhongli's Jade Shield",
+    value: '−20% all enemy RES + strong shield',
+    impact: '≈ +10–15% damage + comfort',
+    note: 'Also enables interruption-free carries like Hu Tao and Ganyu.',
+  },
+  {
+    name: 'Nahida (A1 passive)',
+    value: 'Shares up to 250 EM to the active character',
+    impact: 'Huge for reaction teams',
+    note: 'Scales off the highest-EM teammate.',
+  },
+  {
+    name: 'Noblesse Oblige (4pc)',
+    value: 'Party +20% ATK after Burst',
+    impact: 'Free team-wide ATK',
+    note: 'Standard on Bennett, Diona and other Burst supports.',
+  },
+  {
+    name: 'Thrilling Tales of Dragon Slayers (R5)',
+    value: '+48% ATK to the next character',
+    impact: 'Free 3-star team buff',
+    note: 'A free catalyst that rivals 5-star support weapons.',
+  },
+];
+---
+
+<section id="buffs" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">The buffs that make the numbers you see online</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    Streamer "screenshot" damage always stacks these. Without them your own hit will look much smaller — so before you
+    blame your artifacts, check which of these you are missing.
+  </p>
+
+  <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+    {buffs.map((b) => (
+      <div class="panel p-5">
+        <h3 class="font-semibold text-[var(--text)]">{b.name}</h3>
+        <p class="mt-1.5 text-sm text-gold-300/90">{b.value}</p>
+        <p class="mt-2 text-sm text-[var(--muted)]">
+          <span class="font-medium text-dendro">{b.impact}</span>
+        </p>
+        <p class="mt-1 text-xs text-[var(--muted)]/80">{b.note}</p>
+      </div>
+    ))}
+  </div>
+
+  <p class="mt-6 max-w-[65ch] text-sm text-[var(--muted)]">
+    These buffs stack multiplicatively with your carry's own stats — which is why a Bennett + Kazuha core turns a
+    40,000 hit into a 100,000+ hit. Toggle them in the calculator's team-buff chips to see exactly how much each one
+    adds to your build.
+  </p>
+</section>

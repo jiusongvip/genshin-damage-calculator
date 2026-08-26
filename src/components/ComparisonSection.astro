@@ -1,0 +1,60 @@
+---
+// Why us vs the incumbents — a transparent comparison table that builds trust
+// and targets "best genshin damage calculator" / "genshin damage calculator
+// alternatives" long-tail queries. Honest about where we do NOT win (full
+// artifact optimization), which is itself a trust signal.
+const rows = [
+  { feature: 'Zero-input presets (pick a character → instant reference damage)', us: '✓', aspirine: '✗', optimizer: '✗', paimon: '✗' },
+  { feature: 'UID import (pull your real build, no login)', us: '✓', aspirine: '✗', optimizer: '~', paimon: '✓' },
+  { feature: 'Weapon rankings computed by the engine (not text)', us: '✓', aspirine: '✗', optimizer: '✗', paimon: '~' },
+  { feature: 'Constellation value tables (C1–C6 gain)', us: '✓', aspirine: '~', optimizer: '✗', paimon: '✗' },
+  { feature: 'Artifact set & talent priority cheat sheets', us: '✓', aspirine: '✗', optimizer: '✗', paimon: '~' },
+  { feature: 'Full artifact optimizer (scan → auto-best build)', us: '✗', aspirine: '✗', optimizer: '✓', paimon: '~' },
+  { feature: 'No account, no manual sub-stat entry required', us: '✓', aspirine: '✗', optimizer: '✗', paimon: '✓' },
+  { feature: 'Mobile-friendly responsive layout', us: '✓', aspirine: '✗', optimizer: '~', paimon: '✓' },
+];
+---
+
+<section id="why-us" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Why this calculator is different</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    The big three calculators (Aspirine, Genshin Optimizer, paimon.app) are all excellent — but they are built for
+    hardcore optimizers who enjoy entering sub-stats. This tool optimizes for the other 90%: getting a trustworthy
+    damage number and a clear next step in under 30 seconds.
+  </p>
+
+  <div class="panel mt-8 overflow-x-auto">
+    <table class="w-full min-w-[640px] text-left text-sm">
+      <thead>
+        <tr class="border-b border-[var(--line)] text-[var(--muted)]">
+          <th class="px-4 py-3 font-medium">Feature</th>
+          <th class="px-3 py-3 text-center font-medium text-gold-300">This tool</th>
+          <th class="px-3 py-3 text-center font-medium">Aspirine</th>
+          <th class="px-3 py-3 text-center font-medium">Optimizer</th>
+          <th class="px-3 py-3 text-center font-medium">paimon.app</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr class="border-b border-[var(--line)] last:border-b-0">
+            <td class="px-4 py-2.5 text-[var(--text)]">{r.feature}</td>
+            <td class={`px-3 py-2.5 text-center ${r.us === '✓' ? 'text-dendro' : r.us === '~' ? 'text-gold-300' : 'text-[var(--muted)]'}`}>{r.us}</td>
+            <td class={`px-3 py-2.5 text-center ${r.aspirine === '✓' ? 'text-dendro' : r.aspirine === '~' ? 'text-gold-300' : 'text-[var(--muted)]'}`}>{r.aspirine}</td>
+            <td class={`px-3 py-2.5 text-center ${r.optimizer === '✓' ? 'text-dendro' : r.optimizer === '~' ? 'text-gold-300' : 'text-[var(--muted)]'}`}>{r.optimizer}</td>
+            <td class={`px-3 py-2.5 text-center ${r.paimon === '✓' ? 'text-dendro' : r.paimon === '~' ? 'text-gold-300' : 'text-[var(--muted)]'}`}>{r.paimon}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel mt-6 border-gold-400/40 bg-gold-400/5 p-6">
+    <h3 class="text-lg font-semibold text-gold-300">Honest note on what this is NOT</h3>
+    <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+      Genshin Optimizer is the better tool if you want to scan your entire artifact inventory and solve for the
+      mathematically optimal set. This calculator does not do full inventory optimization — instead it answers the
+      faster questions: "what can this character hit?", "which weapon is better?", "is that constellation worth it?",
+      and "what should I level next?". Use both: this page for quick decisions, Optimizer for deep artifact solving.
+    </p>
+  </div>
+</section>

@@ -1,0 +1,53 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="mt-auto border-t border-[var(--line)] bg-[#0b1224]">
+  <div class="page-shell grid grid-cols-1 gap-10 py-12 md:grid-cols-2 lg:grid-cols-4">
+    <div class="lg:col-span-1">
+      <a href="/" class="text-lg font-semibold tracking-[-0.02em] text-[var(--text)]">
+        Genshin Damage Calculator
+      </a>
+      <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+        Free Genshin Impact damage calculator. Pick a preset or import your UID, compare weapons and artifacts, and see exactly how much damage you'll deal — no signup required.
+      </p>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-semibold text-[var(--text)]">Tools</h3>
+      <ul class="mt-3 space-y-2">
+        <li><a href="#calculator" class="text-sm text-[var(--muted)] hover:text-gold-300">Damage Calculator</a></li>
+        <li><a href="#presets" class="text-sm text-[var(--muted)] hover:text-gold-300">Character Presets</a></li>
+        <li><a href="#weapons" class="text-sm text-[var(--muted)] hover:text-gold-300">Weapon Comparison</a></li>
+        <li><a href="#formula" class="text-sm text-[var(--muted)] hover:text-gold-300">Damage Formula</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-semibold text-[var(--text)]">Resources</h3>
+      <ul class="mt-3 space-y-2">
+        <li><a href="#guide" class="text-sm text-[var(--muted)] hover:text-gold-300">How to Use</a></li>
+        <li><a href="#increase-damage" class="text-sm text-[var(--muted)] hover:text-gold-300">Increase Damage</a></li>
+        <li><a href="#mistakes" class="text-sm text-[var(--muted)] hover:text-gold-300">Common Mistakes</a></li>
+        <li><a href="#faq" class="text-sm text-[var(--muted)] hover:text-gold-300">FAQ</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-semibold text-[var(--text)]">About</h3>
+      <p class="mt-3 text-xs leading-relaxed text-[var(--muted)]">
+        Independent fan-made tool. Not affiliated with, endorsed by, or sponsored by HoYoverse, miHoYo, or Cognosphere. Genshin Impact and all related assets are property of their respective owners. Damage values are estimates from the official formula and may differ slightly from in-game rounding.
+      </p>
+      <p class="mt-3 text-xs leading-relaxed text-[var(--muted)]">
+        Privacy: the UID you enter is sent only to the public Enka.network API to read your in-game showcase. We do not store your UID or build, and no account or password is ever requested.
+      </p>
+    </div>
+  </div>
+
+  <div class="border-t border-[var(--line)]">
+    <div class="page-shell flex flex-col gap-2 py-6 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
+      <p>&copy; {currentYear} Genshin Damage Calculator. All rights reserved.</p>
+      <p>Updated for Genshin Impact version 7.0.</p>
+    </div>
+  </div>
+</footer>

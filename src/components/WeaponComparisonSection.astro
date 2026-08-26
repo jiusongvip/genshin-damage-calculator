@@ -1,0 +1,105 @@
+---
+// Weapon rankings, computed — targets "best weapon for X", "homa vs catch",
+// "engulfing lightning vs the catch" long-tail queries. Unlike guide sites
+// that describe weapons in words, this ranks them by the damage the engine
+// actually computes on the same preset panel.
+import { getCharacter } from '../data/characters';
+import { getWeapon } from '../data/weapons';
+import { ENEMIES } from '../data/enemies';
+import { DEFAULT_BUFFS, resolvePreset } from '../data/presets';
+import { computeDamage, formatNumber } from '../lib/damage';
+import type { AmplifiedReaction } from '../lib/damage';
+
+const enemy = ENEMIES[0];
+
+// [characterId, weaponIds] — best weapon first is irrelevant; we re-sort by damage.
+const WEAPON_SETS: [string, string[]][] = [
+  ['hu-tao', ['staff-of-homa', 'dragons-bane', 'deathmatch']],
+  ['raiden-shogun', ['engulfing-lightning', 'the-catch', 'skyward-spine']],
+  ['neuvillette', ['tome-of-eternal-flow', 'lost-prayer', 'sacrificial-fragments']],
+  ['ganyu', ['amos-bow', 'aqua-simulacra', 'skyward-harp']],
+  ['ayaka', ['mistsplitter-reforged', 'primordial-jade-cutter', 'the-black-sword']],
+  ['xiao', ['primordial-jade-winged-spear', 'staff-of-homa', 'deathmatch']],
+  ['arlecchino', ['crimson-moon-semblance', 'staff-of-homa', 'deathmatch']],
+  ['xiangling', ['the-catch', 'staff-of-homa', 'dragons-bane']],
+  ['alhaitham', ['light-of-foliar-incision', 'mistsplitter-reforged', 'the-black-sword']],
+  ['navia', ['verdict', 'wolfs-gravestone', 'serpent-spine']],
+];
+
+const comparisons = WEAPON_SETS.map(([charId, weaponIds]) => {
+  const character = getCharacter(charId)!;
+  const amplified: AmplifiedReaction =
+    character.element === 'pyro' ? 'vaporize' : character.element === 'cryo' ? 'melt' : 'none';
+
+  const rows = weaponIds.map((wid) => {
+    const weapon = getWeapon(wid)!;
+    const r = computeDamage({
+      character,
+      weapon,
+      artifacts: resolvePreset(character),
+      buffs: DEFAULT_BUFFS,
+      enemy,
+      characterLevel: 90,
+      amplified,
+      transformative: 'none',
+    });
+    return { weapon, expected: r.expected };
+  });
+
+  rows.sort((a, b) => b.expected - a.expected);
+  const best = rows[0].expected;
+  return {
+    character,
+    amplifiedLabel: amplified === 'vaporize' ? 'Vaporize' : amplified === 'melt' ? 'Melt' : 'raw',
+    rows: rows.map((r) => ({
+      weapon: r.weapon,
+      expected: r.expected,
+      pct: r.expected / best,
+    })),
+  };
+});
+---
+
+<section id="weapons" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+  <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Weapon rankings, computed — not guessed</h2>
+  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+    Most guides tell you a weapon is "best" without numbers. Here each weapon is run through the same damage engine on
+    the character's reference panel (level 90, talent 10, recommended artifacts, no team buffs). The top weapon is
+    100% — every other row shows the real percentage you leave on the table by using it instead.
+  </p>
+
+  <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
+    {comparisons.map(({ character, amplifiedLabel, rows }) => (
+      <div class="panel p-6">
+        <div class="flex items-baseline justify-between gap-3">
+          <h3 class="text-lg font-semibold text-[var(--text)]">{character.name}</h3>
+          <span class="text-xs text-[var(--muted)]">{amplifiedLabel} damage</span>
+        </div>
+        <div class="mt-4 overflow-hidden rounded-[10px] border border-[var(--line)]">
+          <table class="w-full text-left text-sm">
+            <tbody>
+              {rows.map(({ weapon, expected, pct }, i) => (
+                <tr class="border-b border-[var(--line)] last:border-b-0">
+                  <td class="px-3 py-2.5 text-[var(--text)]">
+                    {weapon.name}
+                    {i === 0 && <span class="ml-2 rounded bg-gold-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-gold-300">BEST</span>}
+                  </td>
+                  <td class="tnum px-3 py-2.5 text-right font-medium text-[var(--text)]">{formatNumber(expected)}</td>
+                  <td class={`tnum w-16 px-3 py-2.5 text-right font-semibold ${i === 0 ? 'text-gold-300' : 'text-[var(--muted)]'}`}>
+                    {i === 0 ? '100%' : `${(pct * 100).toFixed(1)}%`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <p class="mt-6 max-w-[65ch] text-sm text-[var(--muted)]">
+    Numbers are computed at equal refinement (R1) with no external buffs, so they reflect the weapon's own value. Team
+    buffs, refinements and your exact artifacts will shift the gaps — use the A/B comparison in the calculator to get
+    your personal number.
+  </p>
+</section>
