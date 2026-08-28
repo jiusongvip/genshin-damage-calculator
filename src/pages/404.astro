@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const title = '404 - Page Not Found | Genshin Damage Calculator';
+const description =
+  'The page you are looking for does not exist or has moved. Return to the free Genshin Impact damage calculator to keep theorycrafting.';
+---
+
+<BaseLayout title={title} description={description} noindex>
+  <section class="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center px-6 py-24 text-center">
+    <p class="text-sm uppercase tracking-[0.35em] text-[var(--muted)]">Error 404</p>
+    <h1 class="mt-4 font-display text-4xl font-semibold text-[var(--text)] md:text-5xl">Page not found</h1>
+    <p class="mt-6 max-w-xl text-lg leading-relaxed text-[var(--muted)]">
+      The page you are looking for does not exist or has moved. Head back to the calculator to keep building your
+      team.
+    </p>
+    <a
+      href="/"
+      class="mt-10 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-8 py-3 font-medium text-white transition hover:bg-[var(--accent-hover)]"
+    >
+      <i class="fa-solid fa-calculator" aria-hidden="true"></i>
+      Back to the calculator
+    </a>
+  </section>
+</BaseLayout>
