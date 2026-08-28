@@ -23,3 +23,6 @@ genshindamagecalculator.com-audit/
 
 # local preview logs
 preview.log
+
+dev.log
+dev.err
