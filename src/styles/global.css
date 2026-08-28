@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@import "@fontsource-variable/outfit";
+@import "@fontsource-variable/sora";
+@import "@fontsource-variable/cinzel";
 
 @theme {
   /* Night-sky base (deep blue, not pure black) */
@@ -13,19 +14,19 @@
   --color-night-700: #243a63;
   --color-night-800: #1a2a49;
   --color-night-900: #121d36;
-  --color-night-950: #0b1224;
+  --color-night-950: #FFFBE7;
 
-  /* Amber-gold accent (stardust / rarity gold) */
-  --color-gold-50: #fdf9ee;
-  --color-gold-100: #faf0d2;
-  --color-gold-200: #f4dfa1;
-  --color-gold-300: #ecc767;
-  --color-gold-400: #e3ad3d;
-  --color-gold-500: #d7952a;
-  --color-gold-600: #b97620;
-  --color-gold-700: #94571d;
-  --color-gold-800: #7a461e;
-  --color-gold-900: #663b1d;
+  /* Forest-green accent — Primland-inspired luxury (cream bg + forest green) */
+  --color-forest-50: #f1f5f0;
+  --color-forest-100: #dee8dd;
+  --color-forest-200: #c0d2be;
+  --color-forest-300: #9ab698;
+  --color-forest-400: #729674;
+  --color-forest-500: #456a4b;
+  --color-forest-600: #3a5940;
+  --color-forest-700: #2f4834;
+  --color-forest-800: #273a2c;
+  --color-forest-900: #1e2f23;
 
   /* Element semantic colors (data-viz only, not accents) */
   --color-pyro: #ff7a6e;
@@ -35,20 +36,23 @@
   --color-anemo: #6ee0c0;
   --color-geo: #f2c14e;
   --color-dendro: #8fd460;
+
+  /* Genshin-style display — Trajan/Cinzel caps, matches the game's logo lettering */
+  --font-display: "Cinzel Variable", "Times New Roman", serif;
 }
 
 :root {
-  color-scheme: dark;
-  --background: #0b1224;
-  --surface: #141d37;
-  --surface-2: #1a2442;
-  --line: #25304f;
-  --text: #e8ecf6;
-  --muted: #9aa5c0;
-  --soft: #1a2442;
-  --accent: #e3ad3d;
-  --accent-hover: #f4dfa1;
-  --accent-soft: #2a2313;
+  color-scheme: light;
+  --background: #fffbe7;
+  --surface: #ffffff;
+  --surface-2: #f5f0e1;
+  --line: #e6dec6;
+  --text: #1f2b22;
+  --muted: #6f7c71;
+  --soft: #f2ecdb;
+  --accent: #456a4b;
+  --accent-hover: #5a8261;
+  --accent-soft: #eaf0e9;
 }
 
 * {
@@ -63,10 +67,26 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--text);
-  font-family: "Outfit Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  font-family: "Sora Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-feature-settings: "ss01" 1, "cv11" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Headings: Genshin-style Cinzel caps + balanced wraps */
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: var(--font-display);
+  text-wrap: balance;
+  letter-spacing: 0.01em !important;
+  font-weight: 600;
+}
+
+h1 {
+  letter-spacing: 0.015em !important;
 }
 
 a {
@@ -91,22 +111,22 @@ button:disabled {
 }
 
 ::selection {
-  background: #e3ad3d;
-  color: #0b1224;
+  background: #456A4B;
+  color: #FFFBE7;
 }
 
-/* Stardust background — layered radial glows over the night base */
+/* Stardust background — layered soft glows over the warm ivory base */
 .stardust {
   background-color: var(--background);
   background-image:
-    radial-gradient(1000px 500px at 85% -10%, rgb(227 173 61 / 0.07), transparent 60%),
-    radial-gradient(800px 500px at -10% 20%, rgb(100 128 187 / 0.10), transparent 60%),
-    radial-gradient(1.5px 1.5px at 12% 30%, rgb(232 236 246 / 0.5), transparent 100%),
-    radial-gradient(1px 1px at 38% 62%, rgb(232 236 246 / 0.35), transparent 100%),
-    radial-gradient(1.5px 1.5px at 64% 22%, rgb(232 236 246 / 0.4), transparent 100%),
-    radial-gradient(1px 1px at 80% 70%, rgb(232 236 246 / 0.3), transparent 100%),
-    radial-gradient(1px 1px at 52% 84%, rgb(232 236 246 / 0.35), transparent 100%),
-    radial-gradient(1.5px 1.5px at 26% 12%, rgb(232 236 246 / 0.3), transparent 100%);
+    radial-gradient(1000px 500px at 85% -10%, rgb(69 106 75 / 0.07), transparent 60%),
+    radial-gradient(800px 500px at -10% 20%, rgb(214 199 158 / 0.35), transparent 60%),
+    radial-gradient(1.5px 1.5px at 12% 30%, rgb(31 43 34 / 0.16), transparent 100%),
+    radial-gradient(1px 1px at 38% 62%, rgb(31 43 34 / 0.12), transparent 100%),
+    radial-gradient(1.5px 1.5px at 64% 22%, rgb(31 43 34 / 0.13), transparent 100%),
+    radial-gradient(1px 1px at 80% 70%, rgb(31 43 34 / 0.1), transparent 100%),
+    radial-gradient(1px 1px at 52% 84%, rgb(31 43 34 / 0.12), transparent 100%),
+    radial-gradient(1.5px 1.5px at 26% 12%, rgb(31 43 34 / 0.1), transparent 100%);
 }
 
 .page-shell {
@@ -132,6 +152,7 @@ button:disabled {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(31 43 34 / 0.04), 0 10px 28px -18px rgb(69 106 75 / 0.18);
 }
 
 /* Element badge dot */
@@ -149,7 +170,7 @@ input[type="range"] {
   appearance: none;
   height: 6px;
   border-radius: 999px;
-  background: #25304f;
+  background: #e6dec6;
   outline: none;
 }
 
@@ -159,8 +180,8 @@ input[type="range"]::-webkit-slider-thumb {
   width: 20px;
   height: 20px;
   border-radius: 999px;
-  background: #e3ad3d;
-  border: 3px solid #0b1224;
+  background: #456A4B;
+  border: 3px solid #FFFBE7;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
   cursor: pointer;
 }
@@ -169,17 +190,17 @@ input[type="range"]::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 999px;
-  background: #e3ad3d;
-  border: 3px solid #0b1224;
+  background: #456A4B;
+  border: 3px solid #FFFBE7;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
   cursor: pointer;
 }
 
 input[type="range"]:focus-visible {
-  box-shadow: 0 0 0 3px rgb(227 173 61 / 0.4);
+  box-shadow: 0 0 0 3px rgb(69 106 75 / 0.35);
 }
 
-/* Select & number input (dark) */
+/* Select & number input (light) */
 select,
 input[type="number"],
 input[type="text"] {
@@ -192,8 +213,42 @@ input[type="text"] {
 select:focus-visible,
 input[type="number"]:focus-visible,
 input[type="text"]:focus-visible {
-  outline: 2px solid #e3ad3d;
+  outline: 2px solid #456A4B;
   outline-offset: 1px;
+}
+
+/* Scroll reveal — sections fade up as they enter the viewport */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Gentle float for hero element icons */
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+.hero-float {
+  animation: floatY 5s ease-in-out infinite;
+}
+
+/* Expandable deep-dive */
+details.accordion summary {
+  cursor: pointer;
+  list-style: none;
+}
+details.accordion summary::-webkit-details-marker {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

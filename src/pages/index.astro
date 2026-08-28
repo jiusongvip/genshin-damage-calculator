@@ -16,13 +16,14 @@ import { getWeapon } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, resolvePreset } from '../data/presets';
 import { FAQS } from '../data/faqs';
+import { FEATURED_CHARACTERS, OFFICIAL_VIDEOS, OFFICIAL_YOUTUBE } from '../data/media';
 import { computeDamage, formatNumber, formatPercent } from '../lib/damage';
 import type { ElementType } from '../lib/damage';
 
 const siteURL = 'https://www.genshindamagecalculator.com';
 const version = '7.0';
 
-// Pre-compute each character's preset damage so the numbers render in the
+// Pre-compute each character’s preset damage so the numbers render in the
 // initial HTML (static fallback + crawlable content, no JS required).
 const enemy = ENEMIES[0];
 const presetRows = CHARACTERS.map((c) => {
@@ -39,6 +40,9 @@ const presetRows = CHARACTERS.map((c) => {
   });
   return { character: c, weapon, expected: r.expected, critRate: r.critRate, critDMG: r.critDMG };
 });
+
+// Authoritative damage endorser for the hero — the roster's top burst authority.
+const endorser = presetRows.find((r) => r.character.id === 'mavuika') ?? presetRows[0];
 
 // Group presets by element for a crawlable, per-element directory.
 const ELEMENT_ORDER: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
@@ -83,7 +87,7 @@ const schema = [
     softwareVersion: version,
     dateModified: new Date().toISOString().slice(0, 10),
     description,
-    author: { '@type': 'Person', name: 'Jiusong', jobTitle: 'Independent developer', url: siteURL },
+    author: { '@type': 'Person', name: 'Kai Ren', jobTitle: 'Independent developer', url: siteURL },
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     featureList: [
       'Zero-input character presets with end-game reference panels',
@@ -117,33 +121,201 @@ const schema = [
   {
     '@context': 'https://schema.org',
     '@type': 'Person',
-    name: 'Jiusong',
+    name: 'Kai Ren',
     jobTitle: 'Independent developer',
     url: siteURL,
     description: 'Independent developer and long-time Genshin Impact player. Maintains the calculator data against the live game and cross-checks multipliers against the official damage formula.',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'VideoGame',
+    name: 'Genshin Impact',
+    url: 'https://genshin.hoyoverse.com/',
+    gamePlatform: ['Windows', 'PlayStation 4', 'PlayStation 5', 'iOS', 'Android'],
+    applicationCategory: 'Game',
+    publisher: { '@type': 'Organization', name: 'HoYoverse' },
+    description: 'Open-world action RPG by HoYoverse. This calculator models its official damage formula.',
   },
 ];
 ---
 
 <BaseLayout title={title} description={description} schema={schema}>
-  <!-- ============ Hero + Calculator ============ -->
-  <section id="calculator" class="page-shell section-pad scroll-mt-20">
-    <div class="mx-auto max-w-3xl text-center">
-      <h1 class="text-balance text-4xl font-semibold tracking-tighter text-[var(--text)] md:text-5xl">
-        Genshin Damage Calculator
-      </h1>
-      <p class="mx-auto mt-4 max-w-[56ch] text-lg leading-relaxed text-[var(--muted)]">
-        Import your UID or pick a preset, compare weapons and artifacts, and see exactly how much damage you'll deal.
-      </p>
-      <p class="mt-3 text-sm text-[var(--muted)]/70">
-        Free · No signup · Updated for version {version}
-      </p>
-    </div>
+  <!-- ============ Hero ============ -->
+  <section id="top" class="relative overflow-hidden border-b border-[var(--line)]">
+    <div class="absolute inset-0 bg-linear-to-br from-forest-500/[0.08] via-transparent to-forest-200/[0.45]" aria-hidden="true"></div>
+    <div class="absolute inset-0" style="background: radial-gradient(1200px 600px at 80% -10%, rgb(69 106 75 / 0.07), transparent 60%), radial-gradient(900px 500px at 10% 30%, rgb(214 199 158 / 0.4), transparent 60%)" aria-hidden="true"></div>
+    <div class="page-shell relative flex min-h-[540px] flex-col justify-center py-20 md:min-h-[600px] md:py-24">
+      <div class="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-[0.2em] text-forest-600">
+            Genshin Impact · Free damage calculator · Version {version}
+          </p>
+          <h1 class="mt-4 max-w-3xl bg-linear-to-r from-forest-700 via-forest-600 to-forest-400 bg-clip-text text-5xl font-semibold tracking-tighter text-transparent md:text-6xl xl:text-7xl">
+            Genshin Damage Calculator
+          </h1>
+          <p class="mt-5 max-w-[52ch] text-lg leading-relaxed text-[var(--text)]/85">
+            Pick a preset or import your UID, compare weapons and artifacts, and see exactly how much damage you’ll deal — no login, no guesswork.
+          </p>
+          <div class="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#calculator" class="rounded-xl bg-forest-300 px-6 py-3 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">
+              Open the calculator
+            </a>
+            <a href="#presets" class="rounded-xl border border-[var(--line)] bg-white/50 px-6 py-3 text-sm font-semibold text-[var(--text)] transition-colors hover:border-forest-500 hover:text-forest-600">
+              Browse character presets
+            </a>
+          </div>
+          <p class="mt-7 flex flex-wrap gap-x-5 gap-y-1 text-sm text-[var(--muted)]">
+            <span>Free · No signup</span>
+            <span aria-hidden="true">·</span>
+            <span>Data snapshot: version {version} (Snezhnaya, Aug 12 2026)</span>
+            <span aria-hidden="true">·</span>
+            <span>All 7 elements</span>
+          </p>
+        </div>
 
-    <div class="mt-10">
+        <div class="panel overflow-hidden">
+          <div class="relative aspect-[2/1] overflow-hidden">
+            <img
+              src="/images/official/mavuika.webp"
+              alt="Official Mavuika splash art — the Pyro Archon"
+              width="900"
+              height="450"
+              class="h-full w-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
+            <div class="absolute inset-0 bg-linear-to-t from-[#FFFBE7]/90 to-transparent" aria-hidden="true"></div>
+          </div>
+          <div class="p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-forest-600">Reference damage · Pyro Archon</p>
+            <div class="mt-2 flex flex-wrap items-baseline justify-between gap-2">
+              <p class="text-lg font-semibold text-[var(--text)]">Mavuika</p>
+              <p class="tnum text-3xl font-semibold tracking-tight text-forest-700">{formatNumber(endorser.expected)}</p>
+            </div>
+            <p class="mt-1 text-xs leading-relaxed text-[var(--muted)]">
+              Level 90 · Talent 10 · Vaporize Burst · no team buffs. A reference panel for the Pyro Archon — the same engine computes every character below.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-12 flex flex-wrap items-center gap-2.5" aria-hidden="true">
+        {ELEMENT_ORDER.map((el, i) => (
+          <img
+            src={`/images/element-${el}.webp`}
+            alt=""
+            width="393"
+            height="393"
+            class="hero-float h-11 w-11 rounded-xl object-cover opacity-80 ring-1 ring-[var(--line)] sm:h-14 sm:w-14"
+            style={`animation-delay: ${i * 0.35}s`}
+            loading="lazy"
+            decoding="async"
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Calculator ============ -->
+  <section id="calculator" class="page-shell section-pad scroll-mt-20">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">The calculator</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Calculate your exact damage</h2>
+      </div>
+      <a href="#guide" class="text-sm text-[var(--muted)] underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">How to use it</a>
+    </div>
+    <div class="mt-8">
       <DamageCalculator client:load />
     </div>
   </section>
+
+  <!-- ============ Featured characters (official art) ============ -->
+  <section id="featured" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Official character art</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Featured carries</h2>
+        <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+          Every character in the roster has a reference panel. Start with one of these — official art, all seven elements, one calculator.
+        </p>
+      </div>
+    </div>
+    <div class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+      {FEATURED_CHARACTERS.map((c) => (
+        <a href="#calculator" class="panel group overflow-hidden transition-colors hover:border-forest-500">
+          <div class="relative aspect-[2/1] overflow-hidden">
+            <img
+              src={`/images/official/${c.id}.webp`}
+              alt={`Official ${c.name} splash art — ${ELEMENT_LABEL[c.element]} ${c.role}`}
+              width="900"
+              height="450"
+              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
+            />
+            <div class="absolute inset-x-0 bottom-0 bg-linear-to-t from-[#FFFBE7]/95 via-[#FFFBE7]/55 to-transparent px-3 pb-2.5 pt-10">
+              <p class="flex items-center gap-1.5 font-semibold text-[var(--text)]">
+                <span class={`element-dot ${ELEMENT_DOT[c.element]}`} aria-hidden="true"></span>
+                {c.name}
+              </p>
+              <p class="text-xs text-[var(--muted)]">{c.role}</p>
+            </div>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <!-- ============ Official videos ============ -->
+  <section id="videos" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Official media</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Official videos</h2>
+        <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+          Character demos and version trailers straight from the official Genshin Impact channel.
+        </p>
+      </div>
+    </div>
+    {OFFICIAL_VIDEOS.length > 0 ? (
+      <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+        {OFFICIAL_VIDEOS.map((v) => (
+          <div class="panel overflow-hidden">
+            <div class="aspect-video">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${v.id}`}
+                title={v.title}
+                loading="lazy"
+                class="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <div class="p-4">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-forest-600">{v.type}</p>
+              <p class="mt-1 font-semibold text-[var(--text)]">{v.title}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="panel mt-8 flex flex-col items-center gap-4 p-8 text-center">
+        <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-forest-500/12 text-forest-700">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+        </span>
+        <p class="text-lg font-semibold text-[var(--text)]">Character demos &amp; version trailers</p>
+        <p class="max-w-[52ch] text-sm leading-relaxed text-[var(--muted)]">
+          Watch official trailers, character demos and teasers on the Genshin Impact YouTube channel.
+        </p>
+        <a href={OFFICIAL_YOUTUBE} target="_blank" rel="noopener" class="rounded-xl bg-forest-300 px-5 py-2.5 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">
+          Visit the official channel
+        </a>
+      </div>
+    )}
+  </section>
+
 
   <!-- ============ Features ============ -->
   <section id="features" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
@@ -151,7 +323,7 @@ const schema = [
     <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
       <div class="panel p-6">
         <div class="flex items-center gap-3">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-400/15 text-gold-300">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-forest-500/12 text-forest-600">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4L12 2z"/></svg>
           </span>
           <h3 class="text-lg font-semibold text-[var(--text)]">Zero-input presets</h3>
@@ -197,23 +369,41 @@ const schema = [
 
     {presetByElement.map((group) => (
       <div class="mt-10">
-        <h3 class="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[var(--text)]">
-          <span class={`element-dot ${ELEMENT_DOT[group.element]}`} aria-hidden="true"></span>
+        <h3 class="flex items-center gap-3 text-xl font-semibold tracking-tight text-[var(--text)]">
+          <img
+            src={`/images/element-${group.element}.webp`}
+            alt=""
+            width="393"
+            height="393"
+            class="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-[var(--line)]"
+            loading="lazy"
+            decoding="async"
+          />
           {ELEMENT_LABEL[group.element]} characters
           <span class="text-sm font-normal text-[var(--muted)]">({group.rows.length})</span>
         </h3>
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {group.rows.map(({ character, weapon, expected, critRate, critDMG }) => (
-            <a href="#calculator" class="panel group p-5 transition-colors hover:border-gold-400/60">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                  <span class={`element-dot ${ELEMENT_DOT[character.element]}`} aria-hidden="true"></span>
-                  <span class="font-semibold text-[var(--text)]">{character.name}</span>
-                  <span class="text-xs tracking-tight text-gold-300">{'★'.repeat(character.rarity)}</span>
+            <a href="#calculator" class="panel group p-5 transition-colors hover:border-forest-500">
+              <div class="flex items-center gap-3">
+                <img
+                  src={`/images/portraits/${character.id}.webp`}
+                  alt={`Official ${character.name} portrait`}
+                  width="128"
+                  height="128"
+                  class="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-[var(--line)]"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate font-semibold text-[var(--text)]">{character.name}</p>
+                  <p class="flex items-center gap-2 text-xs text-[var(--muted)]">
+                    <span class={`element-dot ${ELEMENT_DOT[character.element]}`} aria-hidden="true"></span>
+                    {ELEMENT_LABEL[character.element]} · <span class="tracking-tight text-forest-600">{'★'.repeat(character.rarity)}</span>
+                  </p>
                 </div>
-                <span class="text-xs text-[var(--muted)]">{ELEMENT_LABEL[character.element]}</span>
               </div>
-              <p class="tnum mt-4 text-2xl font-semibold tracking-tight text-gold-300">{formatNumber(expected)}</p>
+              <p class="tnum mt-4 text-2xl font-semibold tracking-tight text-forest-600">{formatNumber(expected)}</p>
               <p class="text-xs text-[var(--muted)]">expected {character.element === 'pyro' ? 'Vaporize' : character.element === 'cryo' ? 'Melt' : 'raw'} damage</p>
               <p class="mt-2 text-xs leading-relaxed text-[var(--muted)]">{character.note}</p>
               <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--line)] pt-3 text-xs text-[var(--muted)]">
@@ -248,32 +438,32 @@ const schema = [
     <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">How to use the calculator</h2>
     <ol class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <li class="panel p-5">
-        <span class="tnum text-2xl font-semibold text-gold-400/60">01</span>
+        <span class="tnum text-2xl font-semibold text-forest-500/70">01</span>
         <h3 class="mt-2 font-semibold text-[var(--text)]">Pick a character</h3>
         <p class="mt-2 text-sm text-[var(--muted)]">Select from the dropdown. A reference end-game panel loads with the best weapon and artifact main stats.</p>
       </li>
       <li class="panel p-5">
-        <span class="tnum text-2xl font-semibold text-gold-400/60">02</span>
+        <span class="tnum text-2xl font-semibold text-forest-500/70">02</span>
         <h3 class="mt-2 font-semibold text-[var(--text)]">Choose a weapon</h3>
         <p class="mt-2 text-sm text-[var(--muted)]">Swap weapons to see the live expected-damage difference and decide if that 5-star is worth pulling.</p>
       </li>
       <li class="panel p-5">
-        <span class="tnum text-2xl font-semibold text-gold-400/60">03</span>
+        <span class="tnum text-2xl font-semibold text-forest-500/70">03</span>
         <h3 class="mt-2 font-semibold text-[var(--text)]">Set enemy &amp; reaction</h3>
         <p class="mt-2 text-sm text-[var(--muted)]">Choose the target and whether the hit Vaporizes or Melts — reaction choice changes the number a lot.</p>
       </li>
       <li class="panel p-5">
-        <span class="tnum text-2xl font-semibold text-gold-400/60">04</span>
+        <span class="tnum text-2xl font-semibold text-forest-500/70">04</span>
         <h3 class="mt-2 font-semibold text-[var(--text)]">Toggle team buffs</h3>
         <p class="mt-2 text-sm text-[var(--muted)]">Stack Bennett, Kazuha, Zhongli and more to see how a real team changes your output.</p>
       </li>
       <li class="panel p-5">
-        <span class="tnum text-2xl font-semibold text-gold-400/60">05</span>
+        <span class="tnum text-2xl font-semibold text-forest-500/70">05</span>
         <h3 class="mt-2 font-semibold text-[var(--text)]">Import your UID</h3>
         <p class="mt-2 text-sm text-[var(--muted)]">For the most accurate result, paste your UID to pull your actual showcased build via Enka.network.</p>
       </li>
       <li class="panel p-5">
-        <span class="tnum text-2xl font-semibold text-gold-400/60">06</span>
+        <span class="tnum text-2xl font-semibold text-forest-500/70">06</span>
         <h3 class="mt-2 font-semibold text-[var(--text)]">Read the breakdown</h3>
         <p class="mt-2 text-sm text-[var(--muted)]">Use the DEF and RES multipliers to spot which factor is dragging your damage down.</p>
       </li>
@@ -284,18 +474,40 @@ const schema = [
   <section id="updates" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
     <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Data &amp; updates</h2>
     <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-      Genshin Damage Calculator is an independent fan-made tool built and maintained by Jiusong, a long-time Genshin
+      Genshin Damage Calculator is an independent fan-made tool built and maintained by Kai Ren, a long-time Genshin
       Impact player. Character base stats, weapon stats, and talent multipliers are maintained against the live game
       and refreshed within 48 hours of each version patch. The calculation engine itself rarely changes — most updates
       are data refreshes.
     </p>
     <div class="panel mt-6 p-6">
       <ul class="space-y-3 text-sm text-[var(--muted)]">
-        <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Version 7.0 data snapshot</span><span class="text-[var(--text)]">Current</span></li>
-        <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Five-multiplier damage engine</span><span class="text-[var(--text)]">Live</span></li>
+        <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3">
+          <span>Version 7.0 data snapshot — Snezhnaya patch (new characters, weapons &amp; artifact sets)</span>
+          <span class="shrink-0 text-[var(--text)]">Aug 12, 2026</span>
+        </li>
+        <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Five-multiplier damage engine (official formula)</span><span class="text-[var(--text)]">Current</span></li>
         <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Enka.network UID import</span><span class="text-[var(--text)]">Live</span></li>
         <li class="flex justify-between gap-4"><span>New characters &amp; weapons</span><span class="text-[var(--text)]">Added each patch</span></li>
       </ul>
+    </div>
+
+    <div class="panel mt-6 flex flex-col gap-5 p-6 sm:flex-row sm:items-start">
+      <span class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-forest-500/12 text-2xl font-semibold text-forest-600 ring-1 ring-forest-500/25" aria-hidden="true">K</span>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-forest-600">Maintained by</p>
+        <p class="mt-1 text-lg font-semibold text-[var(--text)]">Kai Ren</p>
+        <p class="mt-1 text-sm leading-relaxed text-[var(--muted)]">
+          Independent developer and long-time Genshin Impact player. Maintains the character and weapon data against the live game,
+          cross-checks every multiplier against the official damage formula and KQM theorycrafting, and refreshes the snapshot within
+          48 hours of each version patch.
+        </p>
+        <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-[var(--muted)]">
+          <a href="https://genshin-impact.fandom.com/wiki/Damage" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Official damage formula</a>
+          <a href="https://keqingmains.com/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">KQM theorycrafting</a>
+          <a href="https://enka.network/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Enka.network data</a>
+          <a href="https://genshin.hoyoverse.com/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Official game site</a>
+        </div>
+      </div>
     </div>
   </section>
 

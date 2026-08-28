@@ -1,6 +1,6 @@
 ---
 // Five-multiplier deep dive — the information gain competitors' tool pages
-// don't provide. Rendered statically so search engines crawl every word.
+// don’t provide. Rendered statically so search engines crawl every word.
 ---
 
 <section id="formula" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
@@ -10,12 +10,12 @@
     diagnose exactly why a hit deals the number it does — and which single upgrade will move it the most. The
     calculator above breaks your exact panel into these same factors. The math follows the official damage formula,
     cross-checked against the
-    <a href="https://genshin-impact.fandom.com/wiki/Damage" target="_blank" rel="noopener" class="text-gold-300 underline decoration-gold-400/40 underline-offset-2 hover:text-gold-200">Genshin Impact wiki damage formula</a>.
+    <a href="https://genshin-impact.fandom.com/wiki/Damage" target="_blank" rel="noopener" class="text-forest-600 underline decoration-forest-500/50 underline-offset-2 hover:text-forest-700">Genshin Impact wiki damage formula</a>.
   </p>
 
   <div class="panel mt-8 overflow-x-auto p-6">
     <p class="tnum whitespace-nowrap text-center text-sm text-[var(--muted)] md:text-base">
-      <span class="text-gold-300">Total ATK</span>
+      <span class="text-forest-600">Total ATK</span>
       <span class="mx-2">×</span> Skill Multiplier
       <span class="mx-2">×</span> (1 + <span class="text-hydro">DMG Bonus</span>)
       <span class="mx-2">×</span> <span class="text-cryo">CRIT</span>
@@ -25,16 +25,21 @@
     </p>
   </div>
 
-  <div class="mt-8 space-y-6">
+  <details class="accordion mt-8">
+    <summary class="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 font-semibold text-[var(--text)] transition-colors hover:border-forest-300">
+      <span>How each of the 7 multipliers works</span>
+      <svg class="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform group-open:rotate-45" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+    </summary>
+    <div class="mt-6 space-y-6">
     <!-- 1. ATK -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">1. Total ATK <span class="text-gold-300">— the base of everything</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">1. Total ATK <span class="text-forest-600">— the base of everything</span></h3>
       <p class="mt-3 text-[var(--muted)]">
-        Total ATK is built from three parts: <strong class="text-[var(--text)]">Base ATK</strong> (your character's
-        white number plus your weapon's base attack — <em>not</em> the flat attack from artifacts), multiplied by
+        Total ATK is built from three parts: <strong class="text-[var(--text)]">Base ATK</strong> (your character’s
+        white number plus your weapon’s base attack — <em>not</em> the flat attack from artifacts), multiplied by
         <strong class="text-[var(--text)]">ATK%</strong> bonuses (artifact sands, sub-stats, weapon passives, team
-        buffs), then plus <strong class="text-[var(--text)]">Flat ATK</strong> (the feather artifact's +311, and
-        Bennett's buff). The formula is:
+        buffs), then plus <strong class="text-[var(--text)]">Flat ATK</strong> (the feather artifact’s +311, and
+        Bennett’s buff). The formula is:
       </p>
       <p class="tnum mt-3 rounded-[10px] bg-[var(--surface-2)] p-4 text-center text-sm text-[var(--text)]">
         Total ATK = (Base ATK) × (1 + ATK%) + Flat ATK
@@ -49,7 +54,7 @@
 
     <!-- 2. Skill multiplier -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">2. Skill multiplier <span class="text-gold-300">— your talent number</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">2. Skill multiplier <span class="text-forest-600">— your talent number</span></h3>
       <p class="mt-3 text-[var(--muted)]">
         Every talent has a multiplier expressed as a percentage of ATK — a "300%" talent means the hit deals 3.0× your
         Total ATK before any other factor. This is the single most underrated upgrade in the game: each talent level
@@ -58,9 +63,9 @@
         return-per-resin action you can take, which is why the calculator defaults to a talent-10 reference panel.
       </p>
       <p class="mt-3 text-[var(--muted)]">
-        When comparing characters, remember that a character's power is the product of their talent multipliers
-        <em>and</em> how often those hits land. A 900% single hit (Zhongli's Planet Befall) and a 200% hit that
-        repeats twenty times (Ayaka's burst) can deal similar total damage.
+        When comparing characters, remember that a character’s power is the product of their talent multipliers
+        <em>and</em> how often those hits land. A 900% single hit (Zhongli’s Planet Befall) and a 200% hit that
+        repeats twenty times (Ayaka’s burst) can deal similar total damage.
       </p>
     </div>
 
@@ -68,7 +73,7 @@
     <div class="panel p-6">
       <h3 class="text-xl font-semibold text-[var(--text)]">3. DMG Bonus <span class="text-hydro">— elemental &amp; weapon bonuses</span></h3>
       <p class="mt-3 text-[var(--muted)]">
-        Your elemental goblet (46.6%), weapon passives, artifact set bonuses (Crimson Witch's Pyro bonus, Emblem's
+        Your elemental goblet (46.6%), weapon passives, artifact set bonuses (Crimson Witch’s Pyro bonus, Emblem’s
         burst bonus), and supports like Kazuha or Yelan all add into <strong class="text-[var(--text)]">one single
         multiplier</strong>: (1 + total DMG Bonus). Because they stack additively, the more DMG Bonus you already
         have, the less each additional 46.6% is worth <em>relatively</em>. This is exactly why an ATK% goblet can beat
@@ -76,7 +81,7 @@
       </p>
       <p class="mt-3 text-[var(--muted)]">
         The general rule: if your DMG Bonus (goblet + weapon + set) is under ~100%, an elemental goblet is almost
-        always best. Past ~150% total bonus, a well-rolled ATK% goblet becomes competitive. The calculator's
+        always best. Past ~150% total bonus, a well-rolled ATK% goblet becomes competitive. The calculator’s
         "Add +46.6% DMG bonus" advisor row shows exactly how much an elemental goblet is worth on your current build.
       </p>
     </div>
@@ -134,17 +139,17 @@
         point of shred is worth half, so extra shred past 0 has diminishing returns.
       </p>
     </div>
+    </details>
 
     <!-- Why it matters -->
-    <div class="panel border-gold-400/40 bg-gold-400/5 p-6">
-      <h3 class="text-xl font-semibold text-gold-300">Why this matters: multiplying, not adding</h3>
+    <div class="panel mt-6 border-forest-500/30 bg-forest-500/8 p-6">
+      <h3 class="text-xl font-semibold text-forest-600">Why this matters: multiplying, not adding</h3>
       <p class="mt-3 text-[var(--muted)]">
         Because all seven factors <em>multiply</em>, raising your weakest factor is worth far more than pushing an
         already-high factor even higher. If your Crit multiplier is 1.3 while your DMG Bonus is already 1.8, one more
-        Crit roll beats another DMG bonus every time. The calculator's damage breakdown highlights your weakest
+        Crit roll beats another DMG bonus every time. The calculator’s damage breakdown highlights your weakest
         multiplier in red — start there. This is the entire philosophy behind the "highest-value upgrades" list:
         it re-simulates each change and tells you which one actually moves the number.
       </p>
     </div>
-  </div>
 </section>

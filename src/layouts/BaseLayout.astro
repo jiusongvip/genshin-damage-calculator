@@ -14,6 +14,8 @@ export interface Props {
 }
 
 const { title, description, canonicalURL, ogImage, schema, noindex } = Astro.props;
+
+const ga4Id = import.meta.env.PUBLIC_GA4_ID as string | undefined;
 ---
 
 <!doctype html>
@@ -28,6 +30,19 @@ const { title, description, canonicalURL, ogImage, schema, noindex } = Astro.pro
       schema={schema}
       noindex={noindex}
     />
+    {
+      ga4Id && (
+        <>
+          <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`} />
+          <script is:inline define:vars={{ ga4Id }}>
+            window.dataLayer = window.dataLayer || [];
+            function gtag() { dataLayer.push(arguments); }
+            gtag('js', new Date());
+            gtag('config', ga4Id);
+          </script>
+        </>
+      )
+    }
   </head>
   <body class="stardust flex min-h-[100dvh] flex-col">
     <Header />
@@ -37,3 +52,30 @@ const { title, description, canonicalURL, ogImage, schema, noindex } = Astro.pro
     <Footer />
   </body>
 </html>
+
+<script is:inline>
+  (function () {
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !('IntersectionObserver' in window)) return;
+    var sections = document.querySelectorAll('main section');
+    var els = [];
+    sections.forEach(function (s, i) {
+      if (i === 0) return; // keep the hero visible immediately
+      s.classList.add('reveal');
+      els.push(s);
+    });
+    if (!els.length) return;
+    var io = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) {
+            en.target.classList.add('reveal-in');
+            io.unobserve(en.target);
+          }
+        });
+      },
+      { threshold: 0.06, rootMargin: '0px 0px -40px 0px' }
+    );
+    els.forEach(function (el) { io.observe(el); });
+  })();
+</script>

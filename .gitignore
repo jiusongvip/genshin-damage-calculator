@@ -20,3 +20,6 @@ pnpm-debug.log*
 
 # local SEO audit reports
 genshindamagecalculator.com-audit/
+
+# local preview logs
+preview.log

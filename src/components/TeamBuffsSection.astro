@@ -3,7 +3,7 @@
 // "how much does X buff" long-tail queries. Static, crawlable content.
 const buffs = [
   {
-    name: "Bennett's Fantastic Voyage (Q)",
+    name: "Bennett’s Fantastic Voyage (Q)",
     value: 'Flat ATK ≈ 900–1,200 + 20% ATK at C1',
     impact: 'Single biggest common buff',
     note: 'Scales off his base ATK only — artifacts do not count.',
@@ -21,13 +21,13 @@ const buffs = [
     note: 'No artifact roll can match a VV holder — run one in every reaction team.',
   },
   {
-    name: "Furina's Let the People Rejoice (Q)",
+    name: "Furina’s Let the People Rejoice (Q)",
     value: 'Team DMG bonus up to ≈75% at max Fanfare',
     impact: 'Highest ceiling team-wide DMG buff',
     note: 'Needs a healer to stack Fanfare fast (or her C2).',
   },
   {
-    name: "Zhongli's Jade Shield",
+    name: "Zhongli’s Jade Shield",
     value: '−20% all enemy RES + strong shield',
     impact: '≈ +10–15% damage + comfort',
     note: 'Also enables interruption-free carries like Hu Tao and Ganyu.',
@@ -64,7 +64,7 @@ const buffs = [
     {buffs.map((b) => (
       <div class="panel p-5">
         <h3 class="font-semibold text-[var(--text)]">{b.name}</h3>
-        <p class="mt-1.5 text-sm text-gold-300/90">{b.value}</p>
+        <p class="mt-1.5 text-sm text-forest-600/90">{b.value}</p>
         <p class="mt-2 text-sm text-[var(--muted)]">
           <span class="font-medium text-dendro">{b.impact}</span>
         </p>
@@ -74,8 +74,8 @@ const buffs = [
   </div>
 
   <p class="mt-6 max-w-[65ch] text-sm text-[var(--muted)]">
-    These buffs stack multiplicatively with your carry's own stats — which is why a Bennett + Kazuha core turns a
-    40,000 hit into a 100,000+ hit. Toggle them in the calculator's team-buff chips to see exactly how much each one
+    These buffs stack multiplicatively with your carry’s own stats — which is why a Bennett + Kazuha core turns a
+    40,000 hit into a 100,000+ hit. Toggle them in the calculator’s team-buff chips to see exactly how much each one
     adds to your build.
   </p>
 </section>

@@ -12,7 +12,10 @@
   "dependencies": {
     "@astrojs/react": "^4.2.1",
     "@astrojs/sitemap": "^3.2.1",
+    "@fontsource-variable/cinzel": "^5.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/outfit": "^5.1.1",
+    "@fontsource-variable/sora": "^5.3.0",
     "astro": "^5.5.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

@@ -28,7 +28,7 @@ const rows = [
       <thead>
         <tr class="border-b border-[var(--line)] text-[var(--muted)]">
           <th class="px-4 py-3 font-medium">Feature</th>
-          <th class="px-3 py-3 text-center font-medium text-gold-300">This tool</th>
+          <th class="px-3 py-3 text-center font-medium text-forest-600">This tool</th>
           <th class="px-3 py-3 text-center font-medium">Aspirine</th>
           <th class="px-3 py-3 text-center font-medium">Optimizer</th>
           <th class="px-3 py-3 text-center font-medium">paimon.app</th>
@@ -38,18 +38,18 @@ const rows = [
         {rows.map((r) => (
           <tr class="border-b border-[var(--line)] last:border-b-0">
             <td class="px-4 py-2.5 text-[var(--text)]">{r.feature}</td>
-            <td class={`px-3 py-2.5 text-center ${r.us === '✓' ? 'text-dendro' : r.us === '~' ? 'text-gold-300' : 'text-[var(--muted)]'}`}>{r.us}</td>
-            <td class={`px-3 py-2.5 text-center ${r.aspirine === '✓' ? 'text-dendro' : r.aspirine === '~' ? 'text-gold-300' : 'text-[var(--muted)]'}`}>{r.aspirine}</td>
-            <td class={`px-3 py-2.5 text-center ${r.optimizer === '✓' ? 'text-dendro' : r.optimizer === '~' ? 'text-gold-300' : 'text-[var(--muted)]'}`}>{r.optimizer}</td>
-            <td class={`px-3 py-2.5 text-center ${r.paimon === '✓' ? 'text-dendro' : r.paimon === '~' ? 'text-gold-300' : 'text-[var(--muted)]'}`}>{r.paimon}</td>
+            <td class={`px-3 py-2.5 text-center ${r.us === '✓' ? 'text-dendro' : r.us === '~' ? 'text-forest-600' : 'text-[var(--muted)]'}`}>{r.us}</td>
+            <td class={`px-3 py-2.5 text-center ${r.aspirine === '✓' ? 'text-dendro' : r.aspirine === '~' ? 'text-forest-600' : 'text-[var(--muted)]'}`}>{r.aspirine}</td>
+            <td class={`px-3 py-2.5 text-center ${r.optimizer === '✓' ? 'text-dendro' : r.optimizer === '~' ? 'text-forest-600' : 'text-[var(--muted)]'}`}>{r.optimizer}</td>
+            <td class={`px-3 py-2.5 text-center ${r.paimon === '✓' ? 'text-dendro' : r.paimon === '~' ? 'text-forest-600' : 'text-[var(--muted)]'}`}>{r.paimon}</td>
           </tr>
         ))}
       </tbody>
     </table>
   </div>
 
-  <div class="panel mt-6 border-gold-400/40 bg-gold-400/5 p-6">
-    <h3 class="text-lg font-semibold text-gold-300">Honest note on what this is NOT</h3>
+  <div class="panel mt-6 border-forest-500/30 bg-forest-500/8 p-6">
+    <h3 class="text-lg font-semibold text-forest-600">Honest note on what this is NOT</h3>
     <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
       Genshin Optimizer is the better tool if you want to scan your entire artifact inventory and solve for the
       mathematically optimal set. This calculator does not do full inventory optimization — instead it answers the

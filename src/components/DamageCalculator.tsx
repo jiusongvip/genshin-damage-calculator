@@ -331,7 +331,7 @@ export default function DamageCalculator() {
                   onClick={() => toggleBuff(b.id)}
                   className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
                     active
-                      ? 'border-gold-400 bg-gold-400/15 text-gold-300'
+                      ? 'border-forest-600 bg-forest-600/10 text-forest-700'
                       : 'border-[var(--line)] bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)]'
                   }`}
                 >
@@ -360,7 +360,7 @@ export default function DamageCalculator() {
               type="button"
               onClick={doImport}
               disabled={importing}
-              className="rounded-[10px] bg-gold-400 px-4 py-2.5 text-sm font-semibold text-[#0b1224] transition-colors hover:bg-gold-300 disabled:opacity-60"
+              className="rounded-[10px] bg-forest-300 px-4 py-2.5 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200 disabled:opacity-60"
             >
               {importing ? 'Loading…' : 'Import'}
             </button>
@@ -378,7 +378,7 @@ export default function DamageCalculator() {
       <div className="flex flex-col gap-6">
         <div className="panel p-6 text-center">
           <p className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">Expected damage</p>
-          <p className="tnum mt-2 text-5xl font-semibold tracking-tight text-gold-300">
+          <p className="tnum mt-2 text-5xl font-semibold tracking-tight text-forest-600">
             {formatNumber(result.expected)}
           </p>
           <p className="mt-1 text-xs text-[var(--muted)]">averaged over crits · {result.reactionName}</p>
@@ -396,7 +396,7 @@ export default function DamageCalculator() {
             </div>
             <div>
               <p className="text-xs text-[var(--muted)]">Crit hit</p>
-              <p className="tnum text-lg font-semibold text-gold-300">{formatNumber(result.critHit)}</p>
+              <p className="tnum text-lg font-semibold text-forest-600">{formatNumber(result.critHit)}</p>
             </div>
             <div>
               <p className="text-xs text-[var(--muted)]">Reaction</p>
@@ -413,7 +413,7 @@ export default function DamageCalculator() {
             <button
               type="button"
               onClick={() => setBaseline({ expected: result.expected, label: `${character.name} · ${weapon?.name}` })}
-              className="rounded-[10px] border border-[var(--line)] px-4 py-2 text-xs font-medium text-[var(--muted)] transition-colors hover:border-gold-400/60 hover:text-gold-300"
+              className="rounded-[10px] border border-[var(--line)] px-4 py-2 text-xs font-medium text-[var(--muted)] transition-colors hover:border-forest-500 hover:text-forest-600"
             >
               Pin current as baseline (A)
             </button>
@@ -432,7 +432,7 @@ export default function DamageCalculator() {
         {/* Multiplier breakdown */}
         <div className="panel p-6">
           <h3 className="text-sm font-semibold text-[var(--text)]">Damage breakdown</h3>
-          <p className="mt-1 text-xs text-[var(--muted)]">Each multiplier's contribution — red bars mark your weakest links.</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">Each multiplier’s contribution — red bars mark your weakest links.</p>
           <div className="mt-4 space-y-3">
             {multipliers.map((m) => {
               const pct = Math.max((m.value / m.baseline) * 100, 4);
@@ -445,7 +445,7 @@ export default function DamageCalculator() {
                   </div>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
                     <div
-                      className={`h-full rounded-full ${weak ? 'bg-pyro/70' : 'bg-gold-400/70'}`}
+                      className={`h-full rounded-full ${weak ? 'bg-pyro/70' : 'bg-forest-600'}`}
                       style={{ width: `${Math.min(pct, 150)}%` }}
                     />
                   </div>
@@ -493,12 +493,12 @@ export default function DamageCalculator() {
 
         {/* Advisor */}
         {advice.length > 0 && (
-          <div className="panel border-gold-400/40 bg-gold-400/5 p-6">
-            <h3 className="text-sm font-semibold text-gold-300">Highest-value upgrades</h3>
+          <div className="panel border-forest-500/30 bg-forest-500/8 p-6">
+            <h3 className="text-sm font-semibold text-forest-600">Highest-value upgrades</h3>
             <ul className="mt-3 space-y-3">
               {advice.map((a, i) => (
                 <li key={a.label} className="flex items-start gap-3">
-                  <span className="tnum mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gold-400/20 text-xs font-semibold text-gold-300">
+                  <span className="tnum mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-forest-600/12 text-xs font-semibold text-forest-600">
                     {i + 1}
                   </span>
                   <div className="min-w-0">
