@@ -1,16 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DamageCalculator from '../components/DamageCalculator.tsx';
-import FormulaSection from '../components/FormulaSection.astro';
-import ReactionsSection from '../components/ReactionsSection.astro';
-import IncreaseDamageSection from '../components/IncreaseDamageSection.astro';
-import MistakesSection from '../components/MistakesSection.astro';
-import ConstellationsSection from '../components/ConstellationsSection.astro';
-import WeaponComparisonSection from '../components/WeaponComparisonSection.astro';
-import ArtifactSetsSection from '../components/ArtifactSetsSection.astro';
-import TeamBuffsSection from '../components/TeamBuffsSection.astro';
-import TalentPrioritySection from '../components/TalentPrioritySection.astro';
-import ComparisonSection from '../components/ComparisonSection.astro';
 import { CHARACTERS } from '../data/characters';
 import { getWeapon } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
@@ -204,7 +194,7 @@ const schema = [
         {ELEMENT_ORDER.map((el, i) => (
           <img
             src={`/images/element-${el}.webp`}
-            alt=""
+            alt={`${ELEMENT_LABEL[el]} element icon`}
             width="393"
             height="393"
             class="hero-float h-11 w-11 rounded-xl object-cover opacity-80 ring-1 ring-[var(--line)] sm:h-14 sm:w-14"
@@ -373,7 +363,7 @@ const schema = [
         <h3 class="flex items-center gap-3 text-xl font-semibold tracking-tight text-[var(--text)]">
           <img
             src={`/images/element-${group.element}.webp`}
-            alt=""
+            alt={`${ELEMENT_LABEL[group.element]} element icon`}
             width="393"
             height="393"
             class="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-[var(--line)]"
@@ -419,20 +409,44 @@ const schema = [
     ))}
   </section>
 
-  <FormulaSection />
-  <ReactionsSection />
-  <IncreaseDamageSection />
-
-  <MistakesSection />
-
-  <ConstellationsSection />
-
-  <WeaponComparisonSection />
-  <ArtifactSetsSection />
-  <TeamBuffsSection />
-
-  <TalentPrioritySection />
-  <ComparisonSection />
+  <!-- ============ Guides hub ============ -->
+  <section id="guides" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Deep dives</p>
+        <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Guides, by topic</h2>
+        <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+          The full mechanics breakdowns live on dedicated pages — formula and reactions, build choices, and how to
+          raise damage. Each is written answer-first and cites its sources.
+        </p>
+      </div>
+    </div>
+    <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <a href="/guides/damage-formula/" class="panel group p-6 transition-colors hover:border-forest-500">
+        <h3 class="font-semibold text-[var(--text)]">Damage formula &amp; reactions</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          The five-multiplier chain, Vaporize ×1.5 / Melt ×2.0 coefficients, EM scaling, and DEF/RES math — with
+          worked examples.
+        </p>
+        <span class="mt-3 inline-block text-sm font-semibold text-forest-600">Read the guide →</span>
+      </a>
+      <a href="/guides/builds/" class="panel group p-6 transition-colors hover:border-forest-500">
+        <h3 class="font-semibold text-[var(--text)]">Weapon, artifact &amp; talent builds</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Rankings by computed damage impact, artifact set and main-stat picks, constellation value tiers, and
+          talent priority.
+        </p>
+        <span class="mt-3 inline-block text-sm font-semibold text-forest-600">Read the guide →</span>
+      </a>
+      <a href="/guides/improve-damage/" class="panel group p-6 transition-colors hover:border-forest-500">
+        <h3 class="font-semibold text-[var(--text)]">Increase damage &amp; fix mistakes</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Buffs ranked by real multiplier impact, team buff setups, and the build mistakes that silently waste DPS.
+        </p>
+        <span class="mt-3 inline-block text-sm font-semibold text-forest-600">Read the guide →</span>
+      </a>
+    </div>
+  </section>
 
   <!-- ============ Guide ============ -->
   <section id="guide" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
@@ -505,6 +519,16 @@ const schema = [
         UID imports read your public showcase via
         <a href="https://enka.network" target="_blank" rel="noopener" class="text-forest-600 underline underline-offset-4">Enka.network</a>.
       </p>
+      <blockquote class="mt-4 border-l-4 border-forest-500 pl-4">
+        <p class="text-sm leading-relaxed text-[var(--muted)]">
+          “When characters or enemies attack their targets, they deal damage (abbreviated as DMG) based on their own
+          and their target’s attributes. … There are eight damage types: seven Elemental and one Physical.”
+        </p>
+        <cite class="mt-2 block text-xs not-italic text-[var(--text)]">
+          — <a href="https://genshin-impact.fandom.com/wiki/Damage" target="_blank" rel="noopener"
+          class="text-forest-600 underline underline-offset-4">Genshin Impact Wiki</a>, “Damage”, section “Damage”
+        </cite>
+      </blockquote>
     </div>
 
     <div class="panel mt-6 flex flex-col gap-5 p-6 sm:flex-row sm:items-start">

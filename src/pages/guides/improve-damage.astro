@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import IncreaseDamageSection from '../../components/IncreaseDamageSection.astro';
+import MistakesSection from '../../components/MistakesSection.astro';
+import TeamBuffsSection from '../../components/TeamBuffsSection.astro';
+
+const title = 'How to Increase Damage in Genshin Impact — Buffs & Fixes';
+const description =
+  'Proven ways to raise Genshin Impact damage: team buffs, reaction setup, and the common build mistakes that silently waste DPS — all quantified per multiplier.';
+---
+
+<BaseLayout title={title} description={description}>
+  <section class="page-shell section-pad">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Guides · Improvement</p>
+    <h1 class="mt-2 font-display text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">
+      How to increase your damage, ranked by real impact
+    </h1>
+    <p class="mt-5 max-w-[65ch] text-lg leading-relaxed text-[var(--muted)]">
+      The fastest Genshin damage gains come from the multiplicative slots first: a team buff on the right multiplier,
+      a clean reaction setup, and removing the stat mistakes that quietly cancel each other out. Each lever below is
+      quantified against the <a href="/guides/damage-formula/"
+      class="text-forest-600 underline underline-offset-4">official damage formula</a>.
+    </p>
+  </section>
+
+  <IncreaseDamageSection />
+  <MistakesSection />
+  <TeamBuffsSection />
+
+  <section class="page-shell section-pad border-t border-[var(--line)]">
+    <h2 class="text-2xl font-semibold tracking-tight text-[var(--text)]">See the gains in numbers</h2>
+    <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+      Toggle each buff in the calculator and watch your expected damage move — then lock the setup that pays for your
+      character.
+    </p>
+    <div class="mt-6 flex flex-wrap gap-3">
+      <a href="/#calculator" class="rounded-xl bg-forest-300 px-6 py-3 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Open the calculator</a>
+      <a href="/guides/damage-formula/" class="rounded-xl border border-[var(--line)] bg-white/50 px-6 py-3 text-sm font-semibold text-[var(--text)] transition-colors hover:border-forest-500">Understand the formula</a>
+      <a href="/guides/builds/" class="rounded-xl border border-[var(--line)] bg-white/50 px-6 py-3 text-sm font-semibold text-[var(--text)] transition-colors hover:border-forest-500">Weapon &amp; artifact picks</a>
+    </div>
+  </section>
+</BaseLayout>

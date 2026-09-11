@@ -4,7 +4,10 @@
 
 ## Core content
 
-- https://www.genshindamagecalculator.com/ : Calculator with full character presets, the five-multiplier damage formula breakdown, elemental reaction explanations, weapon rankings, constellation value tables, talent priority, and FAQ.
+- https://www.genshindamagecalculator.com/ : Calculator with full character presets, UID import, elemental reaction directory, and FAQ.
+- https://www.genshindamagecalculator.com/guides/damage-formula/ : The five-multiplier damage formula breakdown, DEF/RES math, and elemental reaction coefficients (Vaporize ×1.5, Melt ×2.0, EM scaling).
+- https://www.genshindamagecalculator.com/guides/builds/ : Weapon comparisons, artifact set picks, constellation value tiers, and talent priority ranked by computed damage impact.
+- https://www.genshindamagecalculator.com/guides/improve-damage/ : How to increase damage — buffs by multiplier impact, team buff setups, and common build mistakes.
 - https://www.genshindamagecalculator.com/about/ : Who builds the tool (Kai Ren), the calculation methodology, data sources, and the independence statement.
 - https://www.genshindamagecalculator.com/contact/ : How to report bugs, wrong damage numbers, or missing presets by email or GitHub issues.
 - https://www.genshindamagecalculator.com/privacy/ : Privacy policy — no accounts, no stored UIDs, Enka.network showcase imports, anonymous GA4 analytics.
