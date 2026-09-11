@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const title = 'Contact Genshin Damage Calculator — Feedback & Bugs';
+const description =
+  'Report a bug, a wrong damage number, or a missing character preset, or send feedback to the Genshin Damage Calculator team by email. We reply within a few days.';
+---
+
+<BaseLayout title={title} description={description}>
+  <section class="page-shell section-pad">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Contact</p>
+    <h1 class="mt-2 font-display text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">
+      Get in touch with the calculator team
+    </h1>
+    <p class="mt-5 max-w-[65ch] text-lg leading-relaxed text-[var(--muted)]">
+      The fastest way to reach us is email at
+      <a href="mailto:hello@genshindamagecalculator.com"
+      class="text-forest-600 underline underline-offset-4">hello@genshindamagecalculator.com</a>. We read every
+      message and typically reply within two to three days. Bug reports with a screenshot or a UID reproduce the
+      issue fastest.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">What can you contact us about?</h2>
+    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+      <div class="panel p-6">
+        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">Data corrections</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          A damage number looks wrong, a new character or weapon is missing from the roster, or a preset no longer
+          matches the live game after a patch.
+        </p>
+      </div>
+      <div class="panel p-6">
+        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">Bugs &amp; imports</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          The calculator throws an error, or UID import fails to pull your showcase. Include the UID and the browser
+          you are using.
+        </p>
+      </div>
+      <div class="panel p-6">
+        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">Feature requests</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Ideas for new comparison views, team buff scenarios, artifact set handling, or anything else that would
+          make theorycrafting easier.
+        </p>
+      </div>
+      <div class="panel p-6">
+        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">Privacy &amp; legal</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Questions about the <a href="/privacy/" class="text-forest-600 underline underline-offset-4">privacy
+          policy</a> or <a href="/terms/" class="text-forest-600 underline underline-offset-4">terms of use</a>,
+          including data removal requests.
+        </p>
+      </div>
+    </div>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">Report issues on GitHub</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      Developers and theorycrafters can also open an issue directly on the project repository at
+      <a href="https://github.com/jiusongvip/genshin-damage-calculator" target="_blank" rel="noopener"
+      class="text-forest-600 underline underline-offset-4">github.com/jiusongvip/genshin-damage-calculator</a>.
+      Public issues help other players find fixes faster and are triaged alongside email reports.
+    </p>
+  </section>
+</BaseLayout>

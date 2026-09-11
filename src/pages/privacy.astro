@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const title = 'Privacy Policy — Genshin Damage Calculator';
+const description =
+  'How the Genshin Damage Calculator handles your data: no accounts, no stored UIDs, showcase imports via the public Enka.network API, and anonymous analytics.';
+---
+
+<BaseLayout title={title} description={description}>
+  <section class="page-shell section-pad">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Legal</p>
+    <h1 class="mt-2 font-display text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">
+      Privacy policy
+    </h1>
+    <p class="mt-5 max-w-[65ch] text-lg leading-relaxed text-[var(--muted)]">
+      Genshin Damage Calculator collects as little data as possible: there are no accounts, no passwords, and no
+      damage presets stored on our servers. This page explains the only three data flows that exist — analytics,
+      UID imports, and email.
+    </p>
+    <p class="mt-3 text-xs text-[var(--muted)]">Last updated: September 11, 2026</p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">What we do not collect</h2>
+    <ul class="mt-4 max-w-[65ch] list-disc space-y-2 pl-5 leading-relaxed text-[var(--muted)]">
+      <li>No account or signup — the calculator works fully without identifying yourself.</li>
+      <li>No passwords or HoYoverse credentials — we never ask for them.</li>
+      <li>No stored UIDs or builds — your in-game showcase data is not written to any database.</li>
+      <li>No advertising or cross-site tracking cookies.</li>
+    </ul>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">UID imports and Enka.network</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      When you use the “import UID” feature, the UID you enter is sent from your browser directly to the public
+      <a href="https://enka.network" target="_blank" rel="noopener"
+      class="text-forest-600 underline underline-offset-4">Enka.network</a> API, which reads the showcase you have
+      made public in-game. The response is rendered in your browser only. We do not proxy, log, or store the UID or
+      the returned build. To limit what is shared, adjust your in-game showcase visibility settings before importing.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">Anonymous analytics (Google Analytics 4)</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      We measure aggregate traffic with Google Analytics 4 (measurement ID G-H2B2594NNV) to understand which sections
+      are useful. GA4 sets cookies and collects pseudonymized usage data such as page views, device type, and rough
+      location, governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener"
+      class="text-forest-600 underline underline-offset-4">Google’s privacy policy</a>. You can opt out with
+      <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener"
+      class="text-forest-600 underline underline-offset-4">Google’s official opt-out add-on</a> or by blocking the
+      googletagmanager.com domain in your browser.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">Email</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      If you email <a href="mailto:hello@genshindamagecalculator.com"
+      class="text-forest-600 underline underline-offset-4">hello@genshindamagecalculator.com</a>, we use your address
+      only to reply to your message. Correspondence is not added to any mailing list and is deleted on request.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">Changes and contact</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      Material changes to this policy will be reflected on this page with a new “last updated” date. Questions or
+      data-removal requests go to the <a href="/contact/" class="text-forest-600 underline underline-offset-4">contact
+      page</a>. See also our <a href="/terms/" class="text-forest-600 underline underline-offset-4">terms of use</a>.
+    </p>
+  </section>
+</BaseLayout>

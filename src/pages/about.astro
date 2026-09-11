@@ -1,0 +1,60 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const title = 'About Genshin Damage Calculator — Method & Author';
+const description =
+  'Who builds the Genshin Damage Calculator, how the five-multiplier damage formula works, where the data comes from, and how often it is refreshed.';
+---
+
+<BaseLayout title={title} description={description}>
+  <section class="page-shell section-pad">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">About</p>
+    <h1 class="mt-2 font-display text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">
+      An independent, transparent damage calculator for Genshin Impact
+    </h1>
+    <p class="mt-5 max-w-[65ch] text-lg leading-relaxed text-[var(--muted)]">
+      Genshin Damage Calculator is a free, fan-made theorycrafting tool that computes exact damage numbers for every
+      playable character using the official five-multiplier formula. It is built and maintained by Kai Ren, a
+      long-time Genshin Impact player, and requires no signup or download.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">Who is behind this tool?</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      The calculator is written and maintained by Kai Ren, who has played Genshin Impact since version 1.0 and
+      theorycrafts team rotations as a hobby. Every preset in the roster — character stats, weapons, artifacts, and
+      buff assumptions — is hand-checked against the live game within 48 hours of each version patch. You can read
+      the full changelog on the <a href="/" class="text-forest-600 underline underline-offset-4">homepage under
+      “Data &amp; updates”</a> or reach out via the <a href="/contact/"
+      class="text-forest-600 underline underline-offset-4">contact page</a>.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">How are damage numbers calculated?</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      The engine multiplies five independent factors from the official in-game formula: Total ATK × Skill Multiplier ×
+      (1 + DMG Bonus) × CRIT × Reaction, then applies enemy DEF and RES. Amplifying reactions use the official
+      Vaporize (×1.5) and Melt (×2.0) coefficients with the standard Elemental Mastery scaling of
+      2.78 × EM ÷ (EM + 1400). Transformative reactions ignore ATK and CRIT and scale with character level and EM.
+      The full breakdown is documented in the <a href="/#formula"
+      class="text-forest-600 underline underline-offset-4">damage formula section</a> on the homepage.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">Where does the data come from?</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      Character base stats, weapon stats, and talent multipliers are transcribed from the live game and cross-checked
+      against HoYoverse’s official announcements. UID imports read your in-game showcase through the public
+      <a href="https://enka.network" target="_blank" rel="noopener"
+      class="text-forest-600 underline underline-offset-4">Enka.network</a> API — no login, and nothing is stored on
+      our servers. Data targets the current version, 7.0 “Snezhnaya” (launched August 12, 2026), and refreshes within
+      48 hours of each patch.
+    </p>
+
+    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">Independence &amp; affiliation</h2>
+    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
+      This is an independent fan-made project. It is not affiliated with, endorsed by, or sponsored by HoYoverse,
+      miHoYo, or Cognosphere. Genshin Impact and all related names, characters, and assets are property of their
+      respective owners. The tool is free, shows no paywall, and never asks for account credentials. See our
+      <a href="/privacy/" class="text-forest-600 underline underline-offset-4">privacy policy</a> and
+      <a href="/terms/" class="text-forest-600 underline underline-offset-4">terms of use</a> for details.
+    </p>
+  </section>
+</BaseLayout>

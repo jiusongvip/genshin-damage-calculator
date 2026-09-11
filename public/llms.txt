@@ -5,6 +5,10 @@
 ## Core content
 
 - https://www.genshindamagecalculator.com/ : Calculator with full character presets, the five-multiplier damage formula breakdown, elemental reaction explanations, weapon rankings, constellation value tables, talent priority, and FAQ.
+- https://www.genshindamagecalculator.com/about/ : Who builds the tool (Kai Ren), the calculation methodology, data sources, and the independence statement.
+- https://www.genshindamagecalculator.com/contact/ : How to report bugs, wrong damage numbers, or missing presets by email or GitHub issues.
+- https://www.genshindamagecalculator.com/privacy/ : Privacy policy — no accounts, no stored UIDs, Enka.network showcase imports, anonymous GA4 analytics.
+- https://www.genshindamagecalculator.com/terms/ : Terms of use — estimates only, no warranty, trademark and non-affiliation notices.
 
 ## Key facts
 
