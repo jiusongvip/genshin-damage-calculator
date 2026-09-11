@@ -3,6 +3,8 @@ import '../styles/global.css';
 import SEO from '../components/SEO.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import soraWoff2 from '@fontsource-variable/sora/files/sora-latin-wght-normal.woff2?url';
+import cinzelWoff2 from '@fontsource-variable/cinzel/files/cinzel-latin-wght-normal.woff2?url';
 
 export interface Props {
   title: string;
@@ -22,6 +24,9 @@ const ga4Id = 'G-H2B2594NNV';
 <html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
+    <link rel="preload" as="image" href="/images/official/mavuika.webp" fetchpriority="high" />
+    <link rel="preload" as="font" type="font/woff2" href={soraWoff2} crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href={cinzelWoff2} crossorigin />
     <SEO
       title={title}
       description={description}
@@ -32,15 +37,25 @@ const ga4Id = 'G-H2B2594NNV';
     />
     {
       ga4Id && (
-        <>
-          <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`} />
-          <script is:inline define:vars={{ ga4Id }}>
-            window.dataLayer = window.dataLayer || [];
-            function gtag() { dataLayer.push(arguments); }
-            gtag('js', new Date());
-            gtag('config', ga4Id);
-          </script>
-        </>
+        <script is:inline define:vars={{ ga4Id }}>
+          (function () {
+            var load = function () {
+              window.dataLayer = window.dataLayer || [];
+              function gtag() { dataLayer.push(arguments); }
+              gtag('js', new Date());
+              gtag('config', ga4Id);
+              var s = document.createElement('script');
+              s.async = true;
+              s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ga4Id;
+              document.head.appendChild(s);
+            };
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(load, { timeout: 4000 });
+            } else {
+              setTimeout(load, 1500);
+            }
+          })();
+        </script>
       )
     }
   </head>

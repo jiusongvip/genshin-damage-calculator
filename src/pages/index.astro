@@ -183,6 +183,7 @@ const schema = [
               class="h-full w-full object-cover"
               loading="eager"
               decoding="async"
+              fetchpriority="high"
             />
             <div class="absolute inset-0 bg-linear-to-t from-[#FFFBE7]/90 to-transparent" aria-hidden="true"></div>
           </div>
@@ -226,7 +227,7 @@ const schema = [
       <a href="#guide" class="text-sm text-[var(--muted)] underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">How to use it</a>
     </div>
     <div class="mt-8">
-      <DamageCalculator client:load />
+      <DamageCalculator client:idle />
     </div>
   </section>
 
