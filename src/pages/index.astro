@@ -167,6 +167,8 @@ const schema = [
           <div class="relative aspect-[2/1] overflow-hidden">
             <img
               src="/images/official/mavuika.webp"
+              srcset="/images/official/mavuika-450.webp 450w, /images/official/mavuika-660.webp 660w, /images/official/mavuika.webp 900w"
+              sizes="(min-width: 1024px) 510px, 92vw"
               alt="Official Mavuika splash art — the Pyro Archon"
               width="900"
               height="450"
@@ -195,8 +197,8 @@ const schema = [
           <img
             src={`/images/element-${el}.webp`}
             alt={`${ELEMENT_LABEL[el]} element icon`}
-            width="393"
-            height="393"
+            width="120"
+            height="120"
             class="hero-float h-11 w-11 rounded-xl object-cover opacity-80 ring-1 ring-[var(--line)] sm:h-14 sm:w-14"
             style={`animation-delay: ${i * 0.35}s`}
             loading="lazy"
@@ -237,7 +239,9 @@ const schema = [
         <a href="#calculator" class="panel group overflow-hidden transition-colors hover:border-forest-500">
           <div class="relative aspect-[2/1] overflow-hidden">
             <img
-              src={`/images/official/${c.id}.webp`}
+              src={`/images/official/${c.id}-450.webp`}
+              srcset={`/images/official/${c.id}-450.webp 450w, /images/official/${c.id}-660.webp 660w, /images/official/${c.id}.webp 900w`}
+              sizes="(min-width: 768px) 300px, 46vw"
               alt={`Official ${c.name} splash art — ${ELEMENT_LABEL[c.element]} ${c.role}`}
               width="900"
               height="450"
@@ -364,8 +368,8 @@ const schema = [
           <img
             src={`/images/element-${group.element}.webp`}
             alt={`${ELEMENT_LABEL[group.element]} element icon`}
-            width="393"
-            height="393"
+            width="120"
+            height="120"
             class="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-[var(--line)]"
             loading="lazy"
             decoding="async"
