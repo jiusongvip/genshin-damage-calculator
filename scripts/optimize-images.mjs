@@ -41,7 +41,7 @@ const banners = readdirSync(OFFICIAL).filter(
 for (const b of banners) {
   const f = path.join(OFFICIAL, b);
   const base = b.replace(/\.webp$/, '');
-  for (const [w, q] of [[450, 68], [540, 72], [660, 74]]) {
+  for (const [w, q] of [[450, 68], [540, 72], [680, 74]]) {
     await convert(f, path.join(OFFICIAL, `${base}-${w}.webp`), w, q);
   }
   await convert(f, f, 900, 74, true);
