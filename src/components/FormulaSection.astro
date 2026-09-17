@@ -1,23 +1,22 @@
 ---
-// Five-multiplier deep dive — the information gain competitors' tool pages
-// don’t provide. Rendered statically so search engines crawl every word.
+// "How Genshin damage is actually calculated" — the exact seven-factor model
+// this calculator runs (KQM general damage formula). Rendered statically so
+// every word is crawlable, and kept scannable with a single accordion.
 ---
 
 <section id="formula" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
   <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">How Genshin damage is actually calculated</h2>
-  <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-    Every non-transformative hit is one multiplication of seven factors. If you understand each one, you can
-    diagnose exactly why a hit deals the number it does — and which single upgrade will move it the most. The
-    calculator above breaks your exact panel into these same factors. The math follows the official damage formula,
-    cross-checked against the
-    <a href="https://genshin-impact.fandom.com/wiki/Damage" target="_blank" rel="noopener" class="text-forest-600 underline decoration-forest-500/50 underline-offset-2 hover:text-forest-700">Genshin Impact wiki damage formula</a>.
+  <p class="mt-3 max-w-[68ch] text-[var(--muted)]">
+    Every hit — normal, skill, burst — is a single product of six factors. This is the exact engine the calculator
+    above runs, following the official damage formula as documented by the
+    <a href="https://keqingmains.com/" target="_blank" rel="noopener" class="text-forest-600 underline decoration-forest-500/50 underline-offset-2 hover:text-forest-700">KeqingMains theorycrafting library</a>.
+    Understand each factor and you can see why a number is what it is — and which single upgrade moves it most.
   </p>
 
   <div class="panel mt-8 overflow-x-auto p-6">
-    <p class="tnum whitespace-nowrap text-center text-sm text-[var(--muted)] md:text-base">
-      <span class="text-forest-600">Total ATK</span>
-      <span class="mx-2">×</span> Skill Multiplier
-      <span class="mx-2">×</span> (1 + <span class="text-hydro">DMG Bonus</span>)
+    <p class="tnum whitespace-nowrap text-center text-sm leading-loose text-[var(--muted)] md:text-base">
+      (<span class="text-forest-600">Scaling&nbsp;stat</span> × <span class="text-forest-600">Talent&nbsp;%</span>)
+      <span class="mx-2">×</span> (1 + <span class="text-hydro">DMG&nbsp;Bonus</span>)
       <span class="mx-2">×</span> <span class="text-cryo">CRIT</span>
       <span class="mx-2">×</span> <span class="text-pyro">Reaction</span>
       <span class="mx-2">×</span> <span class="text-dendro">DEF</span>
@@ -27,104 +26,94 @@
 
   <details class="accordion mt-8">
     <summary class="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 font-semibold text-[var(--text)] transition-colors hover:border-forest-300">
-      <span>How each of the 7 multipliers works</span>
-      <svg class="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform group-open:rotate-45" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+      <span>Every factor, in detail</span>
+      <svg class="h-5 w-5 shrink-0 text-[var(--muted)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
     </summary>
     <div class="mt-6 space-y-6">
-    <!-- 1. ATK -->
+
+    <!-- 1. Base damage / scaling -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">1. Total ATK <span class="text-forest-600">— the base of everything</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">1. Base damage <span class="text-forest-600">— the stat that scales</span></h3>
       <p class="mt-3 text-[var(--muted)]">
-        Total ATK is built from three parts: <strong class="text-[var(--text)]">Base ATK</strong> (your character’s
-        white number plus your weapon’s base attack — <em>not</em> the flat attack from artifacts), multiplied by
-        <strong class="text-[var(--text)]">ATK%</strong> bonuses (artifact sands, sub-stats, weapon passives, team
-        buffs), then plus <strong class="text-[var(--text)]">Flat ATK</strong> (the feather artifact’s +311, and
-        Bennett’s buff). The formula is:
+        A talent does not always scale off ATK. The base is <strong class="text-[var(--text)]">Scaling&nbsp;stat × Talent&nbsp;%</strong>,
+        where the scaling stat is <strong class="text-[var(--text)]">ATK, DEF, Max HP or EM</strong> depending on the character —
+        Hu&nbsp;Tao, Yelan and Neuvillette scale off HP; Itto, Noelle and Albedo off DEF. This is why "just stack ATK" is
+        wrong for roughly half the roster.
       </p>
       <p class="tnum mt-3 rounded-[10px] bg-[var(--surface-2)] p-4 text-center text-sm text-[var(--text)]">
-        Total ATK = (Base ATK) × (1 + ATK%) + Flat ATK
+        Total ATK = (Character base + Weapon base) × (1 + ATK%) + Flat ATK
       </p>
       <p class="mt-3 text-[var(--muted)]">
-        Worked example: a level-90 character with 800 base ATK, a 46.6% ATK sands, 20% from sub-stats, and a +311
-        feather has <span class="tnum text-[var(--text)]">800 × 1.666 + 311 ≈ 1,644 ATK</span>. The key insight is
-        that <strong class="text-[var(--text)]">ATK% only multiplies Base ATK</strong> — so on a low-base-ATK character
-        like Hu Tao (106 base ATK), ATK% is nearly worthless and HP or Elemental Mastery scales far better.
-      </p>
-    </div>
-
-    <!-- 2. Skill multiplier -->
-    <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">2. Skill multiplier <span class="text-forest-600">— your talent number</span></h3>
-      <p class="mt-3 text-[var(--muted)]">
-        Every talent has a multiplier expressed as a percentage of ATK — a "300%" talent means the hit deals 3.0× your
-        Total ATK before any other factor. This is the single most underrated upgrade in the game: each talent level
-        from 8 to 10 is a guaranteed <strong class="text-[var(--text)]">6-7% damage increase</strong> on that skill,
-        with no RNG, no farming, no resin lottery. Leveling your main talent to 9 or 10 is almost always the highest
-        return-per-resin action you can take, which is why the calculator defaults to a talent-10 reference panel.
-      </p>
-      <p class="mt-3 text-[var(--muted)]">
-        When comparing characters, remember that a character’s power is the product of their talent multipliers
-        <em>and</em> how often those hits land. A 900% single hit (Zhongli’s Planet Befall) and a 200% hit that
-        repeats twenty times (Ayaka’s burst) can deal similar total damage.
+        The two <strong class="text-[var(--text)]">base</strong> values are the "white" numbers you see on the character and
+        weapon. <strong class="text-[var(--text)]">ATK% only multiplies those</strong> — never the flat ATK from the feather or
+        Bennett. That is why Bennett's buff scales off base ATK, and why low-base-ATK carries (Hu&nbsp;Tao: 106) get almost
+        nothing from an ATK% sands.
       </p>
     </div>
 
-    <!-- 3. DMG Bonus -->
+    <!-- 2. Talent multiplier -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">3. DMG Bonus <span class="text-hydro">— elemental &amp; weapon bonuses</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">2. Talent multiplier <span class="text-forest-600">— your talent level</span></h3>
       <p class="mt-3 text-[var(--muted)]">
-        Your elemental goblet (46.6%), weapon passives, artifact set bonuses (Crimson Witch’s Pyro bonus, Emblem’s
-        burst bonus), and supports like Kazuha or Yelan all add into <strong class="text-[var(--text)]">one single
-        multiplier</strong>: (1 + total DMG Bonus). Because they stack additively, the more DMG Bonus you already
-        have, the less each additional 46.6% is worth <em>relatively</em>. This is exactly why an ATK% goblet can beat
-        an elemental goblet when a character already has a huge DMG Bonus from their kit.
+        Every talent level is a guaranteed <strong class="text-[var(--text)]">~6–7% increase</strong> on that skill, with no
+        RNG and no resin lottery. Going from talent 8 to 10 is often worth more than weeks of artifact farming. The
+        calculator uses the <strong class="text-[var(--text)]">real talent-10 multipliers</strong> for each character's
+        normal, charged, skill and burst.
       </p>
+    </div>
+
+    <!-- 3. DMG bonus -->
+    <div class="panel p-6">
+      <h3 class="text-xl font-semibold text-[var(--text)]">3. DMG Bonus <span class="text-hydro">— the additive multiplier</span></h3>
       <p class="mt-3 text-[var(--muted)]">
-        The general rule: if your DMG Bonus (goblet + weapon + set) is under ~100%, an elemental goblet is almost
-        always best. Past ~150% total bonus, a well-rolled ATK% goblet becomes competitive. The calculator’s
-        "Add +46.6% DMG bonus" advisor row shows exactly how much an elemental goblet is worth on your current build.
+        Goblet, weapon passives, set bonuses and supports (Kazuha, Furina, Yelan) all add into <strong class="text-[var(--text)]">one
+        single multiplier</strong>: (1 + total DMG Bonus). Because they stack additively, the more you already have, the less each
+        new source is worth — this is exactly why an ATK% goblet can beat an elemental goblet once a character's DMG Bonus is past ~150%.
       </p>
     </div>
 
     <!-- 4. CRIT -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">4. CRIT <span class="text-cryo">— the 1:2 balancing act</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">4. CRIT <span class="text-cryo">— the 1:2 balance</span></h3>
       <p class="mt-3 text-[var(--muted)]">
-        A crit multiplies the hit by (1 + Crit DMG). Averaged over many hits, your expected damage uses the multiplier
-        <strong class="text-[var(--text)]">(1 + Crit Rate × Crit DMG)</strong>. Because Crit Rate and Crit DMG multiply
-        each other, and because a single Crit Rate roll (max 3.9%) is worth exactly half a Crit DMG roll (max 7.8%),
-        the mathematically optimal balance is <strong class="text-[var(--text)]">1:2</strong>.
-      </p>
-      <p class="mt-3 text-[var(--muted)]">
-        Concretely: a 50% / 200% build has a crit multiplier of 1 + 0.5 × 2.0 = <span class="tnum text-[var(--text)]">2.0</span>,
-        while a 70% / 160% build with the same total investment reaches 1 + 0.7 × 1.6 =
-        <span class="tnum text-[var(--text)]">2.12</span> — a genuine ~6% damage gain just from rebalancing. Aim for at
-        least 60% Crit Rate on a main DPS before stacking more Crit DMG.
+        A crit multiplies the hit by (1 + CRIT DMG). Averaged over many hits, expected damage uses the multiplier
+        <strong class="text-[var(--text)]">(1 + CRIT Rate × CRIT DMG)</strong>. Because a CRIT Rate roll is worth exactly half a
+        CRIT DMG roll, the optimal balance is <strong class="text-[var(--text)]">1:2</strong>: 70%/140% (×1.98) beats
+        50%/200% (×2.00 on paper but ×1.86 expected). Aim for 60%+ CRIT Rate on a carry before stacking more CRIT DMG.
       </p>
     </div>
 
     <!-- 5. Reaction -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">5. Reaction <span class="text-pyro">— Vaporize &amp; Melt amplify</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">5. Reaction <span class="text-pyro">— three families</span></h3>
       <p class="mt-3 text-[var(--muted)]">
-        Vaporize multiplies the entire hit by 1.5×, Melt by 2.0× (when the correct element triggers). Elemental
-        Mastery then scales that bonus by <span class="tnum text-[var(--text)]">2.78 × EM ÷ (EM + 1400)</span>, so the
-        first 100 EM is worth far more than the next 100 — this steep drop-off is why reaction carries want
-        <em>some</em> EM (roughly 100-200) but rarely stack it past 300. Transformative reactions (Overload, Bloom,
-        Hyperbloom) work differently and are covered in the next section.
+        <strong class="text-[var(--text)]">Amplifying</strong> (Vaporize ×1.5/×2.0, Melt ×2.0/×1.5, depending on which element
+        triggers) multiply the whole hit and scale with EM through
+        <span class="tnum text-[var(--text)]">1 + 2.78 × EM ÷ (EM + 1400)</span>. They keep CRIT, ATK and level.
+      </p>
+      <p class="mt-3 text-[var(--muted)]">
+        <strong class="text-[var(--text)]">Transformative</strong> (Overload, Electro-Charged, Superconduct, Swirl, Bloom,
+        Hyperbloom, Burgeon, Burning) are separate instances that <strong class="text-[var(--text)]">ignore ATK and CRIT</strong>
+        — they scale only with character level and EM:
+        <span class="tnum text-[var(--text)]">ReactionMult × LevelMult × (1 + 16 × EM ÷ (EM + 2000))</span>. That is why a
+        Hyperbloom trigger wants pure EM, never a CRIT circlet.
+      </p>
+      <p class="mt-3 text-[var(--muted)]">
+        <strong class="text-[var(--text)]">Additive</strong> (Aggravate 1.15, Spread 1.25) is added as flat damage to the base
+        <em>before</em> DMG Bonus and CRIT, so it benefits from both — Electro + Dendro teams build EM alongside CRIT.
       </p>
     </div>
 
     <!-- 6. DEF -->
     <div class="panel p-6">
       <h3 class="text-xl font-semibold text-[var(--text)]">6. DEF multiplier <span class="text-dendro">— why level matters</span></h3>
+      <p class="tnum mt-3 rounded-[10px] bg-[var(--surface-2)] p-4 text-center text-sm text-[var(--text)]">
+        (Lv + 100) ÷ ((Lv + 100) + (Enemy Lv + 100) × (1 − DEF reduction) × (1 − DEF ignore))
+      </p>
       <p class="mt-3 text-[var(--muted)]">
-        Enemy defense reduces your damage by
-        <span class="tnum text-[var(--text)]">(Character Level + 100) ÷ ((Character Level + 100) + (Enemy Level + 100) × (1 − DEF Shred))</span>.
-        Against a same-level enemy this is exactly 0.5 — you deal half your pre-defense damage. Against a level-100
-        enemy it drops to ~0.487, which is why a level-80 carry loses noticeable damage against high-level Abyss
-        floors. DEF Shred (Lisa, Klee C2, Ayaka C4, Raiden C2) directly raises this term and is one of the rarest,
-        highest-value buffs in the game.
+        Against a same-level enemy this is exactly <span class="tnum text-[var(--text)]">0.5</span> — you deal half your
+        pre-defense damage. A level-80 carry against a level-90 enemy loses a few percent, which is why levelling a reaction
+        carry to 90 matters more than it looks. DEF shred and ignore (Lisa, Raiden C2) are among the rarest, strongest buffs.
       </p>
     </div>
 
@@ -132,24 +121,24 @@
     <div class="panel p-6">
       <h3 class="text-xl font-semibold text-[var(--text)]">7. RES multiplier <span class="text-electro">— shred beats stats</span></h3>
       <p class="mt-3 text-[var(--muted)]">
-        Most enemies have 10% resistance, so the baseline multiplier is 0.9. The Viridescent Venerer 4-piece set
-        shreds 40% RES, dropping a 10% enemy to −30%, which flips the multiplier to 1.15 — a
-        <strong class="text-[var(--text)]">~28% damage increase</strong> from a single support. That is why an Anemo
-        unit holding VV is in nearly every reaction team: no artifact sub-stat roll can match it. Below 0 RES each
-        point of shred is worth half, so extra shred past 0 has diminishing returns.
+        Resistance = enemy RES − shred:
+        <span class="tnum text-[var(--text)]">below 0 → 1 − RES/2, 0–75% → 1 − RES, 75%+ → 1 ÷ (1 + 4 × RES)</span>.
+        Most enemies sit at 10%, so the baseline multiplier is 0.9. The Viridescent Venerer 4-piece shreds 40% RES, flipping a
+        10%-RES enemy to −30% — a <strong class="text-[var(--text)]">~28% damage increase</strong> from a single support, more
+        than almost any artifact upgrade.
       </p>
     </div>
-    </details>
 
-    <!-- Why it matters -->
-    <div class="panel mt-6 border-forest-500/30 bg-forest-500/8 p-6">
-      <h3 class="text-xl font-semibold text-forest-600">Why this matters: multiplying, not adding</h3>
+    <div class="panel border-forest-500/30 bg-forest-500/8 p-6">
+      <h3 class="text-xl font-semibold text-forest-600">Why it matters: multiplying, not adding</h3>
       <p class="mt-3 text-[var(--muted)]">
-        Because all seven factors <em>multiply</em>, raising your weakest factor is worth far more than pushing an
-        already-high factor even higher. If your Crit multiplier is 1.3 while your DMG Bonus is already 1.8, one more
-        Crit roll beats another DMG bonus every time. The calculator’s damage breakdown highlights your weakest
-        multiplier in red — start there. This is the entire philosophy behind the "highest-value upgrades" list:
-        it re-simulates each change and tells you which one actually moves the number.
+        Because all six factors <em>multiply</em>, raising your weakest factor is worth far more than pushing an already-high one
+        higher. If your CRIT multiplier is 1.3 while DMG Bonus is already 1.8, one more CRIT roll beats another DMG bonus every
+        time. The calculator's highest-value-upgrades list re-simulates each change and ranks them by exactly this logic — start
+        with whatever it puts first.
       </p>
     </div>
+
+    </div>
+  </details>
 </section>

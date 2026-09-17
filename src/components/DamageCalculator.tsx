@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CHARACTERS } from '../data/characters';
+import { TALENTS, signatureTalent } from '../data/talents';
 import { weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, BUFF_PRESETS, resolvePreset } from '../data/presets';
@@ -10,6 +11,7 @@ import {
   formatPercent,
 } from '../lib/damage';
 import type {
+  AdditiveReaction,
   AmplifiedReaction,
   BuffState,
   ElementType,
@@ -28,6 +30,20 @@ const ELEMENT_STYLES: Record<ElementType, { text: string; label: string }> = {
   geo: { text: 'text-geo', label: 'Geo' },
   dendro: { text: 'text-dendro', label: 'Dendro' },
   physical: { text: 'text-gray-300', label: 'Physical' },
+};
+
+const SCALING_LABEL: Record<string, string> = {
+  atk: 'Total ATK',
+  def: 'Total DEF',
+  hp: 'Max HP',
+  em: 'Elemental Mastery',
+};
+
+const ATTACK_LABEL: Record<string, string> = {
+  normal: 'Normal Attack',
+  charged: 'Charged Attack',
+  skill: 'Elemental Skill',
+  burst: 'Elemental Burst',
 };
 
 // Group the full roster by element (5-star first) for a navigable selector.
@@ -51,6 +67,13 @@ const TRANSFORMATIVE_OPTIONS: { value: TransformativeReaction; label: string }[]
   { value: 'bloom', label: 'Bloom' },
   { value: 'hyperbloom', label: 'Hyperbloom' },
   { value: 'burgeon', label: 'Burgeon' },
+  { value: 'burning', label: 'Burning' },
+];
+
+const ADDITIVE_OPTIONS: { value: AdditiveReaction; label: string }[] = [
+  { value: 'none', label: 'None' },
+  { value: 'aggravate', label: 'Aggravate (Electro)' },
+  { value: 'spread', label: 'Spread (Dendro)' },
 ];
 
 function mergeBuffs(ids: string[]): BuffState {
@@ -68,15 +91,20 @@ function defaultAmplified(element: ElementType): AmplifiedReaction {
   return 'none';
 }
 
-export default function DamageCalculator() {
-  const first = CHARACTERS[0];
-  const [charId, setCharId] = useState(first.id);
-  const [weaponId, setWeaponId] = useState(first.bestWeapon);
+export default function DamageCalculator({
+  initialCharacterId,
+  hideCharacterSelect = false,
+}: { initialCharacterId?: string; hideCharacterSelect?: boolean } = {}) {
+  const initial = CHARACTERS.find((c) => c.id === initialCharacterId) ?? CHARACTERS[0];
+  const [charId, setCharId] = useState(initial.id);
+  const [weaponId, setWeaponId] = useState(initial.bestWeapon);
   const [enemyId, setEnemyId] = useState('hilichurl');
-  const [amplified, setAmplified] = useState<AmplifiedReaction>(defaultAmplified(first.element));
+  const [amplified, setAmplified] = useState<AmplifiedReaction>(defaultAmplified(initial.element));
   const [transformative, setTransformative] = useState<TransformativeReaction>('none');
+  const [additive, setAdditive] = useState<AdditiveReaction>('none');
   const [buffIds, setBuffIds] = useState<string[]>([]);
-  const [skillMult, setSkillMult] = useState(first.skillMultiplier);
+  const [skillMult, setSkillMult] = useState(signatureTalent(initial.id)?.multiplier ?? initial.skillMultiplier);
+  const [attackType, setAttackType] = useState<'custom' | 'normal' | 'charged' | 'skill' | 'burst'>('custom');
   const [charLevel, setCharLevel] = useState(90);
   const [uid, setUid] = useState('');
   const [imported, setImported] = useState<ImportedPanel | null>(null);
@@ -84,7 +112,14 @@ export default function DamageCalculator() {
   const [importError, setImportError] = useState('');
   const [baseline, setBaseline] = useState<{ expected: number; label: string } | null>(null);
 
-  const character = CHARACTERS.find((c) => c.id === charId) ?? first;
+  const character = CHARACTERS.find((c) => c.id === charId) ?? initial;
+  const sig = signatureTalent(character.id);
+  const currentSkillLabel =
+    attackType === 'custom'
+      ? sig
+        ? `${sig.label}${sig.detail ? ` · ${sig.detail}` : ''}`
+        : character.skillName
+      : ATTACK_LABEL[attackType];
   const weaponOptions = weaponsForType(character.weaponType);
   const weapon = weaponOptions.find((w) => w.id === weaponId) ?? weaponOptions[0];
   const enemy = ENEMIES.find((e) => e.id === enemyId) ?? ENEMIES[0];
@@ -94,13 +129,21 @@ export default function DamageCalculator() {
     if (!c) return;
     setCharId(id);
     setWeaponId(c.bestWeapon);
-    setSkillMult(c.skillMultiplier);
+    setSkillMult(signatureTalent(c.id)?.multiplier ?? c.skillMultiplier);
     setAmplified(defaultAmplified(c.element));
+    setAttackType('custom');
     setImported(null);
   };
 
   const toggleBuff = (id: string) => {
     setBuffIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const onSelectAttackType = (t: 'custom' | 'normal' | 'charged' | 'skill' | 'burst') => {
+    setAttackType(t);
+    if (t === 'custom') return;
+    const tal = TALENTS[character.id];
+    if (tal && tal[t] > 0) setSkillMult(tal[t]);
   };
 
   const doImport = async () => {
@@ -112,15 +155,13 @@ export default function DamageCalculator() {
       setImportError('Could not load that UID. Check the number and that your in-game showcase is public, then try again.');
       return;
     }
-    setImported(panel);
     setCharLevel(panel.level);
-    if (panel.characterId) {
-      const c = CHARACTERS.find((x) => x.id === panel.characterId);
-      if (c) {
-        setCharId(c.id);
-        setWeaponId(c.bestWeapon);
-        setSkillMult(c.skillMultiplier);
-      }
+    const c = panel.characterId ? CHARACTERS.find((x) => x.id === panel.characterId) : undefined;
+    setImported({ ...panel, scaling: c?.scaling });
+    if (c) {
+      setCharId(c.id);
+      setWeaponId(c.bestWeapon);
+      setSkillMult(signatureTalent(c.id)?.multiplier ?? c.skillMultiplier);
     }
   };
 
@@ -134,14 +175,19 @@ export default function DamageCalculator() {
         dmgBonus: imported.dmgBonus || imported.physicalBonus,
         em: imported.em,
         skillMultiplier: skillMult,
+        skillLabel: currentSkillLabel,
         characterLevel: imported.level,
         enemy,
         element: imported.element ?? 'physical',
         amplified,
         transformative,
+        additive,
         defShred: buffs.defShred,
         resShred: buffs.resShred,
         reactionBonus: buffs.reactionBonus,
+        scaling: imported.scaling,
+        totalHP: imported.totalHP,
+        totalDEF: imported.totalDEF,
       });
       return {
         ...panel,
@@ -161,8 +207,9 @@ export default function DamageCalculator() {
       characterLevel: charLevel,
       amplified,
       transformative,
+      additive,
     });
-  }, [imported, buffIds, skillMult, enemy, amplified, transformative, character, weapon, charId, charLevel, first.id]);
+  }, [imported, buffIds, skillMult, enemy, amplified, transformative, character, weapon, charId, charLevel, additive, currentSkillLabel, initial.id]);
 
   const { totalATK, critRate, critDMG, em, dmgBonus } = result;
 
@@ -178,14 +225,19 @@ export default function DamageCalculator() {
         dmgBonus: imported.dmgBonus || imported.physicalBonus,
         em: imported.em,
         skillMultiplier: skillMult,
+        skillLabel: currentSkillLabel,
         characterLevel: imported.level,
         enemy,
         element: imported.element ?? 'physical',
         amplified,
         transformative,
+        additive,
         defShred: buffs.defShred,
         resShred: buffs.resShred,
         reactionBonus: buffs.reactionBonus,
+        scaling: imported.scaling,
+        totalHP: imported.totalHP,
+        totalDEF: imported.totalDEF,
       });
     }
     return adviseManual({
@@ -198,7 +250,7 @@ export default function DamageCalculator() {
       amplified,
       transformative,
     });
-  }, [imported, buffIds, skillMult, enemy, amplified, transformative, character, weapon, charId, charLevel, first.id]);
+  }, [imported, buffIds, skillMult, enemy, amplified, transformative, character, weapon, charId, charLevel, additive, currentSkillLabel, initial.id]);
 
   const multipliers = useMemo(() => {
     const crit = 1 + critRate * critDMG;
@@ -221,22 +273,24 @@ export default function DamageCalculator() {
       {/* ---------- Input panel ---------- */}
       <div className="panel p-6">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-[var(--muted)]">Character</span>
-            <select
-              className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[var(--text)]"
-              value={charId}
-              onChange={(e) => onSelectCharacter(e.target.value)}
-            >
-              {CHARACTER_GROUPS.map((g) => (
-                <optgroup key={g.label} label={g.label}>
-                  {g.chars.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
+          {!hideCharacterSelect && (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-[var(--muted)]">Character</span>
+              <select
+                className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[var(--text)]"
+                value={charId}
+                onChange={(e) => onSelectCharacter(e.target.value)}
+              >
+                {CHARACTER_GROUPS.map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.chars.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+          )}
 
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-[var(--muted)]">Weapon</span>
@@ -287,6 +341,34 @@ export default function DamageCalculator() {
               {TRANSFORMATIVE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-[var(--muted)]">Additive reaction (Catalyze)</span>
+            <select
+              className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[var(--text)]"
+              value={additive}
+              onChange={(e) => setAdditive(e.target.value as AdditiveReaction)}
+            >
+              {ADDITIVE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-[var(--muted)]">Attack type</span>
+            <select
+              className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[var(--text)]"
+              value={attackType}
+              onChange={(e) => onSelectAttackType(e.target.value as 'custom' | 'normal' | 'charged' | 'skill' | 'burst')}
+            >
+              <option value="custom">Custom / signature skill</option>
+              <option value="normal">Normal Attack (full combo)</option>
+              <option value="charged">Charged Attack</option>
+              <option value="skill">Elemental Skill</option>
+              <option value="burst">Elemental Burst</option>
             </select>
           </label>
 
@@ -381,7 +463,7 @@ export default function DamageCalculator() {
           <p className="tnum mt-2 text-5xl font-semibold tracking-tight text-forest-600">
             {formatNumber(result.expected)}
           </p>
-          <p className="mt-1 text-xs text-[var(--muted)]">averaged over crits · {result.reactionName}</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">{result.skillLabel} · averaged over crits · {result.reactionName}</p>
 
           {baseline && (
             <p className={`tnum mt-2 text-sm font-semibold ${delta >= 0 ? 'text-dendro' : 'text-pyro'}`}>
@@ -460,9 +542,15 @@ export default function DamageCalculator() {
           <h3 className="text-sm font-semibold text-[var(--text)]">Panel</h3>
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             <div className="flex justify-between border-b border-[var(--line)] pb-2">
-              <dt className="text-[var(--muted)]">Total ATK</dt>
-              <dd className="tnum font-medium text-[var(--text)]">{formatNumber(totalATK)}</dd>
+              <dt className="text-[var(--muted)]">{SCALING_LABEL[result.scaling] ?? 'Total ATK'}</dt>
+              <dd className="tnum font-medium text-[var(--text)]">{formatNumber(result.baseStat)}</dd>
             </div>
+            {result.scaling !== 'atk' && (
+              <div className="flex justify-between border-b border-[var(--line)] pb-2">
+                <dt className="text-[var(--muted)]">Total ATK</dt>
+                <dd className="tnum font-medium text-[var(--text)]">{formatNumber(totalATK)}</dd>
+              </div>
+            )}
             <div className="flex justify-between border-b border-[var(--line)] pb-2">
               <dt className="text-[var(--muted)]">Crit Rate</dt>
               <dd className="tnum font-medium text-[var(--text)]">{formatPercent(critRate)}</dd>
@@ -475,6 +563,12 @@ export default function DamageCalculator() {
               <dt className="text-[var(--muted)]">Elemental Mastery</dt>
               <dd className="tnum font-medium text-[var(--text)]">{Math.round(em)}</dd>
             </div>
+            {result.additive > 0 && (
+              <div className="flex justify-between border-b border-[var(--line)] pb-2">
+                <dt className="text-[var(--muted)]">{result.additiveName} (flat)</dt>
+                <dd className="tnum font-medium text-[var(--text)]">{formatNumber(result.additive)}</dd>
+              </div>
+            )}
             <div className="flex justify-between border-b border-[var(--line)] pb-2">
               <dt className="text-[var(--muted)]">DEF multiplier</dt>
               <dd className="tnum font-medium text-[var(--text)]">×{(result.defMultiplier).toFixed(3)}</dd>

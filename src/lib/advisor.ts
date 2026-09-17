@@ -36,6 +36,33 @@ export function adviseManual(input: DamageInput): Advice[] {
   const withBuff = (patch: Partial<DamageInput['buffs']>): number =>
     computeDamage({ ...input, buffs: { ...input.buffs, ...patch } }).expected;
 
+  // The main-stat advice must match the character's scaling stat.
+  const scaling = input.character.scaling ?? 'atk';
+  const scalingAdvice: Candidate =
+    scaling === 'hp'
+      ? {
+          label: 'Add +20% HP',
+          detail: 'An HP% sub-stat roll — this character scales off Max HP, so ATK% is nearly useless.',
+          next: withArtifact({ subHPPercent: input.artifacts.subHPPercent + 0.2 }),
+        }
+      : scaling === 'def'
+        ? {
+            label: 'Add +20% DEF',
+            detail: 'A DEF% sub-stat roll — this character scales off DEF, so ATK% is nearly useless.',
+            next: withArtifact({ subDEFPercent: (input.artifacts.subDEFPercent ?? 0) + 0.2 }),
+          }
+        : scaling === 'em'
+          ? {
+              label: 'Add +100 Elemental Mastery',
+              detail: 'This character scales off Elemental Mastery — EM is both base damage and reaction damage.',
+              next: withArtifact({ subEM: input.artifacts.subEM + 100 }),
+            }
+          : {
+              label: 'Add +20% ATK',
+              detail: 'An ATK% sub-stat roll or the Noblesse 4pc team buff.',
+              next: withArtifact({ subATKPercent: input.artifacts.subATKPercent + 0.2 }),
+            };
+
   const candidates: Candidate[] = [
     {
       label: 'Add +10% Crit Rate',
@@ -52,11 +79,7 @@ export function adviseManual(input: DamageInput): Advice[] {
       detail: 'Boosts Vaporize / Melt multiplier — best for reaction carries.',
       next: withArtifact({ subEM: input.artifacts.subEM + 100 }),
     },
-    {
-      label: 'Add +20% ATK',
-      detail: 'An ATK% sub-stat roll or the Noblesse 4pc team buff.',
-      next: withArtifact({ subATKPercent: input.artifacts.subATKPercent + 0.2 }),
-    },
+    scalingAdvice,
     {
       label: 'Add +46.6% DMG bonus',
       detail: 'An elemental goblet or an equivalent DMG source.',
@@ -88,6 +111,32 @@ export function advisePanel(input: PanelInput): Advice[] {
   const withPatch = (patch: Partial<PanelInput>): number =>
     computeFromPanel({ ...input, ...patch }).expected;
 
+  const scaling = input.scaling ?? 'atk';
+  const scalingAdvice: Candidate =
+    scaling === 'hp' && (input.totalHP ?? 0) > 0
+      ? {
+          label: 'Add +20% HP',
+          detail: 'This character scales off Max HP — an HP% roll.',
+          next: withPatch({ totalHP: (input.totalHP ?? 0) * 1.2 }),
+        }
+      : scaling === 'def' && (input.totalDEF ?? 0) > 0
+        ? {
+            label: 'Add +20% DEF',
+            detail: 'This character scales off DEF — a DEF% roll.',
+            next: withPatch({ totalDEF: (input.totalDEF ?? 0) * 1.2 }),
+          }
+        : scaling === 'em'
+          ? {
+              label: 'Add +100 Elemental Mastery',
+              detail: 'This character scales off Elemental Mastery.',
+              next: withPatch({ em: input.em + 100 }),
+            }
+          : {
+              label: 'Add +20% ATK',
+              detail: 'Equivalent to the Noblesse 4pc team buff.',
+              next: withPatch({ totalATK: input.totalATK * 1.2 }),
+            };
+
   const candidates: Candidate[] = [
     {
       label: 'Add +10% Crit Rate',
@@ -104,11 +153,7 @@ export function advisePanel(input: PanelInput): Advice[] {
       detail: 'Boosts Vaporize / Melt multiplier — best for reaction carries.',
       next: withPatch({ em: input.em + 100 }),
     },
-    {
-      label: 'Add +20% ATK',
-      detail: 'Equivalent to the Noblesse 4pc team buff.',
-      next: withPatch({ totalATK: input.totalATK * 1.2 }),
-    },
+    scalingAdvice,
     {
       label: 'Add +46.6% DMG bonus',
       detail: 'An elemental goblet or an equivalent DMG source.',

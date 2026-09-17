@@ -1,0 +1,257 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const siteURL = 'https://www.genshindamagecalculator.com';
+const canonicalURL = `${siteURL}/team-building/`;
+
+const title = 'Genshin Team Building Guide 鈥?How to Make Characters Do Damage';
+const description =
+  'Why your characters feel weak and how to fix it: the four team roles, amplifying vs transformative reactions, elemental resonance, and rotation order 鈥?plus a free team damage calculator.';
+
+const faqs = [
+  {
+    q: 'Why do my characters do so little damage?',
+    a: 'The most common cause is team composition, not artifacts. A carry with no off-field element application and no buffer is missing two of the biggest damage multipliers in the game. Fix the team first, then the artifacts.',
+  },
+  {
+    q: 'Do showcase videos represent normal damage?',
+    a: 'No. Showcase clips usually use high constellations, signature weapons, and fully built supports. They show a ceiling, not a baseline you should compare your own account against.',
+  },
+  {
+    q: 'What is team synergy in Genshin?',
+    a: 'Synergy means every member earns their slot: one character deals the damage, the others apply the element that character reacts with, buff its stats, or keep it alive. If two members compete for field time, the team has no synergy.',
+  },
+  {
+    q: 'How do I know which reactions my team can trigger?',
+    a: 'It is decided purely by the elements on the team. Pyro + Hydro enables Vaporize, Dendro + Electro enables Aggravate/Spread, and so on. The team calculator lists every reaction your current lineup can trigger.',
+  },
+];
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${siteURL}/` },
+      { '@type': 'ListItem', position: 2, name: 'Team Building', item: canonicalURL },
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  },
+];
+
+const roles = [
+  {
+    name: 'On-field main DPS',
+    body: 'The character who stays on field and deals the damage. Pick exactly one 鈥?two carries competing for field time is the single most common beginner mistake.',
+  },
+  {
+    name: 'Off-field sub-DPS / applier',
+    body: 'Deals damage or applies an element while you are on another character (Xingqiu, Xiangling, Fischl). This is what lets your carry trigger reactions at all.',
+  },
+  {
+    name: 'Buffer',
+    body: 'Raises the carry stats or shreds enemy resistance (Bennett, Kazuha, Sucrose, Furina). A single buffer is often worth more than a better artifact set.',
+  },
+  {
+    name: 'Sustain',
+    body: 'Healer or shielder that keeps the team alive (Zhongli, Kokomi, Baizhu). Optional on fast teams, required once you are taking hits.',
+  },
+];
+
+const resonances = [
+  { el: 'Pyro 脳2', name: 'Fervent Flames', effect: '+25% ATK' },
+  { el: 'Hydro 脳2', name: 'Soothing Water', effect: '+25% Max HP' },
+  { el: 'Dendro 脳2', name: 'Sprawling Greenery', effect: '+50 EM (+30 after a reaction)' },
+  { el: 'Cryo 脳2', name: 'Shattering Ice', effect: '+15% CRIT Rate vs Frozen / Cryo-affected' },
+  { el: 'Geo 脳2', name: 'Enduring Rock', effect: '+15% Shield Strength; +15% DMG while shielded' },
+  { el: 'Electro 脳2', name: 'High Voltage', effect: 'Electro-Charged generates Energy' },
+  { el: 'Anemo 脳2', name: 'Impetuous Winds', effect: '鈭?% Stamina cost, +10% movement SPD' },
+];
+---
+
+<BaseLayout title={title} description={description} canonicalURL={canonicalURL} schema={schema}>
+  <section class="page-shell section-pad">
+    <nav aria-label="Breadcrumb" class="flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]">
+      <a href="/" class="transition-colors hover:text-forest-600">Home</a>
+      <span aria-hidden="true">/</span>
+      <span class="text-[var(--text)]">Team Building</span>
+    </nav>
+
+    <div class="mt-6 max-w-[68ch]">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Team building</p>
+      <h1 class="mt-3 text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">
+        How to make your characters do damage
+      </h1>
+      <p class="mt-4 text-lg leading-relaxed text-[var(--text)]/85">
+        If your characters hit for a fraction of what showcase videos show, the problem is usually the
+        <strong class="text-[var(--text)]">team</strong>, not your artifacts. Genshin damage is a team sport: one carry,
+        plus units that apply the element it reacts with and buff its stats. Fix the team first 鈥?then farm.
+      </p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a href="/#calculator" class="rounded-xl bg-forest-300 px-5 py-2.5 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Build a team in the calculator</a>
+        <a href="/#mistakes" class="rounded-xl border border-[var(--line)] bg-white/50 px-5 py-2.5 text-sm font-semibold text-[var(--text)] transition-colors hover:border-forest-500 hover:text-forest-600">8 common damage mistakes</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Four roles -->
+  <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">The four roles every team needs</h2>
+    <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+      A working team fills these four jobs. Most weak teams are missing two of them 鈥?usually the buffer and the
+      off-field applier.
+    </p>
+    <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
+      {roles.map((r, i) => (
+        <div class="panel p-6">
+          <div class="flex items-center gap-3">
+            <span class="tnum flex h-8 w-8 items-center justify-center rounded-full bg-forest-500/12 text-sm font-semibold text-forest-600">{i + 1}</span>
+            <h3 class="text-lg font-semibold text-[var(--text)]">{r.name}</h3>
+          </div>
+          <p class="mt-3 text-[var(--muted)]">{r.body}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- Reactions -->
+  <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Reactions are where the damage comes from</h2>
+    <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+      Raw stats only get you so far. Reactions multiply the hit 鈥?and the type of reaction decides which stat you should
+      build.
+    </p>
+    <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+      <div class="panel p-6">
+        <h3 class="font-semibold text-[var(--text)]">Amplifying <span class="text-[var(--muted)]">(Vaporize / Melt)</span></h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">
+          Multiply the whole hit by <strong class="text-[var(--text)]">1.5脳 or 2.0脳</strong> depending on which element
+          triggers. They scale off your normal build plus a little EM 鈥?build ATK / CRIT / DMG bonus first, then 100鈥?00 EM.
+        </p>
+      </div>
+      <div class="panel p-6">
+        <h3 class="font-semibold text-[var(--text)]">Transformative <span class="text-[var(--muted)]">(Overload, Bloom family)</span></h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">
+          Separate damage instances that ignore ATK and CRIT entirely 鈥?they scale only with
+          <strong class="text-[var(--text)]">character level and EM</strong>. A Hyperbloom trigger wants pure EM, not a
+          Crit circlet.
+        </p>
+      </div>
+      <div class="panel p-6">
+        <h3 class="font-semibold text-[var(--text)]">Additive <span class="text-[var(--muted)]">(Aggravate / Spread)</span></h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">
+          Adds flat damage to the hit <strong class="text-[var(--text)]">before</strong> DMG bonus and CRIT, so it
+          benefits from both. Electro + Dendro teams live on this 鈥?build EM alongside CRIT.
+        </p>
+      </div>
+    </div>
+    <p class="mt-4 max-w-[65ch] text-[var(--muted)]">
+      The <a href="/#reactions" class="text-forest-600 underline decoration-forest-500/50 underline-offset-2">reaction reference</a>
+      covers each one in detail. Pick the reaction your carry wants, then choose teammates that enable it.
+    </p>
+  </section>
+
+  <!-- Resonance -->
+  <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Elemental resonance 鈥?free stats for duplicates</h2>
+    <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+      Two characters of the same element grant a party-wide resonance. Some are pure damage 鈥?worth a whole artifact
+      set 鈥?so a two-of-a-kind team is not always a mistake.
+    </p>
+    <div class="panel mt-8 overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-[var(--line)] text-left text-xs text-[var(--muted)]">
+            <th class="px-5 py-3 font-medium">Party</th>
+            <th class="px-5 py-3 font-medium">Resonance</th>
+            <th class="px-5 py-3 font-medium">Effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          {resonances.map((r) => (
+            <tr class="border-b border-[var(--line)] last:border-0">
+              <td class="px-5 py-3 font-medium text-[var(--text)]">{r.el}</td>
+              <td class="px-5 py-3 text-[var(--text)]">{r.name}</td>
+              <td class="px-5 py-3 text-[var(--muted)]">{r.effect}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Rotation -->
+  <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Order matters: rotation &amp; snapshotting</h2>
+    <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
+      The same four characters can deal wildly different damage depending on the order you press them. Two rules cover
+      most of it.
+    </p>
+    <div class="mt-6 space-y-4">
+      <details class="accordion panel p-5">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-[var(--text)]">
+          <span>Buff and shred before the carry, not after</span>
+          <svg class="h-5 w-5 shrink-0 text-[var(--muted)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+        </summary>
+        <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+          Set up the field first: apply the aura, cast the buffer (Bennett burst, Kazuha skill), shred resistance, and
+          only then swap to your carry. A Bennett burst dropped after your carry has already used its damage skill does
+          nothing for that rotation.
+        </p>
+      </details>
+      <details class="accordion panel p-5">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-[var(--text)]">
+          <span>Snapshot: the carry keeps the buff on long skills</span>
+          <svg class="h-5 w-5 shrink-0 text-[var(--muted)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+        </summary>
+        <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+          Some abilities "snapshot" your stats the moment they are cast 鈥?Xiangling's Pyronado is the classic example.
+          Cast it inside Bennett's burst and it keeps the buffed ATK for its whole duration, even after Bennett's field
+          is gone. Learning which skills snapshot is free damage.
+        </p>
+      </details>
+    </div>
+  </section>
+
+  <!-- Check your team -->
+  <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <div class="panel flex flex-col items-start gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-xl font-semibold text-[var(--text)]">Check your own team</h2>
+        <p class="mt-1 max-w-[52ch] text-[var(--muted)]">
+          Pick up to four characters in the team calculator to see their combined damage, the resonances and reactions
+          they unlock, and auto-detected buffs. Then open the single-character calculator to see which stat is holding
+          your carry back.
+        </p>
+      </div>
+      <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
+        <a href="/#calculator" class="rounded-xl bg-forest-300 px-5 py-2.5 text-center text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Team calculator</a>
+        <a href="/#calculator" class="rounded-xl border border-[var(--line)] px-5 py-2.5 text-center text-sm font-semibold text-[var(--text)] transition-colors hover:border-forest-500 hover:text-forest-600">Character calculator</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Frequently asked questions</h2>
+    <div class="mt-8 divide-y divide-[var(--line)] border-t border-[var(--line)]">
+      {faqs.map((f) => (
+        <details class="group">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-medium text-[var(--text)]">
+            {f.q}
+            <svg class="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform group-open:rotate-45" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          </summary>
+          <p class="max-w-[75ch] pb-4 leading-relaxed text-[var(--muted)]">{f.a}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
