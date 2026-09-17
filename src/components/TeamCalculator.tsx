@@ -139,8 +139,8 @@ export function ElementIcon({ el, className = 'h-4 w-4' }: { el: string; classNa
     <img
       src={`/images/element-${el}.webp`}
       alt=""
-      width="393"
-      height="393"
+      width="120"
+      height="120"
       className={`rounded-full object-cover ring-1 ring-white/80 ${className}`}
       loading="lazy"
       decoding="async"
@@ -510,8 +510,8 @@ export default function TeamCalculator() {
                 <img
                   src={`/images/element-${el}.webp`}
                   alt={ELEMENT_LABEL[el]}
-                  width="393"
-                  height="393"
+                  width="120"
+                  height="120"
                   className="h-full w-full object-cover"
                   loading="lazy"
                   decoding="async"
