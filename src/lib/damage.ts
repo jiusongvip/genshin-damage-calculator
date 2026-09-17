@@ -576,9 +576,12 @@ export function formatPercent(n: number): string {
 }
 
 // ============================================================================
-// Direct-panel calculation — used by the UID import path, where Enka.network
-// returns an already-merged stat panel (base + weapon + artifacts combined)
-// rather than separated inputs.
+// Direct-panel calculation — takes an already-merged stat panel (total ATK,
+// CRIT, EM, ...) instead of character + weapon + artifacts.
+//
+// Written for the removed UID import and currently unreferenced; kept because
+// it is the entry point for hand-entered panels, which arrive in this exact
+// shape.
 // ============================================================================
 
 export interface PanelInput {
@@ -599,7 +602,7 @@ export interface PanelInput {
   defShred: number;
   resShred: number;
   reactionBonus: number;
-  /** Optional scaling support (UID imports may provide HP / DEF panels). */
+  /** Optional scaling support for HP / DEF panels. */
   scaling?: ScalingStat;
   totalHP?: number;
   totalDEF?: number;

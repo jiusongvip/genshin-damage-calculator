@@ -105,7 +105,14 @@ export function adviseManual(input: DamageInput): Advice[] {
   return rank(baseline, candidates);
 }
 
-/** Suggest upgrades for the UID-imported (merged panel) mode. */
+/**
+ * Suggest upgrades from a finished stat panel (total ATK, CRIT, EM, ...)
+ * rather than from a character + weapon + artifact build.
+ *
+ * Currently unreferenced: it was written for the removed UID import. Kept
+ * because it is the engine for letting people type their own panel numbers in
+ * directly, which is the same input shape.
+ */
 export function advisePanel(input: PanelInput): Advice[] {
   const baseline = computeFromPanel(input).expected;
   const withPatch = (patch: Partial<PanelInput>): number =>

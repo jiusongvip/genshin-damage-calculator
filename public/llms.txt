@@ -1,12 +1,12 @@
 # Genshin Damage Calculator
 
-> Free Genshin Impact damage calculator for every character. Compare weapons and artifacts, import your UID, and see your exact damage.
+> Free Genshin Impact damage calculator for every character. Build a team, compare weapons and artifacts, and see your exact damage.
 
 Independent fan-made web tool. Damage values are computed from the official five-multiplier formula; data is refreshed within 48 hours of each version patch. No signup, no download, no paywall.
 
 ## Core content
 
-- [Genshin Damage Calculator (home)](https://www.genshindamagecalculator.com/): Calculator with full character presets, UID import, elemental reaction directory, and FAQ.
+- [Genshin Damage Calculator (home)](https://www.genshindamagecalculator.com/): Calculator with full character presets, a team builder, an elemental reaction directory, and FAQ.
 - [Damage Formula Guide](https://www.genshindamagecalculator.com/guides/damage-formula/): The five-multiplier damage formula breakdown, DEF/RES math, and elemental reaction coefficients (Vaporize ×1.5, Melt ×2.0, EM scaling).
 - [Character Build Guide](https://www.genshindamagecalculator.com/guides/builds/): Weapon comparisons, artifact set picks, constellation value tiers, and talent priority ranked by computed damage impact.
 - [How to Increase Damage](https://www.genshindamagecalculator.com/guides/improve-damage/): Buffs by multiplier impact, team buff setups, and common build mistakes.
@@ -15,7 +15,7 @@ Independent fan-made web tool. Damage values are computed from the official five
 
 - [About](https://www.genshindamagecalculator.com/about/): Who builds the tool (Kai Ren), the calculation methodology, data sources, and the independence statement.
 - [Contact](https://www.genshindamagecalculator.com/contact/): How to report bugs, wrong damage numbers, or missing presets by email or GitHub issues.
-- [Privacy Policy](https://www.genshindamagecalculator.com/privacy/): No accounts, no stored UIDs, Enka.network showcase imports, anonymous GA4 analytics.
+- [Privacy Policy](https://www.genshindamagecalculator.com/privacy/): No accounts, nothing you enter leaves your browser, anonymous GA4 analytics.
 - [Terms of Use](https://www.genshindamagecalculator.com/terms/): Estimates only, no warranty, trademark and non-affiliation notices.
 
 ## Key facts
@@ -23,6 +23,5 @@ Independent fan-made web tool. Damage values are computed from the official five
 - The damage formula is: Total ATK × Skill Multiplier × (1 + DMG Bonus) × CRIT × Reaction × DEF × RES.
 - Amplifying reactions: Vaporize ×1.5, Melt ×2.0; Elemental Mastery scales by 2.78 × EM ÷ (EM + 1400).
 - Transformative reactions ignore ATK and CRIT; they scale with level and EM (level-90 multiplier 1446.85).
-- UID import pulls showcased builds via the public [Enka.network](https://enka.network) API (no login).
 - Data snapshot targets version 7.0 (Snezhnaya, launched August 12, 2026); data is refreshed within 48 hours of each version patch and new characters are added as they release.
 - Independent fan-made tool, not affiliated with HoYoverse/miHoYo/Cognosphere.

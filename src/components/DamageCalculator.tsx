@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react';
 // Released characters only — see the note in TeamCalculator.tsx.
 import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
 import { TALENTS, signatureTalent } from '../data/talents';
+import type { TalentKey } from '../data/talents';
 import { weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, BUFF_PRESETS, resolvePreset } from '../data/presets';
 import {
   addBuffs,
   computeDamage,
-  computeFromPanel,
   formatNumber,
   formatPercent,
 } from '../lib/damage';
@@ -19,9 +19,7 @@ import type {
   ElementType,
   TransformativeReaction,
 } from '../lib/damage';
-import { fetchEnkaPanel } from '../lib/enka';
-import type { ImportedPanel } from '../lib/enka';
-import { adviseManual, advisePanel } from '../lib/advisor';
+import { adviseManual } from '../lib/advisor';
 
 const ELEMENT_STYLES: Record<ElementType, { text: string; label: string }> = {
   pyro: { text: 'text-pyro', label: 'Pyro' },
@@ -106,14 +104,11 @@ export default function DamageCalculator({
   const [skillMult, setSkillMult] = useState(signatureTalent(initial.id)?.multiplier ?? initial.skillMultiplier);
   const [attackType, setAttackType] = useState<'custom' | 'normal' | 'charged' | 'skill' | 'burst'>('custom');
   const [charLevel, setCharLevel] = useState(90);
-  const [uid, setUid] = useState('');
-  const [imported, setImported] = useState<ImportedPanel | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState('');
   const [baseline, setBaseline] = useState<{ expected: number; label: string } | null>(null);
 
   const character = CHARACTERS.find((c) => c.id === charId) ?? initial;
   const sig = signatureTalent(character.id);
+  const resolvedAttackType: TalentKey = attackType === 'custom' ? (sig?.key ?? 'burst') : attackType;
   const currentSkillLabel =
     attackType === 'custom'
       ? sig
@@ -132,7 +127,6 @@ export default function DamageCalculator({
     setSkillMult(signatureTalent(c.id)?.multiplier ?? c.skillMultiplier);
     setAmplified(defaultAmplified(c.element));
     setAttackType('custom');
-    setImported(null);
   };
 
   const toggleBuff = (id: string) => {
@@ -146,58 +140,9 @@ export default function DamageCalculator({
     if (tal && tal[t] > 0) setSkillMult(tal[t]);
   };
 
-  const doImport = async () => {
-    setImporting(true);
-    setImportError('');
-    const panel = await fetchEnkaPanel(uid);
-    setImporting(false);
-    if (!panel) {
-      setImportError('Could not load that UID. Check the number and that your in-game showcase is public, then try again.');
-      return;
-    }
-    setCharLevel(panel.level);
-    const c = panel.characterId ? CHARACTERS.find((x) => x.id === panel.characterId) : undefined;
-    setImported({ ...panel, scaling: c?.scaling });
-    if (c) {
-      setCharId(c.id);
-      setWeaponId(c.bestWeapon);
-      setSkillMult(signatureTalent(c.id)?.multiplier ?? c.skillMultiplier);
-    }
-  };
 
   const result = useMemo(() => {
     const buffs = mergeBuffs(buffIds);
-    if (imported) {
-      const panel = computeFromPanel({
-        totalATK: imported.totalATK,
-        critRate: imported.critRate,
-        critDMG: imported.critDMG,
-        dmgBonus: imported.dmgBonus || imported.physicalBonus,
-        em: imported.em,
-        skillMultiplier: skillMult,
-        skillLabel: currentSkillLabel,
-        characterLevel: imported.level,
-        enemy,
-        element: imported.element ?? 'physical',
-        amplified,
-        transformative,
-        additive,
-        defShred: buffs.defShred,
-        resShred: buffs.resShred,
-        reactionBonus: buffs.reactionBonus,
-        scaling: imported.scaling,
-        totalHP: imported.totalHP,
-        totalDEF: imported.totalDEF,
-      });
-      return {
-        ...panel,
-        totalATK: imported.totalATK,
-        critRate: imported.critRate,
-        critDMG: imported.critDMG,
-        em: imported.em,
-        dmgBonus: imported.dmgBonus || imported.physicalBonus,
-      };
-    }
     return computeDamage({
       character,
       weapon,
@@ -208,8 +153,10 @@ export default function DamageCalculator({
       amplified,
       transformative,
       additive,
+      skillMultiplier: skillMult,
+      attackType: resolvedAttackType,
     });
-  }, [imported, buffIds, skillMult, enemy, amplified, transformative, character, weapon, charId, charLevel, additive, currentSkillLabel, initial.id]);
+  }, [buffIds, enemy, amplified, transformative, character, weapon, charLevel, additive, skillMult, resolvedAttackType]);
 
   const { totalATK, critRate, critDMG, em, dmgBonus } = result;
 
@@ -217,29 +164,6 @@ export default function DamageCalculator({
 
   const advice = useMemo(() => {
     const buffs = mergeBuffs(buffIds);
-    if (imported) {
-      return advisePanel({
-        totalATK: imported.totalATK,
-        critRate: imported.critRate,
-        critDMG: imported.critDMG,
-        dmgBonus: imported.dmgBonus || imported.physicalBonus,
-        em: imported.em,
-        skillMultiplier: skillMult,
-        skillLabel: currentSkillLabel,
-        characterLevel: imported.level,
-        enemy,
-        element: imported.element ?? 'physical',
-        amplified,
-        transformative,
-        additive,
-        defShred: buffs.defShred,
-        resShred: buffs.resShred,
-        reactionBonus: buffs.reactionBonus,
-        scaling: imported.scaling,
-        totalHP: imported.totalHP,
-        totalDEF: imported.totalDEF,
-      });
-    }
     return adviseManual({
       character,
       weapon,
@@ -247,10 +171,12 @@ export default function DamageCalculator({
       buffs,
       enemy,
       characterLevel: charLevel,
+      skillMultiplier: skillMult,
+      attackType: resolvedAttackType,
       amplified,
       transformative,
     });
-  }, [imported, buffIds, skillMult, enemy, amplified, transformative, character, weapon, charId, charLevel, additive, currentSkillLabel, initial.id]);
+  }, [buffIds, enemy, amplified, transformative, character, weapon, charLevel, additive]);
 
   const multipliers = useMemo(() => {
     const crit = 1 + critRate * critDMG;
@@ -424,36 +350,6 @@ export default function DamageCalculator({
           </div>
         </div>
 
-        {/* UID import */}
-        <div className="mt-6 border-t border-[var(--line)] pt-5">
-          <span className="mb-2 block text-sm font-medium text-[var(--muted)]">
-            Import your real build by UID <span className="text-[var(--muted)]/70">(via Enka.network, no login)</span>
-          </span>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="e.g. 600123456"
-              className="flex-1 rounded-[10px] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[var(--text)]"
-              value={uid}
-              onChange={(e) => setUid(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={doImport}
-              disabled={importing}
-              className="rounded-[10px] bg-forest-300 px-4 py-2.5 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200 disabled:opacity-60"
-            >
-              {importing ? 'Loading…' : 'Import'}
-            </button>
-          </div>
-          {importError && <p className="mt-2 text-sm text-pyro">{importError}</p>}
-          {imported && (
-            <p className="mt-2 text-sm text-dendro">
-              Imported: {imported.characterName} (Lv {imported.level}) · {buffNames.length > 0 ? `with ${buffNames.join(' + ')}` : 'no team buffs'}
-            </p>
-          )}
-        </div>
       </div>
 
       {/* ---------- Result panel ---------- */}
@@ -463,7 +359,7 @@ export default function DamageCalculator({
           <p className="tnum mt-2 text-5xl font-semibold tracking-tight text-forest-600">
             {formatNumber(result.expected)}
           </p>
-          <p className="mt-1 text-xs text-[var(--muted)]">{result.skillLabel} · averaged over crits · {result.reactionName}</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">{currentSkillLabel} · averaged over crits · {result.reactionName}</p>
 
           {baseline && (
             <p className={`tnum mt-2 text-sm font-semibold ${delta >= 0 ? 'text-dendro' : 'text-pyro'}`}>

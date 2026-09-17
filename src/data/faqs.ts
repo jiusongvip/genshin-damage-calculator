@@ -82,10 +82,6 @@ export const FAQS: Faq[] = [
     a: 'The Catch (from Inazuma fishing) is the best free polearm and competitive with 5-stars on Raiden Shogun and Xiangling. For bows, the craftable Prototype Crescent and Hamayumi are solid. In general, free weapons that provide a CRIT sub-stat or a strong, always-on passive (The Catch, Fleuve Cendre Ferryman, the craftable Sapwood Blade for Dendro supports) beat higher base-ATK weapons with useless passives. Use this calculator to check whether your free option is close to a 5-star before you spend pulls.',
   },
   {
-    q: 'Can I import my character with my UID?',
-    a: 'This calculator includes a UID import that pulls your showcased characters from the public Enka.network service \u2014 no login required. Only the characters you set on your in-game profile showcase are visible. If a character doesn\u2019t load, update your in-game showcase and wait a few minutes for Enka to refresh. Importing your real build is the most accurate way to get a true damage number, because it removes every manual-entry error.',
-  },
-  {
     q: 'How do elemental reaction multipliers work?',
     a: 'Amplifying reactions multiply your entire hit: Vaporize is 1.5\u00d7 when Pyro triggers on Hydro (or 2.0\u00d7 reverse-Vaporize when Hydro triggers on Pyro), and Melt is 2.0\u00d7 when Pyro triggers on Cryo (1.5\u00d7 reverse). Elemental Mastery further scales this bonus by 2.78 \u00d7 EM \u00f7 (EM + 1400). Transformative reactions instead deal a separate fixed hit that ignores the attacker\u2019s ATK and talent multiplier and scales only with level, EM, and enemy RES \u2014 which is why Hyperbloom and Burgeon teams build full EM and ignore CRIT entirely.',
   },
@@ -127,7 +123,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Is this calculator affiliated with HoYoverse?',
-    a: 'No. This is an independent fan-made tool and is not affiliated with, endorsed by, or sponsored by HoYoverse, miHoYo, or Cognosphere. Genshin Impact and all related characters, weapons, and assets are the property of their respective owners. The tool is free, does not require an account, and never asks for your password \u2014 the UID import uses only the public Enka.network API, which reads your in-game showcase.',
+    a: 'No. This is an independent fan-made tool and is not affiliated with, endorsed by, or sponsored by HoYoverse, miHoYo, or Cognosphere. Genshin Impact and all related characters, weapons, and assets are the property of their respective owners. The tool is free, does not require an account, and never asks for your password. Everything you enter stays in your browser.',
   },
   {
     q: 'What is the best build for Raiden Shogun?',
@@ -243,6 +239,6 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Why do my in-game numbers differ from the calculator?',
-    a: 'The most common causes are: (1) enemy mismatch \u2014 testing against a different enemy level or resistance than you set here; (2) missing buffs \u2014 VV shred, Bennett, resonance and food are part of the \u201cscreenshot\u201d numbers you see online; (3) hidden rounding in the game; and (4) the calculator\u2019s reference panel using a talent-10, level-90 preset rather than your exact build. Import your UID for the closest match \u2014 that pulls your real panel through Enka.network. If the gap persists, double-check the reaction, enemy resistance and DEF shred settings.',
+    a: 'The most common causes are: (1) enemy mismatch \u2014 testing against a different enemy level or resistance than you set here; (2) missing buffs \u2014 VV shred, Bennett, resonance and food are part of the \u201cscreenshot\u201d numbers you see online; (3) hidden rounding in the game; and (4) the calculator\u2019s reference panel using a talent-10, level-90 preset rather than your exact build. Set your own level, weapon, attack type and skill multiplier in the calculator to match your account. If the gap persists, double-check the reaction, enemy resistance and DEF shred settings.',
   },
 ];

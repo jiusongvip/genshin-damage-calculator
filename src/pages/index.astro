@@ -71,7 +71,7 @@ const ELEMENT_LABEL: Record<ElementType, string> = {
 };
 const title = 'Genshin Damage Calculator — Free & Accurate (Updated 7.0)';
 const description =
-  'Free Genshin Impact damage calculator for every character. Compare weapons and artifacts, import your UID via Enka.network, and see your exact damage.';
+  'Free Genshin Impact damage calculator for every character. Build a team, compare weapons and artifacts, and see exactly how much damage you deal.';
 
 const schema = [
   {
@@ -88,7 +88,6 @@ const schema = [
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     featureList: [
       'Zero-input character presets with end-game reference panels',
-      'UID import via Enka.network',
       'Weapon and artifact comparison',
       'Five-multiplier damage breakdown',
       'Team buff simulation',
@@ -301,9 +300,9 @@ const schema = [
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-hydro/15 text-hydro">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/></svg>
           </span>
-          <h3 class="text-lg font-semibold text-[var(--text)]">UID import</h3>
+          <h3 class="text-lg font-semibold text-[var(--text)]">Your numbers, your call</h3>
         </div>
-        <p class="mt-3 text-[var(--muted)]">Paste your UID and pull your real showcased build through Enka.network — no login, no manual stat entry, no guessing.</p>
+        <p class="mt-3 text-[var(--muted)]">Set the level, weapon, artifact set, attack type and multiplier yourself — every field is yours to change, and the damage updates as you type.</p>
       </div>
       <div class="panel p-6">
         <div class="flex items-center gap-3">
@@ -330,7 +329,7 @@ const schema = [
   <section id="presets" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
     <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Reference damage for every character</h2>
     <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-      Level 90, talent 10, best weapon and recommended artifact main stats, vs a level-90 enemy with 10% resistance, <strong>with no elemental reaction applied</strong> so every character is measured the same way. Each number uses the character’s highest-damage talent, named on the card. These are reference numbers for a graduated end-game build — import your UID above for your exact damage, or add reactions and team buffs in the calculator.
+      Level 90, talent 10, best weapon and recommended artifact main stats, vs a level-90 enemy with 10% resistance, <strong>with no elemental reaction applied</strong> so every character is measured the same way. Each number uses the character’s highest-damage talent, named on the card. These are reference numbers for a graduated end-game build — set your own level, weapon and multiplier in the calculator above for your exact damage, and add reactions and team buffs there too.
     </p>
 
     {presetByElement.map((group) => (
@@ -449,8 +448,8 @@ const schema = [
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">05</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Import your UID</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">For the most accurate result, paste your UID to pull your actual showcased build via Enka.network.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Dial in your own build</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Match the calculator to your account: set your character level, weapon, attack type and skill multiplier by hand.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">06</span>
@@ -476,7 +475,6 @@ const schema = [
           <span class="shrink-0 text-[var(--text)]">Aug 12, 2026</span>
         </li>
         <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Five-multiplier damage engine (official formula)</span><span class="text-[var(--text)]">Current</span></li>
-        <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Enka.network UID import</span><span class="text-[var(--text)]">Live</span></li>
         <li class="flex justify-between gap-4"><span>New characters &amp; weapons</span><span class="text-[var(--text)]">Added each patch</span></li>
       </ul>
     </div>
@@ -491,8 +489,6 @@ const schema = [
         <a href="https://genshin-impact.fandom.com/wiki/Genshin_Impact_Wiki" target="_blank" rel="noopener" class="text-forest-600 underline underline-offset-4">Genshin Impact Wiki</a>;
         patch timing follows announcements on the
         <a href="https://www.youtube.com/@GenshinImpact" target="_blank" rel="noopener" class="text-forest-600 underline underline-offset-4">official Genshin Impact YouTube channel</a>.
-        UID imports read your public showcase via
-        <a href="https://enka.network" target="_blank" rel="noopener" class="text-forest-600 underline underline-offset-4">Enka.network</a>.
       </p>
       <blockquote class="mt-4 border-l-4 border-forest-500 pl-4">
         <p class="text-sm leading-relaxed text-[var(--muted)]">
@@ -519,7 +515,7 @@ const schema = [
         <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-[var(--muted)]">
           <a href="https://genshin-impact.fandom.com/wiki/Damage" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Official damage formula</a>
           <a href="https://keqingmains.com/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">KQM theorycrafting</a>
-          <a href="https://enka.network/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Enka.network data</a>
+          <a href="https://enka.network/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Enka.network character art</a>
           <a href="https://genshin.hoyoverse.com/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Official game site</a>
         </div>
       </div>
