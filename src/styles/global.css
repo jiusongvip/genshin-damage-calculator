@@ -274,18 +274,6 @@ details.accordion summary::-webkit-details-marker {
   100% { transform: scale(1); }
 }
 
-/* Counter shake when the team is already full */
-.shake {
-  animation: shake 0.5s ease;
-}
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-4px); }
-  40% { transform: translateX(4px); }
-  60% { transform: translateX(-3px); }
-  80% { transform: translateX(3px); }
-}
-
 /* Character card flash on add */
 .card-flash-add {
   animation: cardFlashAdd 0.45s ease;
@@ -293,15 +281,6 @@ details.accordion summary::-webkit-details-marker {
 @keyframes cardFlashAdd {
   0% { filter: brightness(1.9) saturate(1.35); }
   100% { filter: brightness(1); }
-}
-
-/* Character card flash when the team is full (rejected) */
-.card-flash-full {
-  animation: cardFlashFull 0.5s ease;
-}
-@keyframes cardFlashFull {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(255 107 94 / 0); }
-  30% { box-shadow: 0 0 0 3px rgb(255 107 94 / 0.95); }
 }
 
 /* "Add to cart" flight from grid to team slot */
@@ -326,6 +305,30 @@ details.accordion summary::-webkit-details-marker {
   0% { transform: scale(0.55); }
   60% { transform: scale(1.12); }
   100% { transform: scale(1); }
+}
+
+/* Swap mode — a full team asks which member steps out, instead of refusing
+   the click. The slots become targets and the incoming card stays marked. */
+.swap-target {
+  animation: swapTarget 1.4s ease-in-out infinite;
+}
+@keyframes swapTarget {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(69 106 75 / 0.45); }
+  50% { box-shadow: 0 0 0 5px rgb(69 106 75 / 0); }
+}
+.swap-pending {
+  animation: swapPending 1.4s ease-in-out infinite;
+}
+@keyframes swapPending {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(69 106 75 / 0.5); }
+  50% { box-shadow: 0 0 0 6px rgb(69 106 75 / 0); }
+}
+.swap-prompt {
+  animation: swapPromptIn 0.24s ease;
+}
+@keyframes swapPromptIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Damage number: count-up + Genshin-style crit burst */
@@ -376,15 +379,6 @@ details.accordion summary::-webkit-details-marker {
   color: #b25a1f;
   -webkit-text-stroke: 0.6px rgb(74 44 18 / 0.35);
   paint-order: stroke fill;
-}
-
-/* Toast */
-.toast-in {
-  animation: toastIn 0.32s ease;
-}
-@keyframes toastIn {
-  from { opacity: 0; transform: translate(-50%, -10px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
