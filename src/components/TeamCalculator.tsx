@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { CHARACTERS } from '../data/characters';
+// Unreleased characters are datamined, so their stats are guesses and the art
+// is not ours to publish — the roster ships released characters only. Swap this
+// for `CHARACTERS` to put them back; the "Upcoming" badge below is already
+// wired up for that case.
+import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
 import { getWeapon, weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
-import { DEFAULT_BUFFS, BUFF_PRESETS, resolvePreset } from '../data/presets';
-import { computeDamage, formatNumber } from '../lib/damage';
+import { DEFAULT_BUFFS, BUFF_PRESETS, BUFF_BY_CHARACTER, resolvePreset } from '../data/presets';
+import { addBuffs, computeDamage, formatNumber } from '../lib/damage';
 import type { AdditiveReaction, AmplifiedReaction, BuffState, CharacterData, ElementType, TransformativeReaction } from '../lib/damage';
 import { ELEMENT_LABEL } from '../data/elements';
 import { ARTIFACT_SETS, SET_BY_ID, resolveSetBuffs } from '../data/artifactSets';
@@ -52,24 +56,15 @@ const REACTIONS: { name: string; needs: ElementType[]; extra?: ElementType[] }[]
   { name: 'Crystallize', needs: ['geo'], extra: ['pyro', 'hydro', 'electro', 'cryo'] },
 ];
 
-// Known team buffers: picking them auto-applies their buff to every member.
-const BUFF_BY_CHARACTER: Record<string, string> = {
-  bennett: 'bennett',
-  kazuha: 'kazuha',
-  zhongli: 'zhongli-shield',
-  xilonen: 'xilonen',
-  citlali: 'citlali',
-};
-
 const ROTATION_SECONDS = 20;
 const MAX_TEAM = 4;
 
 /**
- * Default team — the current top meta composition (source: genshin.gg "Best
- * Teams"): Zibai hypercarry with Columbina, Linnea and Illuga. Falls back to
- * whichever ids still exist in the roster.
+ * Fallback team, used only if the page does not pass one in. The real default
+ * is computed at build time from the site's own reference-damage table and
+ * handed over as `defaultTeam`, so it tracks the data instead of rotting.
  */
-const DEFAULT_TEAM = ['zibai', 'columbina', 'linnea', 'illuga'];
+const FALLBACK_TEAM = ['hu-tao', 'xingqiu', 'bennett', 'kazuha'];
 
 /** Per-character overrides set in the team panel. */
 type CharConfig = { level: number; weaponId: string; setId: string };
@@ -130,6 +125,22 @@ function reactionFor(element: ElementType, team: Set<ElementType>): ReactionPick
   return { amplified: 'none', additive: 'none', transformative: 'none' };
 }
 
+/** Human-readable summary of what a buff actually does, e.g. "+900 ATK · −40% RES". */
+function describeBuffs(buffs: Partial<BuffState>): string {
+  const pct = (v: number) => `${v > 0 ? '+' : '−'}${Math.round(Math.abs(v) * 100)}%`;
+  const parts: string[] = [];
+  if (buffs.flatATK) parts.push(`+${buffs.flatATK} ATK`);
+  if (buffs.atkPercent) parts.push(`${pct(buffs.atkPercent)} ATK`);
+  if (buffs.hpPercent) parts.push(`${pct(buffs.hpPercent)} Max HP`);
+  if (buffs.em) parts.push(`+${buffs.em} EM`);
+  if (buffs.dmgBonus) parts.push(`${pct(buffs.dmgBonus)} DMG`);
+  if (buffs.critRate) parts.push(`${pct(buffs.critRate)} CRIT Rate`);
+  if (buffs.critDMG) parts.push(`${pct(buffs.critDMG)} CRIT DMG`);
+  if (buffs.resShred) parts.push(`${pct(-buffs.resShred)} enemy RES`);
+  if (buffs.defShred) parts.push(`${pct(-buffs.defShred)} enemy DEF`);
+  return parts.join(' · ');
+}
+
 /** The element logo that replaces the old coloured dot everywhere. */
 export function ElementIcon({ el, className = 'h-4 w-4' }: { el: string; className?: string }) {
   if (el === 'physical') {
@@ -149,39 +160,88 @@ export function ElementIcon({ el, className = 'h-4 w-4' }: { el: string; classNa
   );
 }
 
-/** Smooth count-up so damage figures never jump abruptly. */
+/**
+ * Smooth count-up so damage figures never jump abruptly.
+ *
+ * The animation is decoration; the final number is the product. requestAnimation-
+ * Frame stops firing in a background tab, behind an occluded window and under
+ * battery saver, so the tween alone would leave the headline damage frozen on a
+ * stale value with no way back. Every exit path therefore snaps to `target`:
+ * a reduced-motion preference skips the tween entirely, a watchdog fires just
+ * after the animation should have finished, and unmount-time cleanup commits the
+ * final value rather than abandoning it mid-tween.
+ */
 function useCountUp(target: number, duration = 550) {
   const [value, setValue] = useState(target);
   const valueRef = useRef(target);
+
   useEffect(() => {
     const from = valueRef.current;
     if (from === target) return;
+
+    const commit = () => {
+      valueRef.current = target;
+      setValue(target);
+    };
+
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      commit();
+      return;
+    }
+
     let raf = 0;
+    let done = false;
     const start = performance.now();
     const tick = (now: number) => {
       const p = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - p, 3);
-      const next = from + (target - from) * eased;
-      valueRef.current = next;
-      setValue(next);
-      if (p < 1) raf = requestAnimationFrame(tick);
-      else {
-        valueRef.current = target;
-        setValue(target);
+      if (p < 1) {
+        const next = from + (target - from) * eased;
+        valueRef.current = next;
+        setValue(next);
+        raf = requestAnimationFrame(tick);
+      } else {
+        done = true;
+        commit();
       }
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+
+    // Fires if rAF never ran, or ran too slowly to reach the end.
+    const watchdog = window.setTimeout(() => {
+      if (!done) {
+        done = true;
+        cancelAnimationFrame(raf);
+        commit();
+      }
+    }, duration + 120);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(watchdog);
+      if (!done) commit();
+    };
   }, [target, duration]);
+
   return value;
 }
 
 type Flyer = { key: number; id: string; x: number; y: number; w: number; h: number; dx: number; dy: number };
 
-export default function TeamCalculator() {
-  const [selected, setSelected] = useState<string[]>(() =>
-    DEFAULT_TEAM.filter((id) => CHARACTERS.some((c) => c.id === id)).slice(0, MAX_TEAM),
-  );
+export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[] } = {}) {
+  const initialTeam = useMemo(() => {
+    const wanted = defaultTeam?.length ? defaultTeam : FALLBACK_TEAM;
+    return wanted.filter((id) => CHARACTERS.some((c) => c.id === id)).slice(0, MAX_TEAM);
+  }, [defaultTeam]);
+
+  const [selected, setSelected] = useState<string[]>(initialTeam);
+  // The pre-filled team is only a showcase, so the page never opens on an empty
+  // calculator. The first character the user picks takes the whole team over —
+  // nobody should have to empty four slots before building their own.
+  const [isDemo, setIsDemo] = useState(() => initialTeam.length > 0);
   const [query, setQuery] = useState('');
   const [elementFilter, setElementFilter] = useState<'all' | ElementType>('all');
   const [weaponFilter, setWeaponFilter] = useState<'all' | string>('all');
@@ -253,7 +313,9 @@ export default function TeamCalculator() {
       const presetId = BUFF_BY_CHARACTER[id];
       if (!presetId) continue;
       const preset = BUFF_PRESETS.find((b) => b.id === presetId);
-      if (preset) srcs.push({ id: `char-${id}`, label: preset.label, effect: preset.label, buffs: preset.buffs });
+      if (preset) {
+        srcs.push({ id: `char-${id}`, label: preset.label, effect: describeBuffs(preset.buffs), buffs: preset.buffs });
+      }
     }
     for (const el of synergy.resonances) {
       srcs.push({ id: `res-${el}`, label: RESONANCE[el].name, effect: RESONANCE[el].effect, buffs: RESONANCE[el].buffs });
@@ -261,11 +323,10 @@ export default function TeamCalculator() {
     return srcs;
   }, [selected, synergy]);
 
-  const buffs = useMemo(() => {
-    const merged = { ...DEFAULT_BUFFS };
-    for (const src of buffSources) Object.assign(merged, src.buffs);
-    return merged;
-  }, [buffSources]);
+  const buffs = useMemo(
+    () => addBuffs(DEFAULT_BUFFS, ...buffSources.map((s) => s.buffs)),
+    [buffSources],
+  );
 
   const computeRows = (merged: BuffState) => {
     const teamSet = new Set(
@@ -279,10 +340,7 @@ export default function TeamCalculator() {
       const pick = reactionFor(c.element, teamSet);
       const attackType = signatureTalent(c.id)?.key ?? 'burst';
       const setPatch = cfg.setId ? resolveSetBuffs([{ id: cfg.setId, pieces: 4 }], c.element, attackType) : {};
-      const charBuffs: BuffState = { ...merged };
-      for (const key of Object.keys(setPatch) as (keyof BuffState)[]) {
-        charBuffs[key] = (charBuffs[key] ?? 0) + (setPatch[key] ?? 0);
-      }
+      const charBuffs = addBuffs(merged, setPatch);
       const r = computeDamage({
         character: c,
         weapon,
@@ -312,13 +370,21 @@ export default function TeamCalculator() {
   const dps = total / ROTATION_SECONDS;
 
   /** Per-source damage contribution — so instead of just the resonance name, the
-   *  user sees exactly how much damage it is worth. */
-  const breakdown = buffSources.map((src) => {
-    const without = { ...DEFAULT_BUFFS };
-    for (const other of buffSources) if (other.id !== src.id) Object.assign(without, other.buffs);
-    const t = computeRows(without).reduce((sum, x) => sum + x.result.expected + x.result.transformative, 0);
-    return { ...src, delta: total - t };
-  });
+   *  user sees exactly how much damage it is worth. Memoised: each entry costs a
+   *  full team recompute, and the count-up animation re-renders ~60x/second. */
+  const breakdown = useMemo(
+    () =>
+      buffSources.map((src) => {
+        const without = addBuffs(
+          DEFAULT_BUFFS,
+          ...buffSources.filter((other) => other.id !== src.id).map((other) => other.buffs),
+        );
+        const t = computeRows(without).reduce((sum, x) => sum + x.result.expected + x.result.transformative, 0);
+        return { ...src, delta: total - t };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- computeRows is derived from these
+    [buffSources, selected, configs, total],
+  );
 
   const animatedTotal = useCountUp(total);
   const animatedDps = useCountUp(dps);
@@ -330,37 +396,63 @@ export default function TeamCalculator() {
     setPopKey((k) => k + 1);
   }, [total]);
 
-  const remove = (id: string) =>
+  const remove = (id: string) => {
+    setIsDemo(false);
     setSelected((prev) => prev.filter((x) => x !== id));
+  };
 
-  const add = (id: string) => {
-    const idx = selected.length;
+  const clearTeam = () => {
+    setIsDemo(false);
+    setSelected([]);
+    setOpenSettings(null);
+  };
+
+  /** Launch the avatar from its card to the team slot it is about to fill. */
+  const flyToSlot = (id: string, idx: number) => {
     const cardEl = cardRefs.current[id];
     const slotEl = slotRefs.current[idx];
-    if (cardEl && slotEl) {
-      const a = cardEl.getBoundingClientRect();
-      const b = slotEl.getBoundingClientRect();
-      setFlyers((f) => [
-        ...f,
-        {
-          key: ++flyKey.current,
-          id,
-          x: a.left,
-          y: a.top,
-          w: a.width,
-          h: a.height,
-          dx: b.left + b.width / 2 - (a.left + a.width / 2),
-          dy: b.top + b.height / 2 - (a.top + a.height / 2),
-        },
-      ]);
-    }
-    setSelected((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    if (!cardEl || !slotEl) return;
+    const a = cardEl.getBoundingClientRect();
+    const b = slotEl.getBoundingClientRect();
+    setFlyers((f) => [
+      ...f,
+      {
+        key: ++flyKey.current,
+        id,
+        x: a.left,
+        y: a.top,
+        w: a.width,
+        h: a.height,
+        dx: b.left + b.width / 2 - (a.left + a.width / 2),
+        dy: b.top + b.height / 2 - (a.top + a.height / 2),
+      },
+    ]);
+  };
+
+  /** Shared add/takeover feedback: slot pop, counter bump, card flash. */
+  const pulse = (id: string, idx: number) => {
     setPopSlot(idx);
     setBump(true);
     setFlash({ id, kind: 'add' });
     window.setTimeout(() => setBump(false), 500);
     window.setTimeout(() => setPopSlot(null), 500);
     window.setTimeout(() => setFlash(null), 500);
+  };
+
+  const add = (id: string) => {
+    const idx = selected.length;
+    flyToSlot(id, idx);
+    setSelected((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    pulse(id, idx);
+  };
+
+  /** First real pick replaces the showcase team instead of being rejected. */
+  const takeOver = (id: string) => {
+    flyToSlot(id, 0);
+    setIsDemo(false);
+    setSelected([id]);
+    setOpenSettings(null);
+    pulse(id, 0);
   };
 
   const showToast = (msg: string) => {
@@ -371,6 +463,10 @@ export default function TeamCalculator() {
   const toggle = (id: string) => {
     if (selected.includes(id)) {
       remove(id);
+      return;
+    }
+    if (isDemo) {
+      takeOver(id);
       return;
     }
     if (selected.length >= MAX_TEAM) {
@@ -398,7 +494,14 @@ export default function TeamCalculator() {
         <div className="panel rounded-2xl border-forest-500/30 bg-[var(--surface)]/95 px-4 py-3 shadow-[0_18px_50px_-24px_rgb(69_106_75/0.55)] backdrop-blur sm:px-5">
           <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-600">Team damage</p>
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-600">
+                Team damage
+                {isDemo && (
+                  <span className="rounded-full bg-forest-600/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-forest-700">
+                    Example team<span className="hidden sm:inline"> — pick anyone to start your own</span>
+                  </span>
+                )}
+              </p>
               <div className="mt-0.5 flex flex-wrap items-end gap-x-3 gap-y-1">
                 <span className="relative inline-block leading-none">
                   <span key={popKey} className="damage-pop damage-number tnum block text-3xl sm:text-4xl">
@@ -407,18 +510,33 @@ export default function TeamCalculator() {
                   <span key={`burst-${popKey}`} className="damage-burst" aria-hidden="true" />
                 </span>
                 <span className="tnum pb-1 text-xs font-medium text-[var(--muted)]">
-                  {formatNumber(animatedDps)} DPS <span className="opacity-70">(20s est.)</span>
+                  {selected.length === 0 ? (
+                    <span className="normal-case">Pick a character below to start</span>
+                  ) : (
+                    <>
+                      {formatNumber(animatedDps)} DPS <span className="opacity-70">(20s est.)</span>
+                    </>
+                  )}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className={`shrink-0 text-center ${shake ? 'shake' : ''}`}>
                 <span className={`tnum block text-lg font-bold leading-none text-forest-600 ${bump ? 'counter-pop' : ''}`}>
                   {selected.length}/{MAX_TEAM}
                 </span>
                 <span className="mt-0.5 block text-[10px] uppercase tracking-wider text-[var(--muted)]">team</span>
               </div>
+              {selected.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearTeam}
+                  className="shrink-0 rounded-full border border-[var(--line)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-pyro/50 hover:text-pyro"
+                >
+                  Clear
+                </button>
+              )}
               <div className="flex gap-2">
                 {Array.from({ length: MAX_TEAM }).map((_, i) => {
                   const id = selected[i];
@@ -433,7 +551,7 @@ export default function TeamCalculator() {
                       onClick={() => id && remove(id)}
                       title={c ? `${c.name} — click to remove` : 'Empty slot'}
                       aria-label={c ? `Remove ${c.name}` : `Empty team slot ${i + 1}`}
-                      className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-xl transition ${
+                      className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-xl transition sm:h-12 sm:w-12 ${
                         c
                           ? 'ring-1 ring-forest-400 hover:ring-2 hover:ring-pyro'
                           : 'border border-dashed border-[var(--line)]'
@@ -576,6 +694,14 @@ export default function TeamCalculator() {
                         decoding="async"
                       />
                       <ElementIcon el={c.element} className="absolute right-2 top-2 h-5 w-5" />
+                      {c.unreleased && (
+                        <span
+                          className="absolute left-1.5 bottom-11 rounded-full bg-amber-500/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow"
+                          title="Not in the live game yet — stats are unverified"
+                        >
+                          Upcoming
+                        </span>
+                      )}
                       {isSelected && (
                         <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-forest-600 text-xs font-bold text-white shadow" aria-hidden="true">
                           ✓

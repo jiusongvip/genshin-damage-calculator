@@ -167,27 +167,59 @@ export interface SignatureTalent {
   multiplier: number;
 }
 
-const SIGNATURE_ORDER: TalentKey[] = ['burst', 'skill', 'charged', 'normal'];
-
 const SIGNATURE_LABEL: Record<TalentKey, string> = {
-  normal: 'Normal Attack',
+  // `normal` and `charged` are combo totals (see the header), not single hits.
+  normal: 'Normal Attack combo',
   charged: 'Charged Attack',
   skill: 'Elemental Skill',
   burst: 'Elemental Burst',
 };
 
+/**
+ * Characters whose headline damage is not their biggest raw multiplier — put
+ * them here rather than editing the generated numbers above. Empty for now:
+ * every entry is a claim about the live game, so it needs verifying one
+ * character at a time instead of being guessed in bulk.
+ */
+export const SIGNATURE_OVERRIDE: Record<string, TalentKey> = {
+  // His Charged Attack is the whole kit; the Normal combo edges it out on raw
+  // multiplier but is the wrong window, and only the Charged attack scales off
+  // Max HP (see ALT_SCALING_ATTACKS in lib/damage.ts).
+  neuvillette: 'charged',
+};
+
+/** Scanned in this order so an exact tie resolves to the more "signature" talent. */
+const TALENT_KEYS: TalentKey[] = ['burst', 'skill', 'charged', 'normal'];
+
+/**
+ * The talent used to represent a character's damage.
+ *
+ * This used to be "Burst if it deals any damage at all, else Skill, …", which
+ * fell apart for the ~50 characters whose burst is a heal, a shield or a buff
+ * with a token damage tick: Neuvillette was modelled on a 0.401 burst instead
+ * of his 2.607 charged attack, Venti on 0.338 instead of his 6.84 skill, and
+ * the site's damage ranking put a healer on top. Picking the largest
+ * multiplier is the honest default; ties keep the Burst > Skill > Charged >
+ * Normal order so a burst-focused character still reads as one.
+ */
 export function signatureTalent(id: string): SignatureTalent | undefined {
   const t = TALENTS[id];
   if (!t) return undefined;
-  for (const key of SIGNATURE_ORDER) {
-    if (t[key] > 0) {
-      return {
-        key,
-        label: SIGNATURE_LABEL[key],
-        detail: key === 'burst' ? t.burstLabel : key === 'skill' ? t.skillLabel : '',
-        multiplier: t[key],
-      };
-    }
+
+  const describe = (key: TalentKey): SignatureTalent => ({
+    key,
+    label: SIGNATURE_LABEL[key],
+    detail: key === 'burst' ? t.burstLabel : key === 'skill' ? t.skillLabel : '',
+    multiplier: t[key],
+  });
+
+  const override = SIGNATURE_OVERRIDE[id];
+  if (override && t[override] > 0) return describe(override);
+
+  let best: TalentKey | undefined;
+  for (const key of TALENT_KEYS) {
+    if (t[key] <= 0) continue;
+    if (best === undefined || t[key] > t[best]) best = key;
   }
-  return undefined;
+  return best === undefined ? undefined : describe(best);
 }

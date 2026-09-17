@@ -169,3 +169,22 @@ export const BUFF_PRESETS: { id: string; label: string; buffs: Partial<BuffState
   { id: 'noblesse', label: 'Noblesse 4pc', buffs: { atkPercent: 0.2 } },
   { id: 'ttds', label: 'Thrilling Tales', buffs: { atkPercent: 0.48 } },
 ];
+
+/**
+ * Characters whose team buff the calculator models. Picking one applies the
+ * matching entry from BUFF_PRESETS to the whole team.
+ *
+ * Lives here rather than in the calculator component because the home page
+ * also needs it, to seed a default team that actually demonstrates the buff
+ * breakdown instead of showing an empty panel.
+ */
+export const BUFF_BY_CHARACTER: Record<string, string> = {
+  bennett: 'bennett',
+  kazuha: 'kazuha',
+  zhongli: 'zhongli-shield',
+  xilonen: 'xilonen',
+  citlali: 'citlali',
+};
+
+/** Buffers in the order a default team should reach for them. */
+export const DEFAULT_BUFFERS = ['bennett', 'kazuha', 'xilonen', 'zhongli', 'citlali'];

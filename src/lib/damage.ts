@@ -73,6 +73,13 @@ export interface CharacterData {
   bestArtifacts: string;
   /** Short tagline for the preset card. */
   note: string;
+  /**
+   * Not in the live game yet, so the stats and multipliers are unverified.
+   * These are kept out of the reference-damage table and the default team, and
+   * badged wherever they are shown, so an unreleased guess never reads as a
+   * measured number.
+   */
+  unreleased?: true;
 }
 
 export interface WeaponData {
@@ -128,6 +135,23 @@ export interface BuffState {
   transformReactionBonus: number;
   /** Target's damage reduction, subtracted from your DMG bonus. */
   dmgReduction: number;
+}
+
+/**
+ * Fold buff sources into one state. Every field is additive in-game — two
+ * RES-shred sources stack (Kazuha's 40% + Zhongli's 20% = 60%), as do ATK%
+ * from a Bennett burst and a Pyro resonance. Overwriting instead of adding
+ * would silently drop every source but the last, and make the result depend
+ * on the order the sources were listed in.
+ */
+export function addBuffs(base: BuffState, ...patches: Partial<BuffState>[]): BuffState {
+  const merged: BuffState = { ...base };
+  for (const patch of patches) {
+    for (const key of Object.keys(patch) as (keyof BuffState)[]) {
+      merged[key] = (merged[key] ?? 0) + (patch[key] ?? 0);
+    }
+  }
+  return merged;
 }
 
 export interface EnemyData {
@@ -358,6 +382,26 @@ function resMultiplierFor(rawRes: number, resShred: number): number {
   return 1 / (1 + 4 * res);
 }
 
+/**
+ * Characters whose Normal or Charged attacks scale off something other than
+ * ATK, because a talent converts them. Everyone not listed here uses ATK for
+ * those two attack types, which is the game's default.
+ *
+ * Deliberately short: each entry is a claim about the live game and should be
+ * verified against the character's talent text before being added.
+ */
+const ALT_SCALING_ATTACKS: Record<string, Partial<Record<'normal' | 'charged', ScalingStat>>> = {
+  // Charged Attack: Equitable Judgment scales off Max HP.
+  neuvillette: { charged: 'hp' },
+  // Ayato is deliberately absent: his Shunsuiken normals scale off ATK *plus* a
+  // Max-HP bonus, and modelling them as pure HP overstated him ~3x. Until the
+  // model can express two scaling stats at once, ATK alone is the closer answer.
+  // Sweeping Time converts Noelle's normals and charged attacks to DEF.
+  noelle: { normal: 'def', charged: 'def' },
+  // Arataki Kesagiri — Itto's normals scale off DEF.
+  itto: { normal: 'def', charged: 'def' },
+};
+
 export function computeDamage(input: DamageInput): DamageResult {
   const { character, weapon, artifacts, buffs, enemy } = input;
   const charLevel = input.characterLevel ?? 90;
@@ -414,8 +458,24 @@ export function computeDamage(input: DamageInput): DamageResult {
   const em = art.em + w.em + ascStat.em + buffs.em;
 
   // ---- Base stat by scaling ----
+  // `character.scaling` describes the talent the character is *known* for, but
+  // scaling is a property of the talent, not of the character: Furina's Skill
+  // scales off Max HP while her Normal Attacks still scale off ATK. Applying
+  // one character-wide stat to every talent put ~40k HP behind a normal-attack
+  // combo and pushed healers to the top of the damage ranking, so Normal and
+  // Charged attacks fall back to ATK unless the character is a known exception.
+  const effectiveScaling: ScalingStat =
+    attackType === 'normal' || attackType === 'charged'
+      ? (ALT_SCALING_ATTACKS[character.id]?.[attackType] ?? 'atk')
+      : scaling;
   const baseStat =
-    scaling === 'def' ? totalDEF : scaling === 'hp' ? totalHP : scaling === 'em' ? em : totalATK;
+    effectiveScaling === 'def'
+      ? totalDEF
+      : effectiveScaling === 'hp'
+        ? totalHP
+        : effectiveScaling === 'em'
+          ? em
+          : totalATK;
 
   // ---- Amplified reaction ----
   let reactionMultiplier = 1;

@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { CHARACTERS } from '../data/characters';
+// Released characters only — see the note in TeamCalculator.tsx.
+import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
 import { TALENTS, signatureTalent } from '../data/talents';
 import { weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, BUFF_PRESETS, resolvePreset } from '../data/presets';
 import {
+  addBuffs,
   computeDamage,
   computeFromPanel,
   formatNumber,
@@ -77,12 +79,10 @@ const ADDITIVE_OPTIONS: { value: AdditiveReaction; label: string }[] = [
 ];
 
 function mergeBuffs(ids: string[]): BuffState {
-  const merged: BuffState = { ...DEFAULT_BUFFS };
-  for (const id of ids) {
-    const preset = BUFF_PRESETS.find((b) => b.id === id);
-    if (preset) Object.assign(merged, preset.buffs);
-  }
-  return merged;
+  const patches = ids
+    .map((id) => BUFF_PRESETS.find((b) => b.id === id)?.buffs)
+    .filter((b): b is Partial<BuffState> => b != null);
+  return addBuffs(DEFAULT_BUFFS, ...patches);
 }
 
 function defaultAmplified(element: ElementType): AmplifiedReaction {
