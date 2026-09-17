@@ -27,6 +27,7 @@ const GRADUATED_SUBS = {
   subEM: 40,
   subER: 20,
   subHPPercent: 0.1,
+  subDEFPercent: 0.1,
 };
 
 /** Per-character preset build keyed by character id. */
@@ -105,13 +106,25 @@ export const PRESETS: Record<string, ArtifactBuild> = {
 export const DEFAULT_BUFFS: BuffState = {
   atkPercent: 0,
   flatATK: 0,
+  hpPercent: 0,
+  flatHP: 0,
+  defPercent: 0,
+  flatDEF: 0,
   dmgBonus: 0,
+  naDmgBonus: 0,
+  caDmgBonus: 0,
+  skillDmgBonus: 0,
+  burstDmgBonus: 0,
   critRate: 0,
   critDMG: 0,
   em: 0,
   defShred: 0,
+  defIgnore: 0,
   resShred: 0,
   reactionBonus: 0,
+  ampReactionBonus: 0,
+  transformReactionBonus: 0,
+  dmgReduction: 0,
 };
 
 /**
@@ -125,10 +138,12 @@ export function resolvePreset(c: CharacterData): ArtifactBuild {
 
   const note = c.note.toLowerCase();
   let sands: ArtifactBuild['sandsMain'];
-  if (c.baseATK < 220) {
+  if (c.scaling === 'hp') {
     sands = { type: 'hp%', value: MAIN_STATS.hpPercent };
-  } else if (note.includes('def scaling') || note.includes('def%')) {
+  } else if (c.scaling === 'def') {
     sands = { type: 'def%', value: MAIN_STATS.defPercent };
+  } else if (c.scaling === 'em') {
+    sands = { type: 'em', value: MAIN_STATS.em };
   } else if (note.includes('spread') || note.includes('aggravate') || note.includes('bloom') || note.includes('em sands')) {
     sands = { type: 'em', value: MAIN_STATS.em };
   } else {
@@ -149,6 +164,8 @@ export const BUFF_PRESETS: { id: string; label: string; buffs: Partial<BuffState
   { id: 'bennett', label: 'Bennett Q', buffs: { flatATK: 900, atkPercent: 0.2 } },
   { id: 'kazuha', label: 'Kazuha VV', buffs: { resShred: 0.4, dmgBonus: 0.35 } },
   { id: 'zhongli-shield', label: 'Zhongli shield', buffs: { resShred: 0.2 } },
+  { id: 'xilonen', label: 'Xilonen (RES shred)', buffs: { resShred: 0.36 } },
+  { id: 'citlali', label: 'Citlali (Pyro / Hydro RES −20%)', buffs: { resShred: 0.2 } },
   { id: 'noblesse', label: 'Noblesse 4pc', buffs: { atkPercent: 0.2 } },
   { id: 'ttds', label: 'Thrilling Tales', buffs: { atkPercent: 0.48 } },
 ];

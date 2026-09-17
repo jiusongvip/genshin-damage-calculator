@@ -3,14 +3,17 @@
 // public (no-auth) Enka API and maps them to our calculator's panel inputs.
 // ============================================================================
 
-import type { ElementType } from './damage';
+import type { ElementType, ScalingStat } from './damage';
 
 export interface ImportedPanel {
   characterName: string;
   characterId?: string;
   element?: ElementType;
+  scaling?: ScalingStat;
   level: number;
   totalATK: number;
+  totalHP: number;
+  totalDEF: number;
   baseATK: number;
   critRate: number;
   critDMG: number;
@@ -119,6 +122,32 @@ const ENKA_TO_INTERNAL: Record<number, { id: string; name: string; element: Elem
   10000119: { id: 'lauma', name: 'Lauma', element: 'dendro' },
   10000120: { id: 'flins', name: 'Flins', element: 'electro' },
   10000121: { id: 'aino', name: 'Aino', element: 'hydro' },
+  10000003: { id: 'jean', name: 'Jean', element: 'anemo' },
+  10000094: { id: 'chiori', name: 'Chiori', element: 'geo' },
+  10000065: { id: 'kuki-shinobu', name: 'Kuki Shinobu', element: 'electro' },
+  10000005: { id: 'aether', name: 'Aether', element: 'anemo' },
+  10000007: { id: 'lumine', name: 'Lumine', element: 'anemo' },
+  10000150: { id: 'odette', name: 'Odette', element: 'cryo' },
+  10000123: { id: 'durin', name: 'Durin', element: 'pyro' },
+  10000126: { id: 'zibai', name: 'Zibai', element: 'geo' },
+  10000115: { id: 'dahlia', name: 'Dahlia', element: 'hydro' },
+  10000128: { id: 'varka', name: 'Varka', element: 'anemo' },
+  10000133: { id: 'sandrone', name: 'Sandrone', element: 'cryo' },
+  10000109: { id: 'yumemizuki-mizuki', name: 'Yumemizuki Mizuki', element: 'anemo' },
+  10000125: { id: 'columbina', name: 'Columbina', element: 'hydro' },
+  10000131: { id: 'nicole', name: 'Nicole', element: 'pyro' },
+  10000122: { id: 'nefer', name: 'Nefer', element: 'dendro' },
+  10000114: { id: 'skirk', name: 'Skirk', element: 'cryo' },
+  10000132: { id: 'prune', name: 'Prune', element: 'anemo' },
+  10000113: { id: 'ifa', name: 'Ifa', element: 'anemo' },
+  10000112: { id: 'escoffier', name: 'Escoffier', element: 'cryo' },
+  10000116: { id: 'ineffa', name: 'Ineffa', element: 'electro' },
+  10000127: { id: 'illuga', name: 'Illuga', element: 'geo' },
+  10000110: { id: 'iansan', name: 'Iansan', element: 'electro' },
+  10000130: { id: 'linnea', name: 'Linnea', element: 'geo' },
+  10000124: { id: 'jahoda', name: 'Jahoda', element: 'anemo' },
+  10000117: { id: 'manekin', name: 'Manekin', element: 'anemo' },
+  10000118: { id: 'manekina', name: 'Manekina', element: 'anemo' },
 };
 
 const num = (v: unknown): number => {
@@ -156,7 +185,8 @@ export async function fetchEnkaPanel(uid: string): Promise<ImportedPanel | null>
 
   // Enka fightPropMap keys (merged panel):
   // 4 = base ATK, 5 = total ATK, 20 = CRIT Rate, 22 = CRIT DMG,
-  // 23 = Elemental Mastery, 28 = elemental DMG bonus, 29 = physical DMG bonus.
+  // 23 = Elemental Mastery, 28 = elemental DMG bonus, 29 = physical DMG bonus,
+  // 2000 = Max HP, 2002 = DEF (final stats; absent on some payloads).
   const level = (() => {
     const levelProp = avatar.propMap?.['4001'];
     const lv = levelProp?.val != null ? num(levelProp.val) : 90;
@@ -169,6 +199,8 @@ export async function fetchEnkaPanel(uid: string): Promise<ImportedPanel | null>
     element: mapped?.element,
     level,
     totalATK: num(fp[5]),
+    totalHP: num(fp[2000]),
+    totalDEF: num(fp[2002]),
     baseATK: num(fp[4]),
     critRate: num(fp[20]),
     critDMG: num(fp[22]),
