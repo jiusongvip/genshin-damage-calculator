@@ -226,17 +226,6 @@ input[type="text"]:focus-visible {
   outline-offset: 1px;
 }
 
-/* Scroll reveal — sections fade up as they enter the viewport */
-.reveal {
-  opacity: 0;
-  transform: translateY(26px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
-}
-.reveal-in {
-  opacity: 1;
-  transform: none;
-}
-
 /* Gentle float for hero element icons */
 @keyframes floatY {
   0%,
