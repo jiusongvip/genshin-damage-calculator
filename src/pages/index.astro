@@ -158,12 +158,7 @@ const schema = [
 
   <!-- ============ Calculator ============ -->
   <section id="calculator" class="page-shell scroll-mt-4 py-5 md:py-6">
-    <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-semibold tracking-tight text-[var(--text)] sm:text-xl md:text-2xl">
-          Pick 1–4 characters, calculate their damage
-        </h2>
-      </div>
+    <div class="mb-3 flex justify-end">
       <a href="#guide" class="hidden text-sm text-forest-600 underline decoration-forest-500/50 underline-offset-2 sm:inline">How to use it</a>
     </div>
     <TeamCalculator client:load defaultTeam={DEFAULT_TEAM_IDS} />

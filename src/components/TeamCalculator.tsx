@@ -464,26 +464,14 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     pulse(id, idx);
   };
 
-  /** First real pick replaces the showcase team instead of being rejected. */
-  const takeOver = (id: string) => {
-    flyToSlot(id, 0);
-    setIsDemo(false);
-    setSelected([id]);
-    setGearFor(null);
-    pulse(id, 0);
-  };
-
   const toggle = (id: string) => {
     if (selected.includes(id)) {
       remove(id);
       return;
     }
-    if (isDemo) {
-      takeOver(id);
-      return;
-    }
     // A full team changes nothing: the only feedback is the 4/4 counter
-    // flashing, loud enough to draw the eye to the bar.
+    // flashing, loud enough to draw the eye to the bar. This also covers the
+    // pre-filled example team, so a fifth pick never yanks the team away.
     if (selected.length >= MAX_TEAM) {
       setFullKey((k) => k + 1);
       setAnnounce(`Team is full (${MAX_TEAM}/${MAX_TEAM}). Remove a character to add another.`);
@@ -542,7 +530,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                 Team damage
                 {isDemo && (
                   <span className="hidden truncate rounded-full bg-forest-600/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-forest-700 sm:inline">
-                    Example team<span className="hidden lg:inline"> — pick anyone to start your own</span>
+                    Example team<span className="hidden lg:inline"> — Clear to start your own</span>
                   </span>
                 )}
               </p>
@@ -820,60 +808,9 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
         </div>
       </div>
 
-      {/* ============ Team details + synergy + buff breakdown ============ */}
+      {/* ============ Team synergy + buff breakdown ============ */}
       {selected.length > 0 && (
-        <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="panel p-5">
-            <h2 className="text-base font-semibold text-[var(--text)]">Team details</h2>
-            <ul className="mt-3 space-y-2">
-              {selected.map((id) => {
-                const c = CHARACTERS.find((x) => x.id === id)!;
-                const cfg = configFor(c);
-                const weaponName = getWeapon(cfg.weaponId)?.name ?? '—';
-                const row = rows.find((r) => r.character.id === id);
-                return (
-                  <li key={id} className="overflow-hidden rounded-xl border border-[var(--line)]">
-                    <div className="flex items-center gap-2.5 p-2">
-                      <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md ring-1 ring-[var(--line)]">
-                        <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[c.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
-                        <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" className="absolute inset-0 h-full w-full object-cover" />
-                        <ElementIcon el={c.element} className="absolute right-0 top-0 h-3 w-3" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-[var(--text)]">{c.name}</span>
-                        <span className="block truncate text-[10px] text-[var(--muted)]">
-                          Lv{cfg.level} · {weaponName}
-                        </span>
-                      </span>
-                      <span className="damage-number-sm tnum shrink-0 text-xs font-semibold">
-                        {row ? formatNumber(row.result.expected + row.result.transformative) : '—'}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setGearFor(id)}
-                        aria-haspopup="dialog"
-                        className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-[var(--muted)] transition-colors hover:text-forest-600"
-                      >
-                        Gear
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => remove(id)}
-                        title="Remove"
-                        className="shrink-0 rounded-md px-1.5 py-1 text-xs text-[var(--muted)] transition-colors hover:text-pyro"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-            <p className="mt-3 text-[11px] leading-relaxed text-[var(--muted)]">
-              Bare numbers: character + weapon only, no artifacts · Lv90 · talent 10 · vs Lv90 enemy. Damage updates live as you pick.
-            </p>
-          </div>
-
+        <div className="mt-8 grid grid-cols-1 gap-5">
           <div className="panel p-5">
             <h2 className="text-sm font-semibold text-[var(--text)]">Team synergy</h2>
 
@@ -940,7 +877,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
       )}
 
       {/* ============ Level / weapon dialog ============ */}
-      {/* Opened by the Gear button under a slot (or Gear in Team details).
+      {/* Opened by the Gear button under a team slot.
           A native <dialog> gives Escape-to-close, focus trapping and the top
           layer for free; clicking the backdrop closes it too. */}
       <dialog
