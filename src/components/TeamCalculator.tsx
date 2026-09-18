@@ -58,6 +58,9 @@ const REACTIONS: { name: string; needs: ElementType[]; extra?: ElementType[] }[]
 ];
 
 const ROTATION_SECONDS = 20;
+
+/** Elements a Swirl can absorb, in the order we pick one when several are present. */
+const SWIRLABLE: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo'];
 const MAX_TEAM = 4;
 
 /**
@@ -363,6 +366,9 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
         amplified: pick.amplified,
         transformative: pick.transformative,
         additive: pick.additive,
+        // Swirl deals the absorbed element's damage, so it is resisted as that
+        // element rather than as Anemo.
+        swirlElement: pick.transformative === 'swirl' ? SWIRLABLE.find((e) => teamSet.has(e)) : undefined,
       });
       const reactionLabel =
         pick.amplified !== 'none'

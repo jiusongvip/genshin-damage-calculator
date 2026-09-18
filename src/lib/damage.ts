@@ -25,6 +25,7 @@
 import { signatureTalent } from '../data/talents';
 import type { TalentKey } from '../data/talents';
 import { baseStatsAt } from '../data/levelStats';
+import { REACTION_LEVEL_MULTIPLIER } from '../data/reactionLevel';
 
 export type ElementType =
   | 'pyro'
@@ -192,6 +193,8 @@ export interface DamageInput {
   transformative: TransformativeReaction;
   /** Additive reaction (Aggravate / Spread) added to the base damage. */
   additive?: AdditiveReaction;
+  /** Element a Swirl absorbs; its damage is of that element, not Anemo. */
+  swirlElement?: ElementType;
   /** Override the talent multiplier (defaults to the character's signature). */
   skillMultiplier?: number;
   /** Which attack the hit represents — drives attack-type DMG bonuses. */
@@ -278,16 +281,22 @@ const ADDITIVE_NAMES: Record<Exclude<AdditiveReaction, 'none'>, string> = {
   spread: 'Spread',
 };
 
-// Level multiplier for transformative / additive reactions.
-const LEVEL_MULTIPLIER: Record<number, number> = {
-  80: 1077.44,
-  85: 1285.43,
-  90: 1446.85,
-};
-
+/**
+ * Level multiplier for transformative / additive reactions.
+ *
+ * This used to hold only levels 80, 85 and 90 and fell back to the level-90
+ * value for anything else, so a level-60 character's Bloom was computed as if
+ * they were level 90 (x2.9 too high). The level-85 entry was also wrong
+ * (1285.43 instead of 1253.84). Now read from the full per-level table.
+ */
 export function levelMultiplierFor(level: number): number {
-  return LEVEL_MULTIPLIER[level] ?? LEVEL_MULTIPLIER[90];
+  const lv = Math.min(90, Math.max(1, Math.round(level)));
+  return REACTION_LEVEL_MULTIPLIER[lv - 1];
 }
+
+/** Every character starts with these before any weapon, artifact or buff. */
+const BASE_CRIT_RATE = 0.05;
+const BASE_CRIT_DMG = 0.5;
 
 interface StatBag {
   critRate: number;
@@ -416,7 +425,14 @@ export function computeDamage(input: DamageInput): DamageResult {
   const baseHP = curve?.hp ?? character.baseHP;
   const baseATK = curve?.atk ?? character.baseATK;
   const baseDEF = curve?.def ?? character.baseDEF;
-  const ascStat = statBag({ type: character.ascension.type, value: curve?.spec ?? character.ascension.value });
+  // genshin-db's level curve reports a CRIT ascension stat *including* the
+  // base crit every character has: Hu Tao's CRIT DMG runs 0.5 -> 0.884, a CRIT
+  // Rate curve runs 0.05 -> 0.242. Strip that back out, because the base is
+  // now added for everyone below; before, only these characters had it, so
+  // 81 of 122 characters were missing both 5% CRIT Rate and 50% CRIT DMG.
+  const ascType = character.ascension.type;
+  const bakedBase = curve ? (ascType === 'critRate' ? BASE_CRIT_RATE : ascType === 'critDMG' ? BASE_CRIT_DMG : 0) : 0;
+  const ascStat = statBag({ type: ascType, value: (curve?.spec ?? character.ascension.value) - bakedBase });
 
   // ---- Total ATK / DEF / Max HP ----
   const baseATKTotal = baseATK + weapon.baseATK;
@@ -434,8 +450,8 @@ export function computeDamage(input: DamageInput): DamageResult {
     buffs.flatHP;
 
   // ---- Crit ----
-  const critRate = Math.min(art.critRate + w.critRate + ascStat.critRate + buffs.critRate, 1);
-  const critDMG = art.critDMG + w.critDMG + ascStat.critDMG + buffs.critDMG;
+  const critRate = Math.min(BASE_CRIT_RATE + art.critRate + w.critRate + ascStat.critRate + buffs.critRate, 1);
+  const critDMG = BASE_CRIT_DMG + art.critDMG + w.critDMG + ascStat.critDMG + buffs.critDMG;
 
   // ---- Attack type (drives type-specific DMG bonuses from sets / weapons) ----
   const sig = input.skillMultiplier == null ? signatureTalent(character.id) : undefined;
@@ -529,7 +545,7 @@ export function computeDamage(input: DamageInput): DamageResult {
           : input.transformative === 'electroCharged'
             ? 'electro'
             : input.transformative === 'swirl'
-              ? character.element
+              ? (input.swirlElement ?? character.element)
               : input.transformative === 'burning'
                 ? 'pyro'
                 : 'dendro';
@@ -537,7 +553,10 @@ export function computeDamage(input: DamageInput): DamageResult {
     const tResMult = resMultiplierFor(tRawRes, buffs.resShred);
     transformative =
       base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + buffs.transformReactionBonus) * tResMult;
-    transformativeName = TRANSFORMATIVE_NAMES[input.transformative];
+    transformativeName =
+      input.transformative === 'swirl' && input.swirlElement
+        ? `Swirl (${input.swirlElement[0].toUpperCase()}${input.swirlElement.slice(1)})`
+        : TRANSFORMATIVE_NAMES[input.transformative];
   }
 
   return {
