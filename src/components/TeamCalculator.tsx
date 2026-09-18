@@ -153,7 +153,7 @@ export function ElementIcon({ el, className = 'h-4 w-4' }: { el: string; classNa
       alt=""
       width="120"
       height="120"
-      className={`rounded-full object-cover ring-1 ring-white/80 ${className}`}
+      className={`rounded-full bg-white object-contain p-px shadow-sm ring-1 ring-black/5 ${className}`}
       loading="lazy"
       decoding="async"
       aria-hidden="true"
@@ -248,7 +248,8 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
   const [weaponFilter, setWeaponFilter] = useState<'all' | string>('all');
   const [rarityFilter, setRarityFilter] = useState<'all' | '4' | '5'>('all');
   const [configs, setConfigs] = useState<Record<string, CharConfig>>({});
-  const [openSettings, setOpenSettings] = useState<string | null>(null);
+  // Character whose weapon / artifact dialog is open.
+  const [gearFor, setGearFor] = useState<string | null>(null);
 
   // Interaction state
   const [flyers, setFlyers] = useState<Flyer[]>([]);
@@ -263,15 +264,22 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
   const flyKey = useRef(0);
   const prevTotal = useRef<number | null>(null);
   const slotRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const [barH, setBarH] = useState(76);
+  const gearDialog = useRef<HTMLDialogElement | null>(null);
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const configFor = (c: CharacterData): CharConfig =>
     configs[c.id] ?? { level: 90, weaponId: c.bestWeapon, setId: '' };
-  const updateConfig = (c: CharacterData, patch: Partial<CharConfig>) =>
+  const updateConfig = (c: CharacterData, patch: Partial<CharConfig>) => {
+    // Tuning someone's gear means the user has adopted this team, example or
+    // not; otherwise their next pick would take over and throw the edit away.
+    setIsDemo(false);
     setConfigs((prev) => ({
       ...prev,
       [c.id]: { ...(prev[c.id] ?? { level: 90, weaponId: c.bestWeapon, setId: '' }), ...patch },
     }));
+  };
 
   const roster = useMemo(
     () =>
@@ -407,7 +415,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
   const clearTeam = () => {
     setIsDemo(false);
     setSelected([]);
-    setOpenSettings(null);
+    setGearFor(null);
   };
 
   /** Launch the avatar from its card to the team slot it is about to fill. */
@@ -454,7 +462,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     flyToSlot(id, 0);
     setIsDemo(false);
     setSelected([id]);
-    setOpenSettings(null);
+    setGearFor(null);
     pulse(id, 0);
   };
 
@@ -465,7 +473,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     flyToSlot(incoming, idx);
     setSelected((prev) => prev.map((x, i) => (i === idx ? incoming : x)));
     setPendingSwap(null);
-    setOpenSettings(null);
+    setGearFor(null);
     pulse(incoming, idx);
   };
 
@@ -496,6 +504,26 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
 
   useEffect(() => setMounted(true), []);
 
+  // The bar's height changes with the swap prompt and the screen width; the
+  // element sidebar needs it to stick directly underneath without overlap.
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setBarH(el.offsetHeight));
+    ro.observe(el);
+    setBarH(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
+
+  // Drive the native <dialog> from state so Escape, focus trapping and the
+  // top layer all come from the browser.
+  useEffect(() => {
+    const d = gearDialog.current;
+    if (!d) return;
+    if (gearFor && !d.open) d.showModal();
+    if (!gearFor && d.open) d.close();
+  }, [gearFor]);
+
   // Escape backs out of a pending swap, like any other transient mode.
   useEffect(() => {
     if (!pendingSwap) return;
@@ -508,6 +536,11 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
 
   const pendingCharacter = pendingSwap ? CHARACTERS.find((c) => c.id === pendingSwap) : undefined;
 
+  const gearCharacter = gearFor ? CHARACTERS.find((c) => c.id === gearFor) : undefined;
+  const gearConfig = gearCharacter ? configFor(gearCharacter) : undefined;
+  const gearSet = gearConfig?.setId ? SET_BY_ID[gearConfig.setId] : undefined;
+  const gearRow = gearFor ? rows.find((r) => r.character.id === gearFor) : undefined;
+
   const chip = (active: boolean) =>
     `rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
       active
@@ -517,69 +550,80 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
 
   return (
     <div className="relative">
-      {/* ============ Sticky, centred result bar ============ */}
-      <div className="sticky top-16 z-40">
-        <div className="panel rounded-2xl border-forest-500/30 bg-[var(--surface)]/95 px-4 py-3 shadow-[0_18px_50px_-24px_rgb(69_106_75/0.55)] backdrop-blur sm:px-5">
-          <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-600">
-                Team damage
-                {isDemo && !pendingSwap && (
-                  <span className="rounded-full bg-forest-600/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-forest-700">
-                    Example team<span className="hidden sm:inline"> — pick anyone to start your own</span>
-                  </span>
-                )}
-              </p>
-              {/* While swapping, the phone-sized bar drops the figure: the
-                  question is what matters, and three stacked rows would eat a
-                  third of the screen. */}
-              <div className={`mt-0.5 flex-wrap items-end gap-x-3 gap-y-1 ${pendingSwap ? 'hidden sm:flex' : 'flex'}`}>
-                <span className="relative inline-block leading-none">
-                  <span key={popKey} className="damage-pop damage-number tnum block text-3xl sm:text-4xl">
-                    {formatNumber(animatedTotal)}
-                  </span>
-                  <span key={`burst-${popKey}`} className="damage-burst" aria-hidden="true" />
-                </span>
-                <span className="tnum pb-1 text-xs font-medium text-[var(--muted)]">
-                  {selected.length === 0 ? (
-                    <span className="normal-case">Pick a character below to start</span>
-                  ) : (
-                    <>
-                      {formatNumber(animatedDps)} DPS <span className="opacity-70">(20s est.)</span>
-                    </>
-                  )}
-                </span>
-              </div>
-
-              {/* Swap prompt — lives in the bar so the question sits next to the
-                  slots that answer it, and is never off-screen. */}
-              {pendingCharacter && (
-                <div className="swap-prompt mt-2 flex items-center gap-2.5 rounded-xl border border-forest-500/40 bg-forest-600/[0.07] px-2.5 py-2">
+      {/* ============ Sticky result bar ============ */}
+      {/* One row, frosted, pinned to the very top, and only as wide as its
+          content: a full-width bar left a gap of empty glass in the middle and
+          covered roster cards on both sides of it for nothing. */}
+      <div ref={barRef} className="sticky top-2 z-40">
+        <div className="calc-bar mx-auto w-fit max-w-full rounded-2xl px-3 py-2 sm:px-4">
+          <div className="flex items-center justify-between gap-3 sm:gap-6">
+            {/* Left: the total — or, while a swap is pending, the question.
+                Swapping replaces the figure instead of stacking under it, so
+                the bar never changes height. */}
+            <div className="min-w-0 flex-1">
+              {pendingCharacter ? (
+                <div className="swap-prompt flex items-center gap-2.5">
                   <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-forest-500/50">
                     <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[pendingCharacter.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
                     <img src={`/images/portraits/${pendingCharacter.id}.webp`} alt="" width="256" height="256" className="absolute inset-0 h-full w-full object-cover" />
                   </span>
-                  <span className="min-w-0 flex-1 leading-tight">
-                    <span className="block text-xs font-semibold normal-case tracking-normal text-[var(--text)]">
+                  <span className="min-w-0 leading-tight">
+                    <span className="block truncate text-xs font-semibold text-[var(--text)]">
                       Swap {pendingCharacter.name} in — tap a slot
                     </span>
-                    <span className="block text-[10px] font-normal normal-case tracking-normal text-[var(--muted)]">
-                      Team is full, so one member steps out.
-                    </span>
+                    <span className="hidden text-[10px] text-[var(--muted)] sm:block">Team is full, so one member steps out.</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => setPendingSwap(null)}
-                    className="shrink-0 rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[11px] font-medium normal-case tracking-normal text-[var(--muted)] transition-colors hover:text-[var(--text)]"
+                    className="shrink-0 rounded-full border border-[var(--line)] bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:text-[var(--text)]"
                   >
                     Cancel
                   </button>
                 </div>
+              ) : (
+                <>
+                  <p className="flex items-center gap-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">
+                    Team damage
+                    {isDemo && (
+                      <span className="hidden truncate rounded-full bg-forest-600/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-forest-700 sm:inline">
+                        Example team<span className="hidden lg:inline"> — pick anyone to start your own</span>
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                    <span className="relative inline-block leading-none">
+                      <span key={popKey} className="damage-pop damage-number tnum block text-2xl sm:text-3xl">
+                        {formatNumber(animatedTotal)}
+                      </span>
+                      <span key={`burst-${popKey}`} className="damage-burst" aria-hidden="true" />
+                    </span>
+                    <span className="tnum text-[11px] font-medium text-[var(--muted)]">
+                      {selected.length === 0 ? (
+                        'Pick a character below to start'
+                      ) : (
+                        <>
+                          {formatNumber(animatedDps)} DPS <span className="hidden opacity-70 sm:inline">(20s est.)</span>
+                        </>
+                      )}
+                    </span>
+                    {selected.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearTeam}
+                        className="text-[11px] font-medium text-[var(--muted)] underline decoration-[var(--line)] underline-offset-2 transition-colors hover:text-pyro sm:hidden"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="shrink-0 text-center">
+            {/* Right: count, clear, and the four slots with a Gear button each */}
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <div className="hidden text-center sm:block">
                 <span className={`tnum block text-lg font-bold leading-none text-forest-600 ${bump ? 'counter-pop' : ''}`}>
                   {selected.length}/{MAX_TEAM}
                 </span>
@@ -589,72 +633,90 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                 <button
                   type="button"
                   onClick={clearTeam}
-                  className="shrink-0 rounded-full border border-[var(--line)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-pyro/50 hover:text-pyro"
+                  className="hidden shrink-0 rounded-full border border-[var(--line)] bg-white/70 px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:border-pyro/50 hover:text-pyro sm:inline-flex"
                 >
                   Clear
                 </button>
               )}
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
                 {Array.from({ length: MAX_TEAM }).map((_, i) => {
                   const id = selected[i];
                   const c = id ? CHARACTERS.find((x) => x.id === id) : undefined;
                   return (
-                    <button
-                      key={i}
-                      ref={(el) => {
-                        slotRefs.current[i] = el;
-                      }}
-                      type="button"
-                      onClick={() => (pendingSwap ? swapInto(i) : id && remove(id))}
-                      title={
-                        pendingCharacter
-                          ? c
-                            ? `Replace ${c.name} with ${pendingCharacter.name}`
-                            : `Put ${pendingCharacter.name} here`
-                          : c
-                            ? `${c.name} — click to remove`
-                            : 'Empty slot'
-                      }
-                      aria-label={
-                        pendingCharacter
-                          ? c
-                            ? `Replace ${c.name} with ${pendingCharacter.name}`
-                            : `Put ${pendingCharacter.name} in slot ${i + 1}`
-                          : c
-                            ? `Remove ${c.name}`
-                            : `Empty team slot ${i + 1}`
-                      }
-                      className={`relative h-10 w-10 shrink-0 overflow-hidden rounded-xl transition sm:h-12 sm:w-12 ${
-                        pendingSwap
-                          ? 'swap-target ring-2 ring-forest-500'
-                          : c
-                            ? 'ring-1 ring-forest-400 hover:ring-2 hover:ring-pyro'
-                            : 'border border-dashed border-[var(--line)]'
-                      }`}
-                    >
-                      {c ? (
-                        <>
-                          <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[c.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
-                          <img
-                            src={`/images/portraits/${c.id}.webp`}
-                            alt=""
-                            width="256"
-                            height="256"
-                            className={`absolute inset-0 h-full w-full object-cover transition ${popSlot === i ? 'slot-pop' : ''} ${
-                              pendingSwap ? 'opacity-45 grayscale' : ''
-                            }`}
-                          />
-                          {!pendingSwap && <ElementIcon el={c.element} className="absolute right-0.5 top-0.5 h-3.5 w-3.5" />}
-                        </>
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <button
+                        ref={(el) => {
+                          slotRefs.current[i] = el;
+                        }}
+                        type="button"
+                        onClick={() => (pendingSwap ? swapInto(i) : id && remove(id))}
+                        title={
+                          pendingCharacter
+                            ? c
+                              ? `Replace ${c.name} with ${pendingCharacter.name}`
+                              : `Put ${pendingCharacter.name} here`
+                            : c
+                              ? `${c.name} — click to remove`
+                              : 'Empty slot'
+                        }
+                        aria-label={
+                          pendingCharacter
+                            ? c
+                              ? `Replace ${c.name} with ${pendingCharacter.name}`
+                              : `Put ${pendingCharacter.name} in slot ${i + 1}`
+                            : c
+                              ? `Remove ${c.name}`
+                              : `Empty team slot ${i + 1}`
+                        }
+                        className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-xl transition sm:h-10 sm:w-10 ${
+                          pendingSwap
+                            ? 'swap-target ring-2 ring-forest-500'
+                            : c
+                              ? 'ring-1 ring-forest-400 hover:ring-2 hover:ring-pyro'
+                              : 'border border-dashed border-[var(--line)] bg-white/40'
+                        }`}
+                      >
+                        {c ? (
+                          <>
+                            <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[c.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
+                            <img
+                              src={`/images/portraits/${c.id}.webp`}
+                              alt=""
+                              width="256"
+                              height="256"
+                              className={`absolute inset-0 h-full w-full object-cover transition ${popSlot === i ? 'slot-pop' : ''} ${
+                                pendingSwap ? 'opacity-45 grayscale' : ''
+                              }`}
+                            />
+                            {!pendingSwap && <ElementIcon el={c.element} className="absolute right-0.5 top-0.5 h-3.5 w-3.5" />}
+                          </>
+                        ) : (
+                          <span className="grid h-full w-full place-items-center text-sm text-[var(--muted)]">+</span>
+                        )}
+                        {pendingSwap && (
+                          <span className="absolute inset-0 grid place-items-center text-base font-bold text-forest-700 drop-shadow-[0_1px_0_rgb(255_255_255/0.9)]" aria-hidden="true">
+                            ⇄
+                          </span>
+                        )}
+                      </button>
+                      {/* Opens the weapon / artifact dialog. An invisible twin
+                          holds the space on empty slots so the row never jumps. */}
+                      {c && !pendingSwap ? (
+                        <button
+                          type="button"
+                          onClick={() => setGearFor(c.id)}
+                          className="gear-btn"
+                          aria-label={`${c.name}: change level, weapon and artifacts`}
+                          aria-haspopup="dialog"
+                        >
+                          Gear
+                        </button>
                       ) : (
-                        <span className="grid h-full w-full place-items-center text-sm text-[var(--muted)]">+</span>
-                      )}
-                      {pendingSwap && (
-                        <span className="absolute inset-0 grid place-items-center text-base font-bold text-forest-700 drop-shadow-[0_1px_0_rgb(255_255_255/0.9)]" aria-hidden="true">
-                          ⇄
+                        <span className="gear-btn invisible" aria-hidden="true">
+                          Gear
                         </span>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -663,150 +725,158 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
         </div>
       </div>
 
-      {/* ============ Filters ============ */}
-      <div className="mt-6 flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a character…"
-            className="h-9 w-full max-w-xs rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--text)]"
-            aria-label="Search characters"
-          />
-          <div className="flex gap-1.5">
-            {(['all', '5', '4'] as const).map((r) => (
-              <button key={r} type="button" onClick={() => setRarityFilter(r)} className={chip(rarityFilter === r)}>
-                {r === 'all' ? 'All ★' : `${r}★`}
-              </button>
-            ))}
-          </div>
-          <span className="ml-auto text-sm text-[var(--muted)]">
-            <span className="font-semibold text-[var(--text)]">{roster.length}</span> characters
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setElementFilter('all')} className={chip(elementFilter === 'all')}>
-            All elements
-          </button>
-          {ELEMENTS.map((el) => {
-            const active = elementFilter === el;
-            return (
+      {/* ============ Element sidebar + roster ============ */}
+      <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-start">
+        {/* Element filter, vertical and sticky under the bar from tablet up;
+            on phones there is no room beside the grid, so it lies flat. */}
+        <nav
+          aria-label="Filter by element"
+          className="md:sticky md:self-start"
+          style={{ top: barH + 20 }}
+        >
+          <div className="flex flex-wrap gap-1.5 md:flex-col md:flex-nowrap md:gap-2">
+            <button
+              type="button"
+              onClick={() => setElementFilter('all')}
+              aria-pressed={elementFilter === 'all'}
+              title="All elements"
+              className="element-tile h-9 w-9 text-[11px] font-bold text-[var(--text)] md:h-11 md:w-11"
+            >
+              All
+            </button>
+            {ELEMENTS.map((el) => (
               <button
                 key={el}
                 type="button"
                 onClick={() => setElementFilter(el)}
-                aria-pressed={active}
+                aria-pressed={elementFilter === el}
                 title={ELEMENT_LABEL[el]}
-                className={`h-10 w-10 overflow-hidden rounded-xl ring-1 transition-all ${
-                  active
-                    ? 'ring-2 ring-forest-500'
-                    : elementFilter === 'all'
-                      ? 'ring-[var(--line)] hover:ring-forest-400'
-                      : 'opacity-45 ring-[var(--line)] hover:opacity-100'
-                }`}
+                className="element-tile h-9 w-9 p-1 md:h-11 md:w-11 md:p-1.5"
               >
                 <img
                   src={`/images/element-${el}.webp`}
                   alt={ELEMENT_LABEL[el]}
                   width="120"
                   height="120"
-                  className="h-full w-full object-cover"
-                  loading="lazy"
+                  className="h-full w-full object-contain"
                   decoding="async"
                 />
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        </nav>
 
-        <div className="flex flex-wrap gap-1.5">
-          <button type="button" onClick={() => setWeaponFilter('all')} className={chip(weaponFilter === 'all')}>
-            All weapons
-          </button>
-          {WEAPON_TYPES.map((w) => (
-            <button key={w} type="button" onClick={() => setWeaponFilter(w)} className={chip(weaponFilter === w)}>
-              {w[0].toUpperCase() + w.slice(1)}
-            </button>
-          ))}
+        <div className="min-w-0 flex-1">
+          {/* ============ Filters ============ */}
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search a character…"
+                className="h-9 w-full max-w-xs rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--text)]"
+                aria-label="Search characters"
+              />
+              <div className="flex gap-1.5">
+                {(['all', '5', '4'] as const).map((r) => (
+                  <button key={r} type="button" onClick={() => setRarityFilter(r)} className={chip(rarityFilter === r)}>
+                    {r === 'all' ? 'All ★' : `${r}★`}
+                  </button>
+                ))}
+              </div>
+              <span className="ml-auto text-sm text-[var(--muted)]">
+                <span className="font-semibold text-[var(--text)]">{roster.length}</span> characters
+              </span>
+            </div>
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&>button]:shrink-0">
+              <button type="button" onClick={() => setWeaponFilter('all')} className={chip(weaponFilter === 'all')}>
+                All weapons
+              </button>
+              {WEAPON_TYPES.map((w) => (
+                <button key={w} type="button" onClick={() => setWeaponFilter(w)} className={chip(weaponFilter === w)}>
+                  {w[0].toUpperCase() + w.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ============ Roster grid ============ */}
+          {roster.length === 0 ? (
+            <p className="panel mt-5 py-16 text-center text-sm text-[var(--muted)]">No characters match those filters.</p>
+          ) : (
+            <div className="mt-5 space-y-6">
+              {groups.map((g) => (
+                <div key={g.element}>
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
+                    <ElementIcon el={g.element} className="h-4 w-4" />
+                    {ELEMENT_LABEL[g.element]}
+                    <span className="text-xs font-normal text-[var(--muted)]">({g.rows.length})</span>
+                  </h3>
+                  <div className="mt-2.5 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
+                    {g.rows.map((c) => {
+                      const isSelected = selected.includes(c.id);
+                      const isPending = pendingSwap === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          ref={(el) => {
+                            cardRefs.current[c.id] = el;
+                          }}
+                          type="button"
+                          onClick={() => toggle(c.id)}
+                          aria-pressed={isSelected}
+                          title={isPending ? `${c.name} — waiting for a slot, click again to cancel` : c.name}
+                          className={`group relative block aspect-square w-full overflow-hidden rounded-xl ring-1 transition-all ${
+                            isPending
+                              ? 'swap-pending ring-2 ring-forest-500'
+                              : isSelected
+                                ? 'ring-2 ring-forest-500'
+                                : 'ring-[var(--line)] hover:ring-forest-400'
+                          } ${flash === c.id ? 'card-flash-add' : ''}`}
+                        >
+                          <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[c.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
+                          <img
+                            src={`/images/portraits/${c.id}.webp`}
+                            alt={`${c.name} portrait`}
+                            width="256"
+                            height="256"
+                            className={`absolute inset-0 h-full w-full object-cover transition-all duration-300 ${
+                              isSelected ? 'scale-105 opacity-50 grayscale-[0.75]' : 'opacity-100 group-hover:scale-110'
+                            }`}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          <ElementIcon el={c.element} className="absolute right-2 top-2 h-5 w-5" />
+                          {c.unreleased && (
+                            <span
+                              className="absolute left-1.5 bottom-11 rounded-full bg-amber-500/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow"
+                              title="Not in the live game yet — stats are unverified"
+                            >
+                              Upcoming
+                            </span>
+                          )}
+                          {isSelected && (
+                            <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-forest-600 text-xs font-bold text-white shadow" aria-hidden="true">
+                              ✓
+                            </span>
+                          )}
+                          <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent px-2.5 pb-2 pt-9 text-left">
+                            <span className="block truncate text-sm font-semibold text-white drop-shadow">{c.name}</span>
+                            <span className="block text-[11px] leading-tight text-white/80">
+                              {c.weaponType[0].toUpperCase() + c.weaponType.slice(1)} · {'★'.repeat(c.rarity)}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* ============ Full-width roster grid ============ */}
-      {roster.length === 0 ? (
-        <p className="panel mt-6 py-16 text-center text-sm text-[var(--muted)]">No characters match those filters.</p>
-      ) : (
-        <div className="mt-6 space-y-6">
-          {groups.map((g) => (
-            <div key={g.element}>
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
-                <ElementIcon el={g.element} className="h-4 w-4" />
-                {ELEMENT_LABEL[g.element]}
-                <span className="text-xs font-normal text-[var(--muted)]">({g.rows.length})</span>
-              </h3>
-              <div className="mt-2.5 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))' }}>
-                {g.rows.map((c) => {
-                  const isSelected = selected.includes(c.id);
-                  const isPending = pendingSwap === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      ref={(el) => {
-                        cardRefs.current[c.id] = el;
-                      }}
-                      type="button"
-                      onClick={() => toggle(c.id)}
-                      aria-pressed={isSelected}
-                      title={isPending ? `${c.name} — waiting for a slot, click again to cancel` : c.name}
-                      className={`group relative block aspect-square w-full overflow-hidden rounded-xl ring-1 transition-all ${
-                        isPending
-                          ? 'swap-pending ring-2 ring-forest-500'
-                          : isSelected
-                            ? 'ring-2 ring-forest-500'
-                            : 'ring-[var(--line)] hover:ring-forest-400'
-                      } ${flash === c.id ? 'card-flash-add' : ''}`}
-                    >
-                      <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[c.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
-                      <img
-                        src={`/images/portraits/${c.id}.webp`}
-                        alt={`${c.name} portrait`}
-                        width="256"
-                        height="256"
-                        className={`absolute inset-0 h-full w-full object-cover transition-all duration-300 ${
-                          isSelected ? 'scale-105 opacity-50 grayscale-[0.75]' : 'opacity-100 group-hover:scale-110'
-                        }`}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <ElementIcon el={c.element} className="absolute right-2 top-2 h-5 w-5" />
-                      {c.unreleased && (
-                        <span
-                          className="absolute left-1.5 bottom-11 rounded-full bg-amber-500/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow"
-                          title="Not in the live game yet — stats are unverified"
-                        >
-                          Upcoming
-                        </span>
-                      )}
-                      {isSelected && (
-                        <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-forest-600 text-xs font-bold text-white shadow" aria-hidden="true">
-                          ✓
-                        </span>
-                      )}
-                      <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent px-2.5 pb-2 pt-9 text-left">
-                        <span className="block truncate text-sm font-semibold text-white drop-shadow">{c.name}</span>
-                        <span className="block text-[11px] leading-tight text-white/80">
-                          {c.weaponType[0].toUpperCase() + c.weaponType.slice(1)} · {'★'.repeat(c.rarity)}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* ============ Team details + synergy + buff breakdown ============ */}
       {selected.length > 0 && (
@@ -817,7 +887,6 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
               {selected.map((id) => {
                 const c = CHARACTERS.find((x) => x.id === id)!;
                 const cfg = configFor(c);
-                const open = openSettings === id;
                 const set = cfg.setId ? SET_BY_ID[cfg.setId] : undefined;
                 const weaponName = getWeapon(cfg.weaponId)?.name ?? '—';
                 const row = rows.find((r) => r.character.id === id);
@@ -840,10 +909,11 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                       </span>
                       <button
                         type="button"
-                        onClick={() => setOpenSettings(open ? null : id)}
+                        onClick={() => setGearFor(id)}
+                        aria-haspopup="dialog"
                         className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-[var(--muted)] transition-colors hover:text-forest-600"
                       >
-                        {open ? 'Done' : 'Edit'}
+                        Gear
                       </button>
                       <button
                         type="button"
@@ -854,47 +924,6 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                         ✕
                       </button>
                     </div>
-                    {open && (
-                      <div className="space-y-3 border-t border-[var(--line)] bg-[var(--surface-2)]/60 p-3">
-                        <label className="flex items-center justify-between gap-3 text-xs">
-                          <span className="text-[var(--muted)]">Level</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={90}
-                            value={cfg.level}
-                            onChange={(e) => updateConfig(c, { level: Math.min(90, Math.max(1, parseInt(e.target.value, 10) || 90)) })}
-                            className="w-20 rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-right text-[var(--text)]"
-                          />
-                        </label>
-                        <label className="block text-xs">
-                          <span className="text-[var(--muted)]">Weapon</span>
-                          <select
-                            value={cfg.weaponId}
-                            onChange={(e) => updateConfig(c, { weaponId: e.target.value })}
-                            className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-1.5 text-[var(--text)]"
-                          >
-                            {weaponsForType(c.weaponType).map((w) => (
-                              <option key={w.id} value={w.id}>{w.name}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="block text-xs">
-                          <span className="text-[var(--muted)]">Artifact set (4pc)</span>
-                          <select
-                            value={cfg.setId}
-                            onChange={(e) => updateConfig(c, { setId: e.target.value })}
-                            className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-1.5 text-[var(--text)]"
-                          >
-                            <option value="">None</option>
-                            {ARTIFACT_SETS.map((s) => (
-                              <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                          </select>
-                        </label>
-                        {set?.note && <p className="text-[10px] leading-relaxed text-[var(--muted)]">{set.note}</p>}
-                      </div>
-                    )}
                   </li>
                 );
               })}
@@ -969,12 +998,107 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
         </div>
       )}
 
+      {/* ============ Weapon / artifact dialog ============ */}
+      {/* Opened by the Gear button under a slot (or Gear in Team details).
+          A native <dialog> gives Escape-to-close, focus trapping and the top
+          layer for free; clicking the backdrop closes it too. */}
+      <dialog
+        ref={gearDialog}
+        className="gear-dialog"
+        aria-labelledby="gear-dialog-title"
+        onClose={() => setGearFor(null)}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setGearFor(null);
+        }}
+      >
+        {gearCharacter && gearConfig && (
+          <div className="p-5">
+            <div className="flex items-center gap-3">
+              <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-1 ring-[var(--line)]">
+                <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[gearCharacter.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
+                <img src={`/images/portraits/${gearCharacter.id}.webp`} alt="" width="256" height="256" className="absolute inset-0 h-full w-full object-cover" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 id="gear-dialog-title" className="flex items-center gap-1.5 truncate text-base font-semibold text-[var(--text)]">
+                  <ElementIcon el={gearCharacter.element} className="h-4 w-4" />
+                  {gearCharacter.name}
+                </h2>
+                <p className="text-xs text-[var(--muted)]">Level, weapon and artifact set</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <span className="damage-number-sm tnum block text-lg font-semibold leading-none">
+                  {gearRow ? formatNumber(gearRow.result.expected + gearRow.result.transformative) : '—'}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider text-[var(--muted)]">damage</span>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <label className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-[var(--muted)]">Level</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={gearConfig.level}
+                  onChange={(e) =>
+                    updateConfig(gearCharacter, { level: Math.min(90, Math.max(1, parseInt(e.target.value, 10) || 90)) })
+                  }
+                  className="w-24 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-right text-[var(--text)]"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium text-[var(--muted)]">Weapon</span>
+                <select
+                  value={gearConfig.weaponId}
+                  onChange={(e) => updateConfig(gearCharacter, { weaponId: e.target.value })}
+                  className="mt-1.5 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--text)]"
+                >
+                  {weaponsForType(gearCharacter.weaponType).map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="font-medium text-[var(--muted)]">Artifact set (4-piece)</span>
+                <select
+                  value={gearConfig.setId}
+                  onChange={(e) => updateConfig(gearCharacter, { setId: e.target.value })}
+                  className="mt-1.5 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--text)]"
+                >
+                  <option value="">None</option>
+                  {ARTIFACT_SETS.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {gearSet?.note && <p className="text-xs leading-relaxed text-[var(--muted)]">{gearSet.note}</p>}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setGearFor(null)}
+                className="rounded-full bg-forest-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-forest-700"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
+      </dialog>
+
       {/* ============ Flying avatars (add-to-cart) ============ */}
       {/* Rendered into <body>: the flyer is position:fixed and positioned from
-          viewport coordinates, but a transformed ancestor (the section-reveal
-          animation sets translateY) becomes its containing block and lands it
-          in the wrong place. A portal keeps the coordinates meaning what they
-          say, whatever the page wraps this component in. */}
+          viewport coordinates, and any transformed or backdrop-filtered ancestor
+          becomes its containing block and lands it in the wrong place. A portal
+          keeps the coordinates meaning what they say, whatever the page wraps
+          this component in. */}
       {mounted &&
         flyers.length > 0 &&
         createPortal(
