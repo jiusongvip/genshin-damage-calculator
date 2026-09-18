@@ -38,7 +38,7 @@ const RESONANCE: Record<string, { name: string; effect: string; buffs: Partial<B
   cryo: { name: 'Shattering Ice', effect: '+15% CRIT Rate vs Frozen / Cryo-affected', buffs: {} },
   electro: { name: 'High Voltage', effect: 'Electro-Charged generates Energy', buffs: {} },
   geo: { name: 'Enduring Rock', effect: '+15% Shield Strength; +15% DMG while shielded', buffs: {} },
-  anemo: { name: 'Impetuous Winds', effect: '−5% Stamina cost, +10% movement SPD', buffs: {} },
+  anemo: { name: 'Impetuous Winds', effect: '−15% Stamina cost, +10% movement SPD, −5% Skill CD', buffs: {} },
 };
 
 // Reactions a team's element mix makes possible.
@@ -918,26 +918,37 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
               <p className="text-xs font-medium text-[var(--muted)]">Damage from buffs &amp; resonance</p>
               {breakdown.length > 0 ? (
                 <ul className="mt-2 space-y-1.5">
-                  {breakdown.map((b) => (
-                    <li key={b.id} className="flex items-center justify-between gap-3 text-xs">
-                      <span className="min-w-0">
-                        <span className="font-medium text-[var(--text)]">{b.label}</span>
-                        <span className="ml-1.5 text-[var(--muted)]">{b.effect}</span>
-                      </span>
-                      <span className="tnum shrink-0 font-semibold text-forest-600">
-                        +{formatNumber(Math.max(0, b.delta))}
-                        <span className="ml-1 text-[10px] font-normal text-[var(--muted)]">
-                          ({total > 0 ? `${Math.round((Math.max(0, b.delta) / total) * 100)}%` : '0%'})
+                  {breakdown.map((b) => {
+                    const damage = Math.max(0, b.delta);
+                    const noDamage = damage < 0.5;
+                    return (
+                      <li key={b.id} className="flex items-center justify-between gap-3 text-xs">
+                        <span className="min-w-0">
+                          <span className="font-medium text-[var(--text)]">{b.label}</span>
+                          <span className="ml-1.5 text-[var(--muted)]">{b.effect}</span>
                         </span>
-                      </span>
-                    </li>
-                  ))}
+                        {noDamage ? (
+                          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                            No damage effect
+                          </span>
+                        ) : (
+                          <span className="tnum shrink-0 font-semibold text-forest-600">
+                            +{formatNumber(damage)}
+                            <span className="ml-1 text-[10px] font-normal text-[var(--muted)]">
+                              ({total > 0 ? `${Math.round((damage / total) * 100)}%` : '0%'})
+                            </span>
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="mt-1 text-xs text-[var(--text)]">None — add Bennett, Kazuha, Zhongli, Xilonen, Citlali, or two of one element.</p>
               )}
               <p className="mt-3 text-[11px] leading-relaxed text-[var(--muted)]">
-                The team total already includes every buff listed above.
+                The team total already includes every buff listed above. Anemo and Electro resonance give no direct
+                damage, so they are listed as informational only.
               </p>
             </div>
           </div>
