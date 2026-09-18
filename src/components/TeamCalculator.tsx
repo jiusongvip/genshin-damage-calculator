@@ -257,8 +257,11 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
   const [flyers, setFlyers] = useState<Flyer[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
   const [bump, setBump] = useState(false);
-  // Character waiting to be swapped in once the user picks which slot it takes.
-  const [pendingSwap, setPendingSwap] = useState<string | null>(null);
+  // Bumped on every click that finds the team full; keyed onto the 4/4 counter
+  // so each click restarts its flash.
+  const [fullKey, setFullKey] = useState(0);
+  // Spoken to screen readers, since the flash alone says nothing to them.
+  const [announce, setAnnounce] = useState('');
   const [popSlot, setPopSlot] = useState<number | null>(null);
   // Portals need a real document, which the server render does not have.
   const [mounted, setMounted] = useState(false);
@@ -470,23 +473,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     pulse(id, 0);
   };
 
-  /** Put `pendingSwap` into slot `idx`, replacing whoever is there. */
-  const swapInto = (idx: number) => {
-    const incoming = pendingSwap;
-    if (!incoming) return;
-    flyToSlot(incoming, idx);
-    setSelected((prev) => prev.map((x, i) => (i === idx ? incoming : x)));
-    setPendingSwap(null);
-    setGearFor(null);
-    pulse(incoming, idx);
-  };
-
   const toggle = (id: string) => {
-    // Clicking the character that is waiting for a slot cancels the swap.
-    if (pendingSwap === id) {
-      setPendingSwap(null);
-      return;
-    }
     if (selected.includes(id)) {
       remove(id);
       return;
@@ -495,12 +482,12 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
       takeOver(id);
       return;
     }
-    // A full team used to reject the click with a toast that said "remove one
-    // first" and left the user to do exactly that, several scrolls away. Asking
-    // which member to replace turns the dead end into one more click, and keeps
-    // the whole exchange inside the sticky bar where the team already lives.
+    // A full team changes nothing: the only feedback is the 4/4 counter
+    // flashing, loud enough to draw the eye to the bar.
     if (selected.length >= MAX_TEAM) {
-      setPendingSwap(id);
+      setFullKey((k) => k + 1);
+      setAnnounce(`Team is full (${MAX_TEAM}/${MAX_TEAM}). Remove a character to add another.`);
+      window.setTimeout(() => setAnnounce(''), 2500);
       return;
     }
     add(id);
@@ -508,8 +495,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
 
   useEffect(() => setMounted(true), []);
 
-  // The bar's height changes with the swap prompt and the screen width; the
-  // element sidebar needs it to stick directly underneath without overlap.
+  // The bar's height changes with the screen width; the filter sidebar needs it to stick directly underneath without overlap.
   useEffect(() => {
     const el = barRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
@@ -527,18 +513,6 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     if (gearFor && !d.open) d.showModal();
     if (!gearFor && d.open) d.close();
   }, [gearFor]);
-
-  // Escape backs out of a pending swap, like any other transient mode.
-  useEffect(() => {
-    if (!pendingSwap) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPendingSwap(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [pendingSwap]);
-
-  const pendingCharacter = pendingSwap ? CHARACTERS.find((c) => c.id === pendingSwap) : undefined;
 
   const gearCharacter = gearFor ? CHARACTERS.find((c) => c.id === gearFor) : undefined;
   const gearConfig = gearCharacter ? configFor(gearCharacter) : undefined;
@@ -560,77 +534,67 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
       <div ref={barRef} className="sticky top-2 z-40">
         <div className="calc-bar mx-auto w-fit max-w-full rounded-2xl px-3 py-2 sm:px-4">
           <div className="flex items-center justify-between gap-3 sm:gap-6">
-            {/* Left: the total — or, while a swap is pending, the question.
-                Swapping replaces the figure instead of stacking under it, so
-                the bar never changes height. */}
-            <div className="min-w-0 flex-1">
-              {pendingCharacter ? (
-                <div className="swap-prompt flex items-center gap-2.5">
-                  <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-forest-500/50">
-                    <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[pendingCharacter.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
-                    <img src={`/images/portraits/${pendingCharacter.id}.webp`} alt="" width="256" height="256" className="absolute inset-0 h-full w-full object-cover" />
+            {/* Left: the team total. Natural width from sm up — the bar is only
+                as wide as its content, so letting this column flex would squeeze
+                the DPS line onto a row of its own. */}
+            <div className="min-w-0 flex-1 sm:flex-none">
+              <p className="flex items-center gap-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">
+                Team damage
+                {isDemo && (
+                  <span className="hidden truncate rounded-full bg-forest-600/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-forest-700 sm:inline">
+                    Example team<span className="hidden lg:inline"> — pick anyone to start your own</span>
                   </span>
-                  {/* Just the name: the pulsing ⇄ slots already say what to do,
-                      and screen readers get the full instruction from the
-                      live region and the slots' labels. */}
-                  <span className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">{pendingCharacter.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setPendingSwap(null)}
-                    className="shrink-0 rounded-full border border-[var(--line)] bg-white/80 px-2.5 py-1 text-[11px] font-medium text-[var(--muted)] transition-colors hover:text-[var(--text)]"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <p className="flex items-center gap-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">
-                    Team damage
-                    {isDemo && (
-                      <span className="hidden truncate rounded-full bg-forest-600/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-forest-700 sm:inline">
-                        Example team<span className="hidden lg:inline"> — pick anyone to start your own</span>
-                      </span>
+                )}
+              </p>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                <span className="relative inline-block leading-none">
+                  <span key={popKey} className="damage-pop damage-number tnum block text-xl sm:text-3xl">
+                    {formatNumber(animatedTotal)}
+                  </span>
+                  <span key={`burst-${popKey}`} className="damage-burst" aria-hidden="true" />
+                </span>
+                {/* DPS and the phone-only Clear stay on one line, so the bar is
+                    three short rows on a phone rather than four. */}
+                <span className="flex items-baseline gap-2 whitespace-nowrap">
+                  <span className="tnum text-[11px] font-medium text-[var(--muted)]">
+                    {selected.length === 0 ? (
+                      'Pick a character below to start'
+                    ) : (
+                      <>
+                        {formatNumber(animatedDps)} DPS <span className="hidden opacity-70 sm:inline">(20s est.)</span>
+                      </>
                     )}
-                  </p>
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                    <span className="relative inline-block leading-none">
-                      <span key={popKey} className="damage-pop damage-number tnum block text-2xl sm:text-3xl">
-                        {formatNumber(animatedTotal)}
-                      </span>
-                      <span key={`burst-${popKey}`} className="damage-burst" aria-hidden="true" />
-                    </span>
-                    <span className="tnum text-[11px] font-medium text-[var(--muted)]">
-                      {selected.length === 0 ? (
-                        'Pick a character below to start'
-                      ) : (
-                        <>
-                          {formatNumber(animatedDps)} DPS <span className="hidden opacity-70 sm:inline">(20s est.)</span>
-                        </>
-                      )}
-                    </span>
-                    {selected.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={clearTeam}
-                        className="text-[11px] font-medium text-[var(--muted)] underline decoration-[var(--line)] underline-offset-2 transition-colors hover:text-pyro sm:hidden"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
+                  </span>
+                  {selected.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearTeam}
+                      className="text-[11px] font-medium text-[var(--muted)] underline decoration-[var(--line)] underline-offset-2 transition-colors hover:text-pyro sm:hidden"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </span>
+              </div>
             </div>
 
             {/* Right: count, clear, and the four slots with a Gear button each */}
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <div className="hidden text-center sm:block">
-                <span className={`tnum block text-lg font-bold leading-none text-forest-600 ${bump ? 'counter-pop' : ''}`}>
+              {/* The counter is the whole "team is full" feedback, so it shows on
+                  every screen size. Keyed on fullKey so each rejected click
+                  restarts the flash. */}
+              <div className="text-center">
+                <span
+                  key={fullKey}
+                  className={`tnum block text-base font-bold leading-none text-forest-600 sm:text-lg ${
+                    fullKey > 0 ? 'counter-alert' : bump ? 'counter-pop' : ''
+                  }`}
+                >
                   {selected.length}/{MAX_TEAM}
                 </span>
-                <span className="mt-0.5 block text-[10px] uppercase tracking-wider text-[var(--muted)]">team</span>
+                <span className="mt-0.5 hidden text-[10px] uppercase tracking-wider text-[var(--muted)] sm:block">team</span>
               </div>
-              {selected.length > 0 && !pendingSwap && (
+              {selected.length > 0 && (
                 <button
                   type="button"
                   onClick={clearTeam}
@@ -650,31 +614,11 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                           slotRefs.current[i] = el;
                         }}
                         type="button"
-                        onClick={() => (pendingSwap ? swapInto(i) : id && remove(id))}
-                        title={
-                          pendingCharacter
-                            ? c
-                              ? `Replace ${c.name} with ${pendingCharacter.name}`
-                              : `Put ${pendingCharacter.name} here`
-                            : c
-                              ? `${c.name} — click to remove`
-                              : 'Empty slot'
-                        }
-                        aria-label={
-                          pendingCharacter
-                            ? c
-                              ? `Replace ${c.name} with ${pendingCharacter.name}`
-                              : `Put ${pendingCharacter.name} in slot ${i + 1}`
-                            : c
-                              ? `Remove ${c.name}`
-                              : `Empty team slot ${i + 1}`
-                        }
+                        onClick={() => id && remove(id)}
+                        title={c ? `${c.name} — click to remove` : 'Empty slot'}
+                        aria-label={c ? `Remove ${c.name}` : `Empty team slot ${i + 1}`}
                         className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-xl transition sm:h-10 sm:w-10 ${
-                          pendingSwap
-                            ? 'swap-target ring-2 ring-forest-500'
-                            : c
-                              ? 'ring-1 ring-forest-400 hover:ring-2 hover:ring-pyro'
-                              : 'border border-dashed border-[var(--line)] bg-white/40'
+                          c ? 'ring-1 ring-forest-400 hover:ring-2 hover:ring-pyro' : 'border border-dashed border-[var(--line)] bg-white/40'
                         }`}
                       >
                         {c ? (
@@ -685,24 +629,17 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                               alt=""
                               width="256"
                               height="256"
-                              className={`absolute inset-0 h-full w-full object-cover transition ${popSlot === i ? 'slot-pop' : ''} ${
-                                pendingSwap ? 'opacity-45 grayscale' : ''
-                              }`}
+                              className={`absolute inset-0 h-full w-full object-cover ${popSlot === i ? 'slot-pop' : ''}`}
                             />
-                            {!pendingSwap && <ElementIcon el={c.element} className="absolute right-0.5 top-0.5 h-3.5 w-3.5" />}
+                            <ElementIcon el={c.element} className="absolute right-0.5 top-0.5 h-3.5 w-3.5" />
                           </>
                         ) : (
                           <span className="grid h-full w-full place-items-center text-sm text-[var(--muted)]">+</span>
                         )}
-                        {pendingSwap && (
-                          <span className="absolute inset-0 grid place-items-center text-base font-bold text-forest-700 drop-shadow-[0_1px_0_rgb(255_255_255/0.9)]" aria-hidden="true">
-                            ⇄
-                          </span>
-                        )}
                       </button>
-                      {/* Opens the level / weapon dialog. An invisible twin
-                          holds the space on empty slots so the row never jumps. */}
-                      {c && !pendingSwap ? (
+                      {/* Opens the level / weapon dialog. An invisible twin holds
+                          the space on empty slots so the row never jumps. */}
+                      {c ? (
                         <button
                           type="button"
                           onClick={() => setGearFor(c.id)}
@@ -726,16 +663,17 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
         </div>
       </div>
 
-      {/* ============ Element sidebar + roster ============ */}
+      {/* ============ Filter sidebar + roster ============ */}
       <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-start">
-        {/* Element filter, vertical and sticky under the bar from tablet up;
-            on phones there is no room beside the grid, so it lies flat. */}
+        {/* Element and weapon filters as two vertical columns, sticky just under
+            the bar from tablet up. Phones have no room beside the grid, so
+            there they lie flat as two rows above it. */}
         <nav
-          aria-label="Filter by element"
-          className="md:sticky md:self-start"
+          aria-label="Filter characters"
+          className="flex flex-col gap-2 md:sticky md:flex-row md:gap-3 md:self-start"
           style={{ top: barH + 20 }}
         >
-          <div className="flex flex-wrap gap-1.5 md:flex-col md:flex-nowrap md:gap-2">
+          <div className="flex flex-wrap gap-1.5 md:flex-col md:flex-nowrap md:gap-2" role="group" aria-label="Element">
             <button
               type="button"
               onClick={() => setElementFilter('all')}
@@ -765,41 +703,49 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
               </button>
             ))}
           </div>
+          <div
+            className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 md:mx-0 md:w-28 md:flex-col md:overflow-visible md:px-0 md:pb-0 [&>button]:shrink-0"
+            role="group"
+            aria-label="Weapon"
+          >
+            <button type="button" onClick={() => setWeaponFilter('all')} aria-pressed={weaponFilter === 'all'} className={`${chip(weaponFilter === 'all')} md:w-full md:text-left`}>
+              All weapons
+            </button>
+            {WEAPON_TYPES.map((w) => (
+              <button
+                key={w}
+                type="button"
+                onClick={() => setWeaponFilter(w)}
+                aria-pressed={weaponFilter === w}
+                className={`${chip(weaponFilter === w)} md:w-full md:text-left`}
+              >
+                {w[0].toUpperCase() + w.slice(1)}
+              </button>
+            ))}
+          </div>
         </nav>
 
         <div className="min-w-0 flex-1">
-          {/* ============ Filters ============ */}
-          <div className="flex flex-col gap-2.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search a character…"
-                className="h-9 w-full max-w-xs rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--text)]"
-                aria-label="Search characters"
-              />
-              <div className="flex gap-1.5">
-                {(['all', '5', '4'] as const).map((r) => (
-                  <button key={r} type="button" onClick={() => setRarityFilter(r)} className={chip(rarityFilter === r)}>
-                    {r === 'all' ? 'All ★' : `${r}★`}
-                  </button>
-                ))}
-              </div>
-              <span className="ml-auto text-sm text-[var(--muted)]">
-                <span className="font-semibold text-[var(--text)]">{roster.length}</span> characters
-              </span>
-            </div>
-            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&>button]:shrink-0">
-              <button type="button" onClick={() => setWeaponFilter('all')} className={chip(weaponFilter === 'all')}>
-                All weapons
-              </button>
-              {WEAPON_TYPES.map((w) => (
-                <button key={w} type="button" onClick={() => setWeaponFilter(w)} className={chip(weaponFilter === w)}>
-                  {w[0].toUpperCase() + w.slice(1)}
+          {/* ============ Search + rarity ============ */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search a character…"
+              className="h-9 w-full max-w-xs rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 text-sm text-[var(--text)]"
+              aria-label="Search characters"
+            />
+            <div className="flex gap-1.5">
+              {(['all', '5', '4'] as const).map((r) => (
+                <button key={r} type="button" onClick={() => setRarityFilter(r)} aria-pressed={rarityFilter === r} className={chip(rarityFilter === r)}>
+                  {r === 'all' ? 'All ★' : `${r}★`}
                 </button>
               ))}
             </div>
+            <span className="ml-auto text-sm text-[var(--muted)]">
+              <span className="font-semibold text-[var(--text)]">{roster.length}</span> characters
+            </span>
           </div>
 
           {/* ============ Roster grid ============ */}
@@ -817,7 +763,6 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                   <div className="mt-2.5 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
                     {g.rows.map((c) => {
                       const isSelected = selected.includes(c.id);
-                      const isPending = pendingSwap === c.id;
                       return (
                         <button
                           key={c.id}
@@ -827,13 +772,9 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                           type="button"
                           onClick={() => toggle(c.id)}
                           aria-pressed={isSelected}
-                          title={isPending ? `${c.name} — waiting for a slot, click again to cancel` : c.name}
+                          title={c.name}
                           className={`group relative block aspect-square w-full overflow-hidden rounded-xl ring-1 transition-all ${
-                            isPending
-                              ? 'swap-pending ring-2 ring-forest-500'
-                              : isSelected
-                                ? 'ring-2 ring-forest-500'
-                                : 'ring-[var(--line)] hover:ring-forest-400'
+                            isSelected ? 'ring-2 ring-forest-500' : 'ring-[var(--line)] hover:ring-forest-400'
                           } ${flash === c.id ? 'card-flash-add' : ''}`}
                         >
                           <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[c.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
@@ -1111,9 +1052,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
 
       {/* Screen-reader narration for the live-updating figures and swap mode. */}
       <p role="status" aria-live="polite" className="sr-only">
-        {pendingCharacter
-          ? `${pendingCharacter.name} is waiting for a slot. Choose which of the four team members to replace.`
-          : `Team of ${selected.length}. Total damage ${formatNumber(total)}.`}
+        {announce || `Team of ${selected.length}. Total damage ${formatNumber(total)}.`}
       </p>
     </div>
   );

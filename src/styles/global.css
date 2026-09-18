@@ -300,28 +300,15 @@ details.accordion summary::-webkit-details-marker {
   100% { transform: scale(1); }
 }
 
-/* Swap mode — a full team asks which member steps out, instead of refusing
-   the click. The slots become targets and the incoming card stays marked. */
-.swap-target {
-  animation: swapTarget 1.4s ease-in-out infinite;
+/* Team full: the 4/4 counter flashes three times, big and red. It is the
+   only feedback for a rejected pick, so it has to pull the eye to the bar. */
+.counter-alert {
+  animation: counterAlert 0.9s ease-in-out;
 }
-@keyframes swapTarget {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(69 106 75 / 0.45); }
-  50% { box-shadow: 0 0 0 5px rgb(69 106 75 / 0); }
-}
-.swap-pending {
-  animation: swapPending 1.4s ease-in-out infinite;
-}
-@keyframes swapPending {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(69 106 75 / 0.5); }
-  50% { box-shadow: 0 0 0 6px rgb(69 106 75 / 0); }
-}
-.swap-prompt {
-  animation: swapPromptIn 0.24s ease;
-}
-@keyframes swapPromptIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes counterAlert {
+  0%, 100% { transform: scale(1); color: var(--accent); text-shadow: none; }
+  12%, 45%, 78% { transform: scale(1.7); color: #e8573f; text-shadow: 0 0 14px rgb(232 87 63 / 0.7); }
+  28%, 61% { transform: scale(1); color: var(--accent); text-shadow: none; }
 }
 
 /* ============================================================
