@@ -253,6 +253,21 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
   // Character whose level / weapon dialog is open.
   const [gearFor, setGearFor] = useState<string | null>(null);
 
+  // Target the whole team is measured against — DEF and RES multipliers depend
+  // on it, so it is first-class rather than a hard-coded enemy.
+  const [enemyId, setEnemyId] = useState(ENEMIES[0].id);
+  const [customEnemy, setCustomEnemy] = useState(false);
+  const [enemyLevel, setEnemyLevel] = useState(90);
+  const [enemyRes, setEnemyRes] = useState(0.1);
+  const baseEnemy = ENEMIES.find((e) => e.id === enemyId) ?? ENEMIES[0];
+  const enemy = useMemo(
+    () =>
+      customEnemy
+        ? { ...baseEnemy, level: enemyLevel, resistances: { ...baseEnemy.resistances, default: enemyRes } }
+        : baseEnemy,
+    [customEnemy, enemyLevel, enemyRes, baseEnemy],
+  );
+
   // Interaction state
   const [flyers, setFlyers] = useState<Flyer[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
@@ -352,7 +367,6 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
       const c = CHARACTERS.find((x) => x.id === id)!;
       const cfg = configs[c.id] ?? { level: 90, weaponId: c.bestWeapon };
       const weapon = getWeapon(cfg.weaponId) ?? getWeapon(c.bestWeapon) ?? weaponsForType(c.weaponType)[0];
-      const enemy = ENEMIES[0];
       const pick = reactionFor(c.element, teamSet);
       const attackType = signatureTalent(c.id)?.key ?? 'burst';
       const r = computeDamage({
@@ -383,7 +397,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     });
   };
 
-  const rows = useMemo(() => computeRows(buffs), [selected, buffs, configs]);
+  const rows = useMemo(() => computeRows(buffs), [selected, buffs, configs, enemy]);
   const total = rows.reduce((sum, x) => sum + x.result.expected + x.result.transformative, 0);
   const dps = total / ROTATION_SECONDS;
 
@@ -733,6 +747,60 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
             </div>
             <span className="ml-auto text-sm text-[var(--muted)]">
               <span className="font-semibold text-[var(--text)]">{roster.length}</span> characters
+            </span>
+          </div>
+
+          {/* ============ Enemy target ============ */}
+          <div className="mt-3 flex flex-wrap items-center gap-2.5 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-forest-600">Enemy</span>
+            <select
+              value={customEnemy ? 'custom' : enemyId}
+              onChange={(e) => {
+                if (e.target.value === 'custom') {
+                  setEnemyLevel(enemy.level);
+                  setEnemyRes(enemy.resistances.default);
+                  setCustomEnemy(true);
+                } else {
+                  setCustomEnemy(false);
+                  setEnemyId(e.target.value);
+                }
+              }}
+              className="h-8 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-sm text-[var(--text)]"
+              aria-label="Enemy target"
+            >
+              {ENEMIES.map((en) => (
+                <option key={en.id} value={en.id}>
+                  {en.name} · Lv{en.level} · {Math.round(en.resistances.default * 100)}% RES
+                </option>
+              ))}
+              <option value="custom">Custom target…</option>
+            </select>
+            {customEnemy && (
+              <>
+                <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+                  Level
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={enemyLevel}
+                    onChange={(e) => setEnemyLevel(Math.min(100, Math.max(1, parseInt(e.target.value, 10) || 90)))}
+                    className="h-8 w-16 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-right text-sm text-[var(--text)]"
+                  />
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+                  RES %
+                  <input
+                    type="number"
+                    value={Math.round(enemyRes * 100)}
+                    onChange={(e) => setEnemyRes((parseFloat(e.target.value) || 0) / 100)}
+                    className="h-8 w-16 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-right text-sm text-[var(--text)]"
+                  />
+                </label>
+              </>
+            )}
+            <span className="ml-auto hidden text-[11px] text-[var(--muted)] sm:inline">
+              Sets the DEF &amp; RES multipliers for every character
             </span>
           </div>
 

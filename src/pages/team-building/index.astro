@@ -4,9 +4,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 const siteURL = 'https://www.genshindamagecalculator.com';
 const canonicalURL = `${siteURL}/team-building/`;
 
-const title = 'Genshin Team Building Guide 鈥?How to Make Characters Do Damage';
+const title = 'Genshin Team Building Guide — How to Make Characters Do Damage';
 const description =
-  'Why your characters feel weak and how to fix it: the four team roles, amplifying vs transformative reactions, elemental resonance, and rotation order 鈥?plus a free team damage calculator.';
+  'Why your characters feel weak and how to fix it: the four team roles, amplifying vs transformative reactions, elemental resonance, and rotation order — plus a free team damage calculator.';
 
 const faqs = [
   {
@@ -50,7 +50,7 @@ const schema = [
 const roles = [
   {
     name: 'On-field main DPS',
-    body: 'The character who stays on field and deals the damage. Pick exactly one 鈥?two carries competing for field time is the single most common beginner mistake.',
+    body: 'The character who stays on field and deals the damage. Pick exactly one — two carries competing for field time is the single most common beginner mistake.',
   },
   {
     name: 'Off-field sub-DPS / applier',
@@ -67,13 +67,13 @@ const roles = [
 ];
 
 const resonances = [
-  { el: 'Pyro 脳2', name: 'Fervent Flames', effect: '+25% ATK' },
-  { el: 'Hydro 脳2', name: 'Soothing Water', effect: '+25% Max HP' },
-  { el: 'Dendro 脳2', name: 'Sprawling Greenery', effect: '+50 EM (+30 after a reaction)' },
-  { el: 'Cryo 脳2', name: 'Shattering Ice', effect: '+15% CRIT Rate vs Frozen / Cryo-affected' },
-  { el: 'Geo 脳2', name: 'Enduring Rock', effect: '+15% Shield Strength; +15% DMG while shielded' },
-  { el: 'Electro 脳2', name: 'High Voltage', effect: 'Electro-Charged generates Energy' },
-  { el: 'Anemo 脳2', name: 'Impetuous Winds', effect: '鈭?% Stamina cost, +10% movement SPD' },
+  { el: 'Pyro ×2', name: 'Fervent Flames', effect: '+25% ATK' },
+  { el: 'Hydro ×2', name: 'Soothing Water', effect: '+25% Max HP' },
+  { el: 'Dendro ×2', name: 'Sprawling Greenery', effect: '+50 EM (+30 after a reaction)' },
+  { el: 'Cryo ×2', name: 'Shattering Ice', effect: '+15% CRIT Rate vs Frozen / Cryo-affected' },
+  { el: 'Geo ×2', name: 'Enduring Rock', effect: '+15% Shield Strength; +15% DMG while shielded' },
+  { el: 'Electro ×2', name: 'High Voltage', effect: 'Electro-Charged generates Energy' },
+  { el: 'Anemo ×2', name: 'Impetuous Winds', effect: '−15% Stamina cost, +10% movement SPD' },
 ];
 ---
 
@@ -93,11 +93,11 @@ const resonances = [
       <p class="mt-4 text-lg leading-relaxed text-[var(--text)]/85">
         If your characters hit for a fraction of what showcase videos show, the problem is usually the
         <strong class="text-[var(--text)]">team</strong>, not your artifacts. Genshin damage is a team sport: one carry,
-        plus units that apply the element it reacts with and buff its stats. Fix the team first 鈥?then farm.
+        plus units that apply the element it reacts with and buff its stats. Fix the team first — then farm.
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
         <a href="/#calculator" class="rounded-xl bg-forest-300 px-5 py-2.5 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Build a team in the calculator</a>
-        <a href="/#mistakes" class="rounded-xl border border-[var(--line)] bg-white/50 px-5 py-2.5 text-sm font-semibold text-[var(--text)] transition-colors hover:border-forest-500 hover:text-forest-600">8 common damage mistakes</a>
+        <a href="/guides/improve-damage/#mistakes" class="rounded-xl border border-[var(--line)] bg-white/50 px-5 py-2.5 text-sm font-semibold text-[var(--text)] transition-colors hover:border-forest-500 hover:text-forest-600">8 common damage mistakes</a>
       </div>
     </div>
   </section>
@@ -106,7 +106,7 @@ const resonances = [
   <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
     <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">The four roles every team needs</h2>
     <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-      A working team fills these four jobs. Most weak teams are missing two of them 鈥?usually the buffer and the
+      A working team fills these four jobs. Most weak teams are missing two of them — usually the buffer and the
       off-field applier.
     </p>
     <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -126,21 +126,21 @@ const resonances = [
   <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
     <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Reactions are where the damage comes from</h2>
     <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-      Raw stats only get you so far. Reactions multiply the hit 鈥?and the type of reaction decides which stat you should
+      Raw stats only get you so far. Reactions multiply the hit — and the type of reaction decides which stat you should
       build.
     </p>
     <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
       <div class="panel p-6">
         <h3 class="font-semibold text-[var(--text)]">Amplifying <span class="text-[var(--muted)]">(Vaporize / Melt)</span></h3>
         <p class="mt-2 text-sm text-[var(--muted)]">
-          Multiply the whole hit by <strong class="text-[var(--text)]">1.5脳 or 2.0脳</strong> depending on which element
-          triggers. They scale off your normal build plus a little EM 鈥?build ATK / CRIT / DMG bonus first, then 100鈥?00 EM.
+          Multiply the whole hit by <strong class="text-[var(--text)]">1.5× or 2.0×</strong> depending on which element
+          triggers. They scale off your normal build plus a little EM — build ATK / CRIT / DMG bonus first, then 100–200 EM.
         </p>
       </div>
       <div class="panel p-6">
         <h3 class="font-semibold text-[var(--text)]">Transformative <span class="text-[var(--muted)]">(Overload, Bloom family)</span></h3>
         <p class="mt-2 text-sm text-[var(--muted)]">
-          Separate damage instances that ignore ATK and CRIT entirely 鈥?they scale only with
+          Separate damage instances that ignore ATK and CRIT entirely — they scale only with
           <strong class="text-[var(--text)]">character level and EM</strong>. A Hyperbloom trigger wants pure EM, not a
           Crit circlet.
         </p>
@@ -149,22 +149,22 @@ const resonances = [
         <h3 class="font-semibold text-[var(--text)]">Additive <span class="text-[var(--muted)]">(Aggravate / Spread)</span></h3>
         <p class="mt-2 text-sm text-[var(--muted)]">
           Adds flat damage to the hit <strong class="text-[var(--text)]">before</strong> DMG bonus and CRIT, so it
-          benefits from both. Electro + Dendro teams live on this 鈥?build EM alongside CRIT.
+          benefits from both. Electro + Dendro teams live on this — build EM alongside CRIT.
         </p>
       </div>
     </div>
     <p class="mt-4 max-w-[65ch] text-[var(--muted)]">
-      The <a href="/#reactions" class="text-forest-600 underline decoration-forest-500/50 underline-offset-2">reaction reference</a>
+      The <a href="/guides/damage-formula/#reactions" class="text-forest-600 underline decoration-forest-500/50 underline-offset-2">reaction reference</a>
       covers each one in detail. Pick the reaction your carry wants, then choose teammates that enable it.
     </p>
   </section>
 
   <!-- Resonance -->
   <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
-    <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Elemental resonance 鈥?free stats for duplicates</h2>
+    <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Elemental resonance — free stats for duplicates</h2>
     <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-      Two characters of the same element grant a party-wide resonance. Some are pure damage 鈥?worth a whole artifact
-      set 鈥?so a two-of-a-kind team is not always a mistake.
+      Two characters of the same element grant a party-wide resonance. Some are pure damage — worth a whole artifact
+      set — so a two-of-a-kind team is not always a mistake.
     </p>
     <div class="panel mt-8 overflow-x-auto">
       <table class="w-full text-sm">
@@ -213,7 +213,7 @@ const resonances = [
           <svg class="h-5 w-5 shrink-0 text-[var(--muted)]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
         </summary>
         <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-          Some abilities "snapshot" your stats the moment they are cast 鈥?Xiangling's Pyronado is the classic example.
+          Some abilities "snapshot" your stats the moment they are cast — Xiangling's Pyronado is the classic example.
           Cast it inside Bennett's burst and it keeps the buffed ATK for its whole duration, even after Bennett's field
           is gone. Learning which skills snapshot is free damage.
         </p>
@@ -228,13 +228,11 @@ const resonances = [
         <h2 class="text-xl font-semibold text-[var(--text)]">Check your own team</h2>
         <p class="mt-1 max-w-[52ch] text-[var(--muted)]">
           Pick up to four characters in the team calculator to see their combined damage, the resonances and reactions
-          they unlock, and auto-detected buffs. Then open the single-character calculator to see which stat is holding
-          your carry back.
+          they unlock, and auto-detected buffs. Then change each character's level and weapon to watch the number move.
         </p>
       </div>
       <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
-        <a href="/#calculator" class="rounded-xl bg-forest-300 px-5 py-2.5 text-center text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Team calculator</a>
-        <a href="/#calculator" class="rounded-xl border border-[var(--line)] px-5 py-2.5 text-center text-sm font-semibold text-[var(--text)] transition-colors hover:border-forest-500 hover:text-forest-600">Character calculator</a>
+        <a href="/#calculator" class="rounded-xl bg-forest-300 px-5 py-2.5 text-center text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Open the team calculator</a>
       </div>
     </div>
   </section>

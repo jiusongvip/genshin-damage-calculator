@@ -24,6 +24,32 @@
     </p>
   </div>
 
+  <div class="panel mt-6 overflow-x-auto p-6">
+    <h3 class="text-xl font-semibold text-[var(--text)]">Every damage multiplier, and what it's worth</h3>
+    <p class="mt-2 max-w-[65ch] text-sm text-[var(--muted)]">
+      A typical end-game hit is the product of these six damage multipliers. Scan the "typical value" column to see
+      which multiplier is actually holding a build back — the smallest one is usually the best place to invest.
+    </p>
+    <table class="mt-4 w-full min-w-[560px] text-left text-sm">
+      <thead>
+        <tr class="border-b border-[var(--line)] text-[var(--muted)]">
+          <th class="py-2 pr-4 font-medium">Multiplier</th>
+          <th class="py-2 pr-4 font-medium">Formula</th>
+          <th class="py-2 pr-4 font-medium">Typical value</th>
+          <th class="py-2 font-medium">Raising it</th>
+        </tr>
+      </thead>
+      <tbody class="text-[var(--text)]">
+        <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Base</td><td class="tnum py-2.5 pr-4">Scaling stat × Talent%</td><td class="tnum py-2.5 pr-4">—</td><td class="py-2.5">Level, talents, weapon base ATK</td></tr>
+        <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">DMG Bonus</td><td class="tnum py-2.5 pr-4">1 + total DMG%</td><td class="tnum py-2.5 pr-4">×1.5</td><td class="py-2.5">Goblet, set bonuses, buffers</td></tr>
+        <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">CRIT (expected)</td><td class="tnum py-2.5 pr-4">1 + CR × CD</td><td class="tnum py-2.5 pr-4">×2.0</td><td class="py-2.5">Artifact sub-stats (keep 1:2)</td></tr>
+        <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Reaction (amplifying)</td><td class="tnum py-2.5 pr-4">1.5–2.0 × (1 + EM bonus)</td><td class="tnum py-2.5 pr-4">×1.5–3.2</td><td class="py-2.5">EM, Viridescent, team setup</td></tr>
+        <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">DEF</td><td class="tnum py-2.5 pr-4">(Lv+100) ÷ …</td><td class="tnum py-2.5 pr-4">×0.50</td><td class="py-2.5">DEF shred / ignore (rare)</td></tr>
+        <tr><td class="py-2.5 pr-4">RES</td><td class="tnum py-2.5 pr-4">three-zone formula</td><td class="tnum py-2.5 pr-4">×0.90</td><td class="py-2.5">Viridescent Venerer, Zhongli</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <details class="accordion mt-8">
     <summary class="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 font-semibold text-[var(--text)] transition-colors hover:border-forest-300">
       <span>Every factor, in detail</span>

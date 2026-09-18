@@ -115,6 +115,14 @@ export interface BuffState {
   defPercent: number;
   flatDEF: number;
   dmgBonus: number;
+  /**
+   * Base DMG multiplier ("deals X% of original DMG"). Multiplies the base
+   * damage itself and is NOT part of the additive DMG-bonus bucket — this is
+   * the `BaseDMGMultiplier` term in the formula above (damage doc, section 3.1).
+   */
+  baseDmgBonus: number;
+  /** Flat base damage added after the base-DMG multiplier (non-catalyze). */
+  flatBaseDmg: number;
   /** Attack-type DMG bonus — applies only to the matching attack (sets/weapons). */
   naDmgBonus: number;
   caDmgBonus: number;
@@ -172,6 +180,7 @@ export type TransformativeReaction =
   | 'superconduct'
   | 'electroCharged'
   | 'swirl'
+  | 'shatter'
   | 'bloom'
   | 'hyperbloom'
   | 'burgeon'
@@ -215,8 +224,12 @@ export interface DamageResult {
   totalHP: number;
   totalDEF: number;
   critRate: number;
+  /** Crit rate before the 100% cap — lets the UI flag wasted crit. */
+  critRateRaw: number;
   critDMG: number;
   dmgBonus: number;
+  /** Base DMG multiplier applied (baseDmg%). */
+  baseDmgBonus: number;
   em: number;
   defMultiplier: number;
   resMultiplier: number;
@@ -253,6 +266,7 @@ const TRANSFORMATIVE_BASE: Record<Exclude<TransformativeReaction, 'none'>, numbe
   superconduct: 1.5,
   electroCharged: 2,
   swirl: 0.6,
+  shatter: 3,
   bloom: 2,
   hyperbloom: 3,
   burgeon: 3,
@@ -264,6 +278,7 @@ const TRANSFORMATIVE_NAMES: Record<Exclude<TransformativeReaction, 'none'>, stri
   superconduct: 'Superconduct',
   electroCharged: 'Electro-Charged',
   swirl: 'Swirl',
+  shatter: 'Shatter',
   bloom: 'Bloom',
   hyperbloom: 'Hyperbloom',
   burgeon: 'Burgeon',
@@ -450,7 +465,8 @@ export function computeDamage(input: DamageInput): DamageResult {
     buffs.flatHP;
 
   // ---- Crit ----
-  const critRate = Math.min(BASE_CRIT_RATE + art.critRate + w.critRate + ascStat.critRate + buffs.critRate, 1);
+  const critRateRaw = BASE_CRIT_RATE + art.critRate + w.critRate + ascStat.critRate + buffs.critRate;
+  const critRate = Math.min(critRateRaw, 1);
   const critDMG = BASE_CRIT_DMG + art.critDMG + w.critDMG + ascStat.critDMG + buffs.critDMG;
 
   // ---- Attack type (drives type-specific DMG bonuses from sets / weapons) ----
@@ -524,7 +540,9 @@ export function computeDamage(input: DamageInput): DamageResult {
   const resMultiplier = resMultiplierFor(rawRes, buffs.resShred);
 
   // ---- Per-hit damage ----
-  const baseDamage = baseStat * skillMultiplier + additive;
+  // BaseDmg = (stat × multiplier) × (1 + baseDmg%) + catalyze + flat additive.
+  const baseDamage =
+    baseStat * skillMultiplier * (1 + buffs.baseDmgBonus) + additive + buffs.flatBaseDmg;
   const nonCrit =
     baseDamage * dmgBonusMult * reactionMultiplier * defMultiplier * resMultiplier;
   const critHit = nonCrit * (1 + critDMG);
@@ -546,9 +564,11 @@ export function computeDamage(input: DamageInput): DamageResult {
             ? 'electro'
             : input.transformative === 'swirl'
               ? (input.swirlElement ?? character.element)
-              : input.transformative === 'burning'
-                ? 'pyro'
-                : 'dendro';
+              : input.transformative === 'shatter'
+                ? 'physical'
+                : input.transformative === 'burning'
+                  ? 'pyro'
+                  : 'dendro';
     const tRawRes = enemy.resistances[reactionElement] ?? enemy.resistances.default;
     const tResMult = resMultiplierFor(tRawRes, buffs.resShred);
     transformative =
@@ -569,8 +589,10 @@ export function computeDamage(input: DamageInput): DamageResult {
     totalHP,
     totalDEF,
     critRate,
+    critRateRaw,
     critDMG,
     dmgBonus,
+    baseDmgBonus: buffs.baseDmgBonus,
     em,
     defMultiplier,
     resMultiplier,
