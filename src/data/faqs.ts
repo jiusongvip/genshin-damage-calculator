@@ -71,7 +71,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'How can I increase my damage?',
-    a: 'In rough order of return: level your main talent to 9 or 10, level the character to 90 for reaction and DEF scaling, fix your Crit Ratio toward 1:2, run an Anemo unit with Viridescent Venerer, add Bennett or an equivalent buffer, and level your weapon to 90. Artifact sub-stat farming comes last because it has the worst return per resin \u2014 a talent level is a guaranteed 6-7% gain, while a good artifact roll is a lottery. Swapping one weapon or artifact set at a time in the calculator shows which change actually moves your number.',
+    a: 'In rough order of return: level your main talent to 9 or 10, level the character to 90 for reaction and DEF scaling, fix your Crit Ratio toward 1:2, run an Anemo unit with Viridescent Venerer, add Bennett or an equivalent buffer, and level your weapon to 90. Artifact sub-stat farming comes last because it has the worst return per resin \u2014 a talent level is a guaranteed 6-7% gain, while a good artifact roll is a lottery. Swapping one weapon at a time in the calculator shows which change actually moves your number.',
   },
   {
     q: 'Which matters more, character level or talent level?',
@@ -239,6 +239,6 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Why do my in-game numbers differ from the calculator?',
-    a: 'The most common causes are: (1) enemy mismatch \u2014 testing against a different enemy level or resistance than you set here; (2) missing buffs \u2014 VV shred, Bennett, resonance and food are part of the \u201cscreenshot\u201d numbers you see online; (3) hidden rounding in the game; and (4) the calculator\u2019s reference panel using a talent-10, level-90 preset rather than your exact build. Set your own level, weapon and artifact set in the calculator to match your account. If the gap persists, double-check the reaction, enemy resistance and DEF shred settings.',
+    a: 'The most common causes are: (1) enemy mismatch \u2014 testing against a different enemy level or resistance than you set here; (2) missing buffs \u2014 VV shred, Bennett, resonance and food are part of the \u201cscreenshot\u201d numbers you see online; (3) hidden rounding in the game; and (4) the calculator\u2019s reference panel using a talent-10, level-90 preset rather than your exact build. The calculator counts character and weapon only, with no artifacts, so your in-game numbers will be higher; set your own level and weapon to match the rest. If the gap persists, double-check the reaction, enemy resistance and DEF shred settings.',
   },
 ];

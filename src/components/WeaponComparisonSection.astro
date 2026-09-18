@@ -6,7 +6,7 @@
 import { getCharacter } from '../data/characters';
 import { getWeapon } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
-import { DEFAULT_BUFFS, resolvePreset } from '../data/presets';
+import { DEFAULT_BUFFS, NO_ARTIFACTS } from '../data/presets';
 import { computeDamage, formatNumber } from '../lib/damage';
 import type { AmplifiedReaction } from '../lib/damage';
 
@@ -36,7 +36,7 @@ const comparisons = WEAPON_SETS.map(([charId, weaponIds]) => {
     const r = computeDamage({
       character,
       weapon,
-      artifacts: resolvePreset(character),
+      artifacts: NO_ARTIFACTS,
       buffs: DEFAULT_BUFFS,
       enemy,
       characterLevel: 90,
@@ -98,8 +98,8 @@ const comparisons = WEAPON_SETS.map(([charId, weaponIds]) => {
   </div>
 
   <p class="mt-6 max-w-[65ch] text-sm text-[var(--muted)]">
-    Numbers are computed at equal refinement (R1) with no external buffs, so they reflect the weapon’s own value. Team
-    buffs, refinements and your exact artifacts will shift the gaps — swap the weapon in the calculator’s Gear panel to get
+    Numbers are computed at equal refinement (R1) with no artifacts and no external buffs, so they reflect the weapon’s
+    own value. Team buffs, refinements and artifacts will shift the gaps — swap the weapon in the calculator’s Gear panel to get
     your personal number.
   </p>
 </section>

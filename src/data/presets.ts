@@ -102,6 +102,26 @@ export const PRESETS: Record<string, ArtifactBuild> = {
   },
 };
 
+/**
+ * No artifacts at all — every main stat and sub stat at zero.
+ *
+ * The site currently shows bare numbers: character plus weapon only. Artifacts
+ * are a later feature, so every calculation passes this instead of a preset.
+ * PRESETS / resolvePreset below stay as the starting point for that feature.
+ */
+export const NO_ARTIFACTS: ArtifactBuild = {
+  sandsMain: { type: 'atk%', value: 0 },
+  gobletMain: { type: 'dmg%', value: 0 },
+  circletMain: { type: 'critRate', value: 0 },
+  subCritRate: 0,
+  subCritDMG: 0,
+  subATKPercent: 0,
+  subEM: 0,
+  subER: 0,
+  subHPPercent: 0,
+  subDEFPercent: 0,
+};
+
 /** Default team buff state (no external buffs). */
 export const DEFAULT_BUFFS: BuffState = {
   atkPercent: 0,
@@ -128,6 +148,8 @@ export const DEFAULT_BUFFS: BuffState = {
 };
 
 /**
+ * NOT USED while the site shows bare (no-artifact) numbers — see NO_ARTIFACTS.
+ *
  * Resolve a preset build for any character. Exact per-character presets win;
  * otherwise infer a sensible end-game panel from the character's scaling hints
  * (base ATK, HP/DEF scaling notes, reaction keywords).

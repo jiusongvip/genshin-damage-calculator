@@ -1,6 +1,6 @@
 # Genshin Damage Calculator
 
-> Free Genshin Impact damage calculator for every character. Build a team, compare weapons and artifacts, and see your exact damage.
+> Free Genshin Impact damage calculator for every character. Build a team, compare weapons, and see each character's damage with no artifacts (character + weapon only).
 
 Independent fan-made web tool. Damage values are computed from the official five-multiplier formula; data is refreshed within 48 hours of each version patch. No signup, no download, no paywall.
 

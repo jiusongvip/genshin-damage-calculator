@@ -8,11 +8,10 @@ import { createPortal } from 'react-dom';
 import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
 import { getWeapon, weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
-import { DEFAULT_BUFFS, BUFF_PRESETS, BUFF_BY_CHARACTER, resolvePreset } from '../data/presets';
+import { DEFAULT_BUFFS, BUFF_PRESETS, BUFF_BY_CHARACTER, NO_ARTIFACTS } from '../data/presets';
 import { addBuffs, computeDamage, formatNumber } from '../lib/damage';
 import type { AdditiveReaction, AmplifiedReaction, BuffState, CharacterData, ElementType, TransformativeReaction } from '../lib/damage';
 import { ELEMENT_LABEL } from '../data/elements';
-import { ARTIFACT_SETS, SET_BY_ID, resolveSetBuffs } from '../data/artifactSets';
 import { signatureTalent } from '../data/talents';
 
 const ELEMENTS: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
@@ -70,8 +69,8 @@ const MAX_TEAM = 4;
  */
 const FALLBACK_TEAM = ['hu-tao', 'xingqiu', 'bennett', 'kazuha'];
 
-/** Per-character overrides set in the team panel. */
-type CharConfig = { level: number; weaponId: string; setId: string };
+/** Per-character overrides set in the Gear dialog. Bare numbers: no artifacts. */
+type CharConfig = { level: number; weaponId: string };
 
 type ReactionPick = {
   amplified: AmplifiedReaction;
@@ -251,7 +250,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
   const [weaponFilter, setWeaponFilter] = useState<'all' | string>('all');
   const [rarityFilter, setRarityFilter] = useState<'all' | '4' | '5'>('all');
   const [configs, setConfigs] = useState<Record<string, CharConfig>>({});
-  // Character whose weapon / artifact dialog is open.
+  // Character whose level / weapon dialog is open.
   const [gearFor, setGearFor] = useState<string | null>(null);
 
   // Interaction state
@@ -273,14 +272,14 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const configFor = (c: CharacterData): CharConfig =>
-    configs[c.id] ?? { level: 90, weaponId: c.bestWeapon, setId: '' };
+    configs[c.id] ?? { level: 90, weaponId: c.bestWeapon };
   const updateConfig = (c: CharacterData, patch: Partial<CharConfig>) => {
     // Tuning someone's gear means the user has adopted this team, example or
     // not; otherwise their next pick would take over and throw the edit away.
     setIsDemo(false);
     setConfigs((prev) => ({
       ...prev,
-      [c.id]: { ...(prev[c.id] ?? { level: 90, weaponId: c.bestWeapon, setId: '' }), ...patch },
+      [c.id]: { ...(prev[c.id] ?? { level: 90, weaponId: c.bestWeapon }), ...patch },
     }));
   };
 
@@ -348,18 +347,17 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     );
     return selected.map((id) => {
       const c = CHARACTERS.find((x) => x.id === id)!;
-      const cfg = configs[c.id] ?? { level: 90, weaponId: c.bestWeapon, setId: '' };
+      const cfg = configs[c.id] ?? { level: 90, weaponId: c.bestWeapon };
       const weapon = getWeapon(cfg.weaponId) ?? getWeapon(c.bestWeapon) ?? weaponsForType(c.weaponType)[0];
       const enemy = ENEMIES[0];
       const pick = reactionFor(c.element, teamSet);
       const attackType = signatureTalent(c.id)?.key ?? 'burst';
-      const setPatch = cfg.setId ? resolveSetBuffs([{ id: cfg.setId, pieces: 4 }], c.element, attackType) : {};
-      const charBuffs = addBuffs(merged, setPatch);
       const r = computeDamage({
         character: c,
         weapon,
-        artifacts: resolvePreset(c),
-        buffs: charBuffs,
+        // Bare numbers: character and weapon only, no artifacts yet.
+        artifacts: NO_ARTIFACTS,
+        buffs: merged,
         enemy,
         characterLevel: cfg.level,
         attackType,
@@ -544,7 +542,6 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
 
   const gearCharacter = gearFor ? CHARACTERS.find((c) => c.id === gearFor) : undefined;
   const gearConfig = gearCharacter ? configFor(gearCharacter) : undefined;
-  const gearSet = gearConfig?.setId ? SET_BY_ID[gearConfig.setId] : undefined;
   const gearRow = gearFor ? rows.find((r) => r.character.id === gearFor) : undefined;
 
   const chip = (active: boolean) =>
@@ -703,14 +700,14 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                           </span>
                         )}
                       </button>
-                      {/* Opens the weapon / artifact dialog. An invisible twin
+                      {/* Opens the level / weapon dialog. An invisible twin
                           holds the space on empty slots so the row never jumps. */}
                       {c && !pendingSwap ? (
                         <button
                           type="button"
                           onClick={() => setGearFor(c.id)}
                           className="gear-btn"
-                          aria-label={`${c.name}: change level, weapon and artifacts`}
+                          aria-label={`${c.name}: change level and weapon`}
                           aria-haspopup="dialog"
                         >
                           Gear
@@ -891,7 +888,6 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
               {selected.map((id) => {
                 const c = CHARACTERS.find((x) => x.id === id)!;
                 const cfg = configFor(c);
-                const set = cfg.setId ? SET_BY_ID[cfg.setId] : undefined;
                 const weaponName = getWeapon(cfg.weaponId)?.name ?? '—';
                 const row = rows.find((r) => r.character.id === id);
                 return (
@@ -905,7 +901,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-[var(--text)]">{c.name}</span>
                         <span className="block truncate text-[10px] text-[var(--muted)]">
-                          Lv{cfg.level} · {weaponName}{set ? ` · ${set.name}` : ''}
+                          Lv{cfg.level} · {weaponName}
                         </span>
                       </span>
                       <span className="damage-number-sm tnum shrink-0 text-xs font-semibold">
@@ -933,7 +929,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
               })}
             </ul>
             <p className="mt-3 text-[11px] leading-relaxed text-[var(--muted)]">
-              Reference panels · Lv90 · talent 10 · vs Lv90 enemy. Damage updates live as you pick.
+              Bare numbers: character + weapon only, no artifacts · Lv90 · talent 10 · vs Lv90 enemy. Damage updates live as you pick.
             </p>
           </div>
 
@@ -1002,7 +998,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
         </div>
       )}
 
-      {/* ============ Weapon / artifact dialog ============ */}
+      {/* ============ Level / weapon dialog ============ */}
       {/* Opened by the Gear button under a slot (or Gear in Team details).
           A native <dialog> gives Escape-to-close, focus trapping and the top
           layer for free; clicking the backdrop closes it too. */}
@@ -1027,7 +1023,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                   <ElementIcon el={gearCharacter.element} className="h-4 w-4" />
                   {gearCharacter.name}
                 </h2>
-                <p className="text-xs text-[var(--muted)]">Level, weapon and artifact set</p>
+                <p className="text-xs text-[var(--muted)]">Level and weapon · no artifacts</p>
               </div>
               <div className="shrink-0 text-right">
                 <span className="damage-number-sm tnum block text-lg font-semibold leading-none">
@@ -1065,22 +1061,6 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                   ))}
                 </select>
               </label>
-              <label className="block text-sm">
-                <span className="font-medium text-[var(--muted)]">Artifact set (4-piece)</span>
-                <select
-                  value={gearConfig.setId}
-                  onChange={(e) => updateConfig(gearCharacter, { setId: e.target.value })}
-                  className="mt-1.5 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--text)]"
-                >
-                  <option value="">None</option>
-                  {ARTIFACT_SETS.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {gearSet?.note && <p className="text-xs leading-relaxed text-[var(--muted)]">{gearSet.note}</p>}
             </div>
 
             <div className="mt-6 flex justify-end">

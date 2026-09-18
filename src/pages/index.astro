@@ -5,7 +5,7 @@ import AdRails from '../components/AdRails.astro';
 import { RELEASED_CHARACTERS } from '../data/characters';
 import { getWeapon } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
-import { DEFAULT_BUFFS, DEFAULT_BUFFERS, resolvePreset } from '../data/presets';
+import { DEFAULT_BUFFS, DEFAULT_BUFFERS, NO_ARTIFACTS } from '../data/presets';
 import { FAQS } from '../data/faqs';
 import { FEATURED_CHARACTERS, OFFICIAL_VIDEOS, OFFICIAL_YOUTUBE } from '../data/media';
 import { computeDamage, formatNumber, formatPercent } from '../lib/damage';
@@ -28,7 +28,7 @@ const presetRows = RELEASED_CHARACTERS.map((c) => {
   const r = computeDamage({
     character: c,
     weapon,
-    artifacts: resolvePreset(c),
+    artifacts: NO_ARTIFACTS,
     buffs: DEFAULT_BUFFS,
     enemy,
     characterLevel: 90,
@@ -71,7 +71,7 @@ const ELEMENT_LABEL: Record<ElementType, string> = {
 };
 const title = 'Genshin Damage Calculator — Free & Accurate (Updated 7.0)';
 const description =
-  'Free Genshin Impact damage calculator for every character. Build a team, compare weapons and artifacts, and see exactly how much damage you deal.';
+  'Free Genshin Impact damage calculator for every character. Build a team, compare weapons, and see exactly how much damage each character deals with no artifacts.';
 
 const schema = [
   {
@@ -87,8 +87,8 @@ const schema = [
     author: { '@type': 'Person', name: 'Kai Ren', jobTitle: 'Independent developer', url: siteURL },
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     featureList: [
-      'Zero-input character presets with end-game reference panels',
-      'Weapon and artifact comparison',
+      'Zero-input character presets: level 90, best weapon, no artifacts',
+      'Weapon comparison',
       'Per-buff and elemental resonance damage breakdown',
       'Team buff simulation',
     ],
@@ -160,7 +160,7 @@ const schema = [
   <section id="calculator" class="page-shell scroll-mt-4 py-5 md:py-6">
     <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">The calculator</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">The calculator <span class="font-medium normal-case tracking-normal text-[var(--muted)]">· character + weapon, no artifacts</span></p>
         <h2 class="mt-1 text-lg font-semibold tracking-tight text-[var(--text)] sm:text-xl md:text-2xl">
           Pick 1–4 characters, calculate their damage
         </h2>
@@ -284,7 +284,7 @@ const schema = [
           </span>
           <h3 class="text-lg font-semibold text-[var(--text)]">Zero-input presets</h3>
         </div>
-        <p class="mt-3 text-[var(--muted)]">Every character loads with a proven end-game reference panel — best weapon, artifacts, and main stats — so you see a realistic number before typing anything.</p>
+        <p class="mt-3 text-[var(--muted)]">Every character loads at level 90 with their best weapon, so you see a number before touching anything. No artifacts are counted, so every character is measured on the same footing.</p>
       </div>
       <div class="panel p-6">
         <div class="flex items-center gap-3">
@@ -293,14 +293,14 @@ const schema = [
           </span>
           <h3 class="text-lg font-semibold text-[var(--text)]">Your numbers, your call</h3>
         </div>
-        <p class="mt-3 text-[var(--muted)]">Set each character’s level, weapon and artifact set yourself — every field is yours to change, and the damage updates as you pick.</p>
+        <p class="mt-3 text-[var(--muted)]">Set each character’s level and weapon yourself — every field is yours to change, and the damage updates as you pick.</p>
       </div>
       <div class="panel p-6">
         <div class="flex items-center gap-3">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-dendro/15 text-dendro">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l8 8M16 8l-8 8"/></svg>
           </span>
-          <h3 class="text-lg font-semibold text-[var(--text)]">Weapon &amp; artifact comparison</h3>
+          <h3 class="text-lg font-semibold text-[var(--text)]">Weapon comparison</h3>
         </div>
         <p class="mt-3 text-[var(--muted)]">Switch weapons and watch the percentage gain live. See whether that 5-star is actually an upgrade before you spend your pulls.</p>
       </div>
@@ -320,7 +320,7 @@ const schema = [
   <section id="presets" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
     <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Reference damage for every character</h2>
     <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-      Level 90, talent 10, best weapon and recommended artifact main stats, vs a level-90 enemy with 10% resistance, <strong>with no elemental reaction applied</strong> so every character is measured the same way. Each number uses the character’s highest-damage talent, named on the card. These are reference numbers for a graduated end-game build — set your own level, weapon and multiplier in the calculator above for your exact damage, and add reactions and team buffs there too.
+      Level 90, talent 10, best weapon, <strong>no artifacts</strong>, vs a level-90 enemy with 10% resistance, <strong>with no elemental reaction applied</strong> so every character is measured the same way. Each number uses the character’s highest-damage talent, named on the card. Artifacts add a large share on top of these in game, so treat them as a character’s own baseline — set a different level or weapon in the calculator above, and add reactions and team buffs there too.
     </p>
 
     {presetByElement.map((group) => (
@@ -434,8 +434,8 @@ const schema = [
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">04</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Change weapons, level &amp; artifacts</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Press Gear under a team slot to change that character's level, weapon or 4-piece artifact set and watch the number move in real time.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Change weapon &amp; level</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Press Gear under a team slot to change that character's level or weapon and watch the number move in real time.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">05</span>
