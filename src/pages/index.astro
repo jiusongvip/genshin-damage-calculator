@@ -1,11 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import DamageCalculator from '../components/DamageCalculator.tsx';
 import TeamCalculator from '../components/TeamCalculator.tsx';
-import { CHARACTERS } from '../data/characters';
+import AdRails from '../components/AdRails.astro';
+import { RELEASED_CHARACTERS } from '../data/characters';
 import { getWeapon } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
-import { DEFAULT_BUFFS, resolvePreset } from '../data/presets';
+import { DEFAULT_BUFFS, DEFAULT_BUFFERS, NO_ARTIFACTS } from '../data/presets';
 import { FAQS } from '../data/faqs';
 import { FEATURED_CHARACTERS, OFFICIAL_VIDEOS, OFFICIAL_YOUTUBE } from '../data/media';
 import { computeDamage, formatNumber, formatPercent } from '../lib/damage';
@@ -16,21 +16,41 @@ const version = '7.0';
 
 // Pre-compute each character’s preset damage so the numbers render in the
 // initial HTML (static fallback + crawlable content, no JS required).
+//
+// Every row is computed WITHOUT a reaction. The table used to hand Pyro a free
+// Vaporize and Cryo a free Melt while every other element got nothing, which
+// made the numbers incomparable — a Cryo support outranked Raiden Shogun purely
+// on a x1.5 nobody had chosen. Reactions are a team decision, so they belong in
+// the calculator, not in a per-character reference number.
 const enemy = ENEMIES[0];
-const presetRows = CHARACTERS.map((c) => {
+const presetRows = RELEASED_CHARACTERS.map((c) => {
   const weapon = getWeapon(c.bestWeapon)!;
   const r = computeDamage({
     character: c,
     weapon,
-    artifacts: resolvePreset(c),
+    artifacts: NO_ARTIFACTS,
     buffs: DEFAULT_BUFFS,
     enemy,
     characterLevel: 90,
-    amplified: c.element === 'pyro' ? 'vaporize' : c.element === 'cryo' ? 'melt' : 'none',
+    amplified: 'none',
     transformative: 'none',
   });
   return { character: c, weapon, expected: r.expected, critRate: r.critRate, critDMG: r.critDMG };
 });
+
+// Opening team: the strongest released carry by the numbers above, plus the
+// buffers the calculator actually models.
+//
+// A straight "top 4 by damage" reads well as a number but demonstrates nothing
+// — four solo carries share no element, so the Elemental resonance and "Damage
+// from buffs" panels both open on "None", which is the one thing a team
+// calculator should never show first. Deriving the carry keeps this honest as
+// the data changes; the buffers come from the site's own modelled-buff list.
+const rankedIds = [...presetRows].sort((a, b) => b.expected - a.expected).map((r) => r.character.id);
+const DEFAULT_TEAM_IDS = [
+  rankedIds[0],
+  ...DEFAULT_BUFFERS.filter((id) => id !== rankedIds[0] && RELEASED_CHARACTERS.some((c) => c.id === id)),
+].slice(0, 4);
 
 // Group presets by element for a crawlable, per-element directory.
 const ELEMENT_ORDER: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
@@ -51,7 +71,7 @@ const ELEMENT_LABEL: Record<ElementType, string> = {
 };
 const title = 'Genshin Damage Calculator — Free & Accurate (Updated 7.0)';
 const description =
-  'Free Genshin Impact damage calculator for every character. Compare weapons and artifacts, import your UID via Enka.network, and see your exact damage.';
+  'Free Genshin Impact damage calculator for every character. Build a team, compare weapons, and see exactly how much damage each character deals with no artifacts.';
 
 const schema = [
   {
@@ -67,10 +87,9 @@ const schema = [
     author: { '@type': 'Person', name: 'Kai Ren', jobTitle: 'Independent developer', url: siteURL },
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     featureList: [
-      'Zero-input character presets with end-game reference panels',
-      'UID import via Enka.network',
-      'Weapon and artifact comparison',
-      'Five-multiplier damage breakdown',
+      'Zero-input character presets: level 90, best weapon, no artifacts',
+      'Weapon comparison',
+      'Per-buff and elemental resonance damage breakdown',
       'Team buff simulation',
     ],
   },
@@ -78,8 +97,8 @@ const schema = [
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'Genshin Impact character damage reference panels',
-    numberOfItems: CHARACTERS.length,
-    itemListElement: CHARACTERS.map((c, i) => ({
+    numberOfItems: RELEASED_CHARACTERS.length,
+    itemListElement: RELEASED_CHARACTERS.map((c, i) => ({
       '@type': 'ListItem',
       position: i + 1,
       name: `${c.name} damage reference`,
@@ -117,39 +136,32 @@ const schema = [
 ---
 
 <BaseLayout title={title} description={description} schema={schema}>
+  <AdRails />
+
   <!-- ============ Hero ============ -->
-  <section id="top" class="relative overflow-hidden border-b border-[var(--line)]">
+  <!-- Title and four badges only: everything else moved out so the character
+       roster is visible on the first screen. -->
+  <section class="relative overflow-hidden border-b border-[var(--line)]">
     <div class="absolute inset-0 bg-linear-to-br from-forest-500/[0.08] via-transparent to-forest-200/[0.45]" aria-hidden="true"></div>
-    <div class="absolute inset-0" style="background: radial-gradient(1200px 600px at 80% -10%, rgb(69 106 75 / 0.07), transparent 60%), radial-gradient(900px 500px at 10% 30%, rgb(214 199 158 / 0.4), transparent 60%)" aria-hidden="true"></div>
-    <div class="pointer-events-none absolute inset-0 grid place-items-center" aria-hidden="true">
-      <p class="tnum select-none whitespace-nowrap text-center font-display font-semibold leading-none tracking-tight text-forest-700/[0.05] text-[clamp(2.5rem,9vw,9rem)]">
-        ATK × Talent × DMG × CRIT × Reaction × DEF × RES
-      </p>
-    </div>
-    <div class="page-shell-wide relative py-10 md:py-14">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Genshin Impact · Free damage calculator · Version {version}</p>
-      <h1 class="mt-3 text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">
+    <div class="page-shell relative py-5 text-center md:py-7">
+      <h1 class="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl md:text-3xl">
         Genshin Damage Calculator
       </h1>
-      <p class="mt-3 max-w-[60ch] text-lg leading-relaxed text-[var(--text)]/85">
-        Pick 1–4 characters, see their damage
-      </p>
-      <ul class="mt-6 flex flex-col items-start gap-2.5" aria-label="Calculator highlights">
-        <li class="rounded-full border border-forest-500/30 bg-white/70 px-5 py-2.5 text-base font-semibold text-forest-700 md:text-lg">Free</li>
-        <li class="rounded-full border border-forest-500/30 bg-white/70 px-5 py-2.5 text-base font-semibold text-forest-700 md:text-lg">No signup</li>
-        <li class="rounded-full border border-forest-500/30 bg-white/70 px-5 py-2.5 text-base font-semibold text-forest-700 md:text-lg">All {CHARACTERS.length} characters</li>
-        <li class="rounded-full bg-forest-600 px-5 py-2.5 text-base font-semibold text-white md:text-lg">Data snapshot v{version}</li>
+      <ul class="mt-3 flex flex-wrap items-center justify-center gap-2" aria-label="Calculator highlights">
+        <li class="rounded-full border border-forest-500/30 bg-white/70 px-3 py-1 text-xs font-semibold text-forest-700 md:text-sm">Free</li>
+        <li class="rounded-full border border-forest-500/30 bg-white/70 px-3 py-1 text-xs font-semibold text-forest-700 md:text-sm">No signup</li>
+        <li class="rounded-full border border-forest-500/30 bg-white/70 px-3 py-1 text-xs font-semibold text-forest-700 md:text-sm">All {RELEASED_CHARACTERS.length} characters</li>
+        <li class="rounded-full bg-forest-600 px-3 py-1 text-xs font-semibold text-white md:text-sm">Data snapshot v{version}</li>
       </ul>
     </div>
   </section>
 
   <!-- ============ Calculator ============ -->
-  <section id="calculator" class="page-shell-wide scroll-mt-20 py-8 md:py-10">
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">The calculator</p>
-      <a href="#guide" class="text-sm text-forest-600 underline decoration-forest-500/50 underline-offset-2">How to use it</a>
+  <section id="calculator" class="page-shell scroll-mt-4 py-5 md:py-6">
+    <div class="mb-3 flex justify-end">
+      <a href="#guide" class="hidden text-sm text-forest-600 underline decoration-forest-500/50 underline-offset-2 sm:inline">How to use it</a>
     </div>
-    <TeamCalculator client:load />
+    <TeamCalculator client:load defaultTeam={DEFAULT_TEAM_IDS} />
   </section>
 
   <!-- ============ Formula (compact) ============ -->
@@ -163,9 +175,6 @@ const schema = [
         </p>
       </div>
       <a href="/how-damage-is-calculated/" class="text-sm text-forest-600 underline decoration-forest-500/50 underline-offset-4 transition-colors hover:text-forest-700">Read the full breakdown &rarr;</a>
-    </div>
-    <div class="mt-8">
-      <DamageCalculator client:idle />
     </div>
   </section>
 
@@ -197,7 +206,7 @@ const schema = [
             />
             <div class="absolute inset-x-0 bottom-0 bg-linear-to-t from-[#FFFBE7]/95 via-[#FFFBE7]/55 to-transparent px-3 pb-2.5 pt-10">
               <p class="flex items-center gap-1.5 font-semibold text-[var(--text)]">
-                <img src={`/images/element-${c.element}.webp`} alt="" width="120" height="120" class="h-4 w-4 rounded-full object-cover ring-1 ring-white/80" loading="lazy" decoding="async" aria-hidden="true" />
+                <img src={`/images/element-${c.element}.webp`} alt="" width="120" height="120" class="h-4 w-4 rounded-full bg-white object-contain p-px shadow-sm ring-1 ring-black/5" loading="lazy" decoding="async" aria-hidden="true" />
                 {c.name}
               </p>
               <p class="text-xs text-[var(--muted)]">{c.role}</p>
@@ -269,23 +278,23 @@ const schema = [
           </span>
           <h3 class="text-lg font-semibold text-[var(--text)]">Zero-input presets</h3>
         </div>
-        <p class="mt-3 text-[var(--muted)]">Every character loads with a proven end-game reference panel — best weapon, artifacts, and main stats — so you see a realistic number before typing anything.</p>
+        <p class="mt-3 text-[var(--muted)]">Every character loads at level 90 with their best weapon, so you see a number before touching anything. No artifacts are counted, so every character is measured on the same footing.</p>
       </div>
       <div class="panel p-6">
         <div class="flex items-center gap-3">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-hydro/15 text-hydro">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3"/></svg>
           </span>
-          <h3 class="text-lg font-semibold text-[var(--text)]">UID import</h3>
+          <h3 class="text-lg font-semibold text-[var(--text)]">Your numbers, your call</h3>
         </div>
-        <p class="mt-3 text-[var(--muted)]">Paste your UID and pull your real showcased build through Enka.network — no login, no manual stat entry, no guessing.</p>
+        <p class="mt-3 text-[var(--muted)]">Set each character’s level and weapon yourself — every field is yours to change, and the damage updates as you pick.</p>
       </div>
       <div class="panel p-6">
         <div class="flex items-center gap-3">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-dendro/15 text-dendro">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l8 8M16 8l-8 8"/></svg>
           </span>
-          <h3 class="text-lg font-semibold text-[var(--text)]">Weapon &amp; artifact comparison</h3>
+          <h3 class="text-lg font-semibold text-[var(--text)]">Weapon comparison</h3>
         </div>
         <p class="mt-3 text-[var(--muted)]">Switch weapons and watch the percentage gain live. See whether that 5-star is actually an upgrade before you spend your pulls.</p>
       </div>
@@ -294,9 +303,9 @@ const schema = [
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-electro/15 text-electro">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
           </span>
-          <h3 class="text-lg font-semibold text-[var(--text)]">Five-multiplier breakdown</h3>
+          <h3 class="text-lg font-semibold text-[var(--text)]">Buff &amp; resonance breakdown</h3>
         </div>
-        <p class="mt-3 text-[var(--muted)]">See the ATK, DMG bonus, reaction, DEF and RES multipliers behind every number — so you understand <em>why</em> your damage is what it is, not just what it is.</p>
+        <p class="mt-3 text-[var(--muted)]">See how much Bennett, Kazuha’s VV shred and elemental resonance each add to the team — as a number and as a share of the total.</p>
       </div>
     </div>
   </section>
@@ -305,7 +314,7 @@ const schema = [
   <section id="presets" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
     <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Reference damage for every character</h2>
     <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-      Level 90, talent 10, best weapon and recommended artifact main stats, vs a level-90 enemy with 10% resistance. These are reference numbers for a graduated end-game build — import your UID above for your exact damage.
+      Level 90, talent 10, best weapon, <strong>no artifacts</strong>, vs a level-90 enemy with 10% resistance, <strong>with no elemental reaction applied</strong> so every character is measured the same way. Each number uses the character’s highest-damage talent, named on the card. Artifacts add a large share on top of these in game, so treat them as a character’s own baseline — set a different level or weapon in the calculator above, and add reactions and team buffs there too.
     </p>
 
     {presetByElement.map((group) => (
@@ -316,7 +325,7 @@ const schema = [
             alt={`${ELEMENT_LABEL[group.element]} element icon`}
             width="120"
             height="120"
-            class="h-9 w-9 shrink-0 rounded-lg object-cover ring-1 ring-[var(--line)]"
+            class="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-1 ring-1 ring-[var(--line)]"
             loading="lazy"
             decoding="async"
           />
@@ -339,13 +348,13 @@ const schema = [
                 <div class="min-w-0 flex-1">
                   <p class="truncate font-semibold text-[var(--text)]">{character.name}</p>
                   <p class="flex items-center gap-2 text-xs text-[var(--muted)]">
-                    <img src={`/images/element-${character.element}.webp`} alt="" width="120" height="120" class="h-4 w-4 rounded-full object-cover ring-1 ring-white/80" loading="lazy" decoding="async" aria-hidden="true" />
+                    <img src={`/images/element-${character.element}.webp`} alt="" width="120" height="120" class="h-4 w-4 rounded-full bg-white object-contain p-px shadow-sm ring-1 ring-black/5" loading="lazy" decoding="async" aria-hidden="true" />
                     {ELEMENT_LABEL[character.element]} · <span class="tracking-tight text-forest-600">{'★'.repeat(character.rarity)}</span>
                   </p>
                 </div>
               </div>
               <p class="tnum mt-4 text-2xl font-semibold tracking-tight text-forest-600">{formatNumber(expected)}</p>
-              <p class="text-xs text-[var(--muted)]">expected {character.element === 'pyro' ? 'Vaporize' : character.element === 'cryo' ? 'Melt' : 'raw'} damage</p>
+              <p class="text-xs text-[var(--muted)]">expected damage, no reaction</p>
               <p class="mt-2 text-xs leading-relaxed text-[var(--muted)]">{character.note}</p>
               <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--line)] pt-3 text-xs text-[var(--muted)]">
                 <span>CR {formatPercent(critRate)}</span>
@@ -419,18 +428,18 @@ const schema = [
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">04</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Edit weapons, level &amp; artifacts</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Open a member's Edit panel to change level, weapon or 4-piece artifact set and watch the number move in real time.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Change weapon &amp; level</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Press Gear under a team slot to change that character's level or weapon and watch the number move in real time.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">05</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Import your UID</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">For the most accurate result, paste your UID to pull your actual showcased build via Enka.network.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Remove with one click</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Click a portrait in the team bar, or a ticked card in the roster, to drop that character; Clear empties the team. A full team flashes 4/4 when you try to add a fifth.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">06</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Read the breakdown</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Use the DEF and RES multipliers to spot which factor is dragging your damage down.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Check the reference table</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Every character’s reference damage at a graduated build, measured the same way with no reaction, is listed further down the page.</p>
       </li>
     </ol>
   </section>
@@ -451,7 +460,6 @@ const schema = [
           <span class="shrink-0 text-[var(--text)]">Aug 12, 2026</span>
         </li>
         <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Five-multiplier damage engine (official formula)</span><span class="text-[var(--text)]">Current</span></li>
-        <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Enka.network UID import</span><span class="text-[var(--text)]">Live</span></li>
         <li class="flex justify-between gap-4"><span>New characters &amp; weapons</span><span class="text-[var(--text)]">Added each patch</span></li>
       </ul>
     </div>
@@ -466,8 +474,6 @@ const schema = [
         <a href="https://genshin-impact.fandom.com/wiki/Genshin_Impact_Wiki" target="_blank" rel="noopener" class="text-forest-600 underline underline-offset-4">Genshin Impact Wiki</a>;
         patch timing follows announcements on the
         <a href="https://www.youtube.com/@GenshinImpact" target="_blank" rel="noopener" class="text-forest-600 underline underline-offset-4">official Genshin Impact YouTube channel</a>.
-        UID imports read your public showcase via
-        <a href="https://enka.network" target="_blank" rel="noopener" class="text-forest-600 underline underline-offset-4">Enka.network</a>.
       </p>
       <blockquote class="mt-4 border-l-4 border-forest-500 pl-4">
         <p class="text-sm leading-relaxed text-[var(--muted)]">
@@ -494,7 +500,7 @@ const schema = [
         <div class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-[var(--muted)]">
           <a href="https://genshin-impact.fandom.com/wiki/Damage" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Official damage formula</a>
           <a href="https://keqingmains.com/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">KQM theorycrafting</a>
-          <a href="https://enka.network/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Enka.network data</a>
+          <a href="https://enka.network/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Enka.network character art</a>
           <a href="https://genshin.hoyoverse.com/" target="_blank" rel="noopener" class="underline decoration-[var(--line)] underline-offset-4 transition-colors hover:text-forest-600">Official game site</a>
         </div>
       </div>

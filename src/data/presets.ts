@@ -102,6 +102,26 @@ export const PRESETS: Record<string, ArtifactBuild> = {
   },
 };
 
+/**
+ * No artifacts at all — every main stat and sub stat at zero.
+ *
+ * The site currently shows bare numbers: character plus weapon only. Artifacts
+ * are a later feature, so every calculation passes this instead of a preset.
+ * PRESETS / resolvePreset below stay as the starting point for that feature.
+ */
+export const NO_ARTIFACTS: ArtifactBuild = {
+  sandsMain: { type: 'atk%', value: 0 },
+  gobletMain: { type: 'dmg%', value: 0 },
+  circletMain: { type: 'critRate', value: 0 },
+  subCritRate: 0,
+  subCritDMG: 0,
+  subATKPercent: 0,
+  subEM: 0,
+  subER: 0,
+  subHPPercent: 0,
+  subDEFPercent: 0,
+};
+
 /** Default team buff state (no external buffs). */
 export const DEFAULT_BUFFS: BuffState = {
   atkPercent: 0,
@@ -111,6 +131,8 @@ export const DEFAULT_BUFFS: BuffState = {
   defPercent: 0,
   flatDEF: 0,
   dmgBonus: 0,
+  baseDmgBonus: 0,
+  flatBaseDmg: 0,
   naDmgBonus: 0,
   caDmgBonus: 0,
   skillDmgBonus: 0,
@@ -128,6 +150,8 @@ export const DEFAULT_BUFFS: BuffState = {
 };
 
 /**
+ * NOT USED while the site shows bare (no-artifact) numbers — see NO_ARTIFACTS.
+ *
  * Resolve a preset build for any character. Exact per-character presets win;
  * otherwise infer a sensible end-game panel from the character's scaling hints
  * (base ATK, HP/DEF scaling notes, reaction keywords).
@@ -169,3 +193,22 @@ export const BUFF_PRESETS: { id: string; label: string; buffs: Partial<BuffState
   { id: 'noblesse', label: 'Noblesse 4pc', buffs: { atkPercent: 0.2 } },
   { id: 'ttds', label: 'Thrilling Tales', buffs: { atkPercent: 0.48 } },
 ];
+
+/**
+ * Characters whose team buff the calculator models. Picking one applies the
+ * matching entry from BUFF_PRESETS to the whole team.
+ *
+ * Lives here rather than in the calculator component because the home page
+ * also needs it, to seed a default team that actually demonstrates the buff
+ * breakdown instead of showing an empty panel.
+ */
+export const BUFF_BY_CHARACTER: Record<string, string> = {
+  bennett: 'bennett',
+  kazuha: 'kazuha',
+  zhongli: 'zhongli-shield',
+  xilonen: 'xilonen',
+  citlali: 'citlali',
+};
+
+/** Buffers in the order a default team should reach for them. */
+export const DEFAULT_BUFFERS = ['bennett', 'kazuha', 'xilonen', 'zhongli', 'citlali'];

@@ -71,7 +71,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'How can I increase my damage?',
-    a: 'In rough order of return: level your main talent to 9 or 10, level the character to 90 for reaction and DEF scaling, fix your Crit Ratio toward 1:2, run an Anemo unit with Viridescent Venerer, add Bennett or an equivalent buffer, and level your weapon to 90. Artifact sub-stat farming comes last because it has the worst return per resin \u2014 a talent level is a guaranteed 6-7% gain, while a good artifact roll is a lottery. This calculator\u2019s multiplier breakdown shows exactly which factor is dragging your number down.',
+    a: 'In rough order of return: level your main talent to 9 or 10, level the character to 90 for reaction and DEF scaling, fix your Crit Ratio toward 1:2, run an Anemo unit with Viridescent Venerer, add Bennett or an equivalent buffer, and level your weapon to 90. Artifact sub-stat farming comes last because it has the worst return per resin \u2014 a talent level is a guaranteed 6-7% gain, while a good artifact roll is a lottery. Swapping one weapon at a time in the calculator shows which change actually moves your number.',
   },
   {
     q: 'Which matters more, character level or talent level?',
@@ -80,10 +80,6 @@ export const FAQS: Faq[] = [
   {
     q: 'What is the best free-to-play weapon?',
     a: 'The Catch (from Inazuma fishing) is the best free polearm and competitive with 5-stars on Raiden Shogun and Xiangling. For bows, the craftable Prototype Crescent and Hamayumi are solid. In general, free weapons that provide a CRIT sub-stat or a strong, always-on passive (The Catch, Fleuve Cendre Ferryman, the craftable Sapwood Blade for Dendro supports) beat higher base-ATK weapons with useless passives. Use this calculator to check whether your free option is close to a 5-star before you spend pulls.',
-  },
-  {
-    q: 'Can I import my character with my UID?',
-    a: 'This calculator includes a UID import that pulls your showcased characters from the public Enka.network service \u2014 no login required. Only the characters you set on your in-game profile showcase are visible. If a character doesn\u2019t load, update your in-game showcase and wait a few minutes for Enka to refresh. Importing your real build is the most accurate way to get a true damage number, because it removes every manual-entry error.',
   },
   {
     q: 'How do elemental reaction multipliers work?',
@@ -107,7 +103,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Is EM or ATK% better for Hu Tao?',
-    a: 'For a Vaporize Hu Tao, Elemental Mastery is usually better until you have roughly 100-200 EM, because her low base ATK makes ATK% scale poorly while her HP conversion already covers attack. Past that point, Crit and HP% pull ahead of both. A common optimal sands is HP% or EM with EM sub-stats, depending on your weapon \u2014 if you run Dragon\u2019s Bane (which grants EM), an HP% sands is best; with Staff of Homa, an EM sands often wins. Enter your exact weapon and this calculator\u2019s multiplier breakdown will show which stat is currently limiting you.',
+    a: 'For a Vaporize Hu Tao, Elemental Mastery is usually better until you have roughly 100-200 EM, because her low base ATK makes ATK% scale poorly while her HP conversion already covers attack. Past that point, Crit and HP% pull ahead of both. A common optimal sands is HP% or EM with EM sub-stats, depending on your weapon \u2014 if you run Dragon\u2019s Bane (which grants EM), an HP% sands is best; with Staff of Homa, an EM sands often wins. Set your exact weapon in the calculator and compare the team total with each option.',
   },
   {
     q: 'What is the difference between DPS and single-hit damage?',
@@ -115,7 +111,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'What enemy should I test my damage against?',
-    a: 'The community standard is a level 90 enemy with 10% resistance \u2014 the "generic" benchmark \u2014 because it removes enemy-specific variance. Real bosses and the Spiral Abyss have higher effective HP and some have elevated resistances, so your in-abyss numbers will look smaller. If you want to compare builds fairly, always test against the same enemy at the same level; this calculator\u2019s enemy selector includes a generic level-90 target plus a few physical-resistant enemies for reality checks.',
+    a: 'The community standard is a level 90 enemy with 10% resistance \u2014 the "generic" benchmark \u2014 because it removes enemy-specific variance. Real bosses and the Spiral Abyss have higher effective HP and some have elevated resistances, so your in-abyss numbers will look smaller. If you want to compare builds fairly, always test against the same enemy at the same level; this calculator always tests against a generic level-90 target with 10% resistance, so results stay comparable.',
   },
   {
     q: 'Does weapon refinement matter for damage?',
@@ -127,11 +123,11 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Is this calculator affiliated with HoYoverse?',
-    a: 'No. This is an independent fan-made tool and is not affiliated with, endorsed by, or sponsored by HoYoverse, miHoYo, or Cognosphere. Genshin Impact and all related characters, weapons, and assets are the property of their respective owners. The tool is free, does not require an account, and never asks for your password \u2014 the UID import uses only the public Enka.network API, which reads your in-game showcase.',
+    a: 'No. This is an independent fan-made tool and is not affiliated with, endorsed by, or sponsored by HoYoverse, miHoYo, or Cognosphere. Genshin Impact and all related characters, weapons, and assets are the property of their respective owners. The tool is free, does not require an account, and never asks for your password. Everything you enter stays in your browser.',
   },
   {
     q: 'What is the best build for Raiden Shogun?',
-    a: 'Raiden Shogun wants the Emblem of Severed Fate 4-piece set, an Energy Recharge sands, an Electro DMG (or ATK%) goblet, and a Crit circlet. Her best weapon is Engulfing Lightning, with The Catch as the outstanding free alternative. Because her kit converts Energy Recharge into DMG bonus, aim for roughly 220-250% ER while keeping a 1:2 Crit ratio around 60/120 before buffs. Stat priority: ER (until enough to burst on cooldown) > Crit Rate/DMG > ATK%. Use this calculator\u2019s Raiden preset, then toggle Bennett, Kazuha and Sara to see the full hypercarry number.',
+    a: 'Raiden Shogun wants the Emblem of Severed Fate 4-piece set, an Energy Recharge sands, an Electro DMG (or ATK%) goblet, and a Crit circlet. Her best weapon is Engulfing Lightning, with The Catch as the outstanding free alternative. Because her kit converts Energy Recharge into DMG bonus, aim for roughly 220-250% ER while keeping a 1:2 Crit ratio around 60/120 before buffs. Stat priority: ER (until enough to burst on cooldown) > Crit Rate/DMG > ATK%. Put Raiden in the calculator alongside Bennett and Kazuha to see how much their buffs add to her number.',
   },
   {
     q: 'What is the best build for Hu Tao?',
@@ -151,7 +147,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'What is the best build for Mavuika?',
-    a: 'Mavuika, the Pyro Archon, builds Obsidian Codex 4-piece, an ATK% or EM sands, a Pyro DMG goblet, and a Crit circlet. A Thousand Blazing Suns is her signature claymore; Serpent Spine is an excellent 4-star alternative. She wants high ATK and Crit (a 70/160+ ratio) with some EM for her Vaporize and Melt nukes. Her Burst is one of the strongest single hits in the game, so the reference panel here uses her burst multiplier \u2014 toggle a Vaporize reaction and Bennett to see the full screenshot potential.',
+    a: 'Mavuika, the Pyro Archon, builds Obsidian Codex 4-piece, an ATK% or EM sands, a Pyro DMG goblet, and a Crit circlet. A Thousand Blazing Suns is her signature claymore; Serpent Spine is an excellent 4-star alternative. She wants high ATK and Crit (a 70/160+ ratio) with some EM for her Vaporize and Melt nukes. Her Burst is one of the strongest single hits in the game, so the reference panel here uses her burst multiplier \u2014 add a Hydro teammate for Vaporize and Bennett for the ATK buff to see the full screenshot potential.',
   },
   {
     q: 'What is the best build for Navia?',
@@ -179,7 +175,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Staff of Homa vs Engulfing Lightning \u2014 which is better?',
-    a: 'They serve different characters. Staff of Homa (CRIT DMG sub-stat, HP + ATK passive) is the universal polearm for Hu Tao, Zhongli, Xiangling and Xiao \u2014 it is the best all-round polearm in the game. Engulfing Lightning (Energy Recharge sub-stat) is tailor-made for Raiden Shogun and anyone who converts ER into damage. For Raiden specifically, Engulfing Lightning edges out Homa at equal refinement; for everyone else, Homa wins. Use this calculator\u2019s A/B comparison: pick a character, pin Homa as baseline, then switch to Engulfing Lightning to see the exact percentage difference on your build.',
+    a: 'They serve different characters. Staff of Homa (CRIT DMG sub-stat, HP + ATK passive) is the universal polearm for Hu Tao, Zhongli, Xiangling and Xiao \u2014 it is the best all-round polearm in the game. Engulfing Lightning (Energy Recharge sub-stat) is tailor-made for Raiden Shogun and anyone who converts ER into damage. For Raiden specifically, Engulfing Lightning edges out Homa at equal refinement; for everyone else, Homa wins. To check on your own team, add the character in the calculator, open Gear under their slot, and switch between Homa and Engulfing Lightning.',
   },
   {
     q: 'Is The Catch good for Raiden Shogun?',
@@ -243,6 +239,6 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Why do my in-game numbers differ from the calculator?',
-    a: 'The most common causes are: (1) enemy mismatch \u2014 testing against a different enemy level or resistance than you set here; (2) missing buffs \u2014 VV shred, Bennett, resonance and food are part of the \u201cscreenshot\u201d numbers you see online; (3) hidden rounding in the game; and (4) the calculator\u2019s reference panel using a talent-10, level-90 preset rather than your exact build. Import your UID for the closest match \u2014 that pulls your real panel through Enka.network. If the gap persists, double-check the reaction, enemy resistance and DEF shred settings.',
+    a: 'The most common causes are: (1) enemy mismatch \u2014 testing against a different enemy level or resistance than you set here; (2) missing buffs \u2014 VV shred, Bennett, resonance and food are part of the \u201cscreenshot\u201d numbers you see online; (3) hidden rounding in the game; and (4) the calculator\u2019s reference panel using a talent-10, level-90 preset rather than your exact build. The calculator counts character and weapon only, with no artifacts, so your in-game numbers will be higher; set your own level and weapon to match the rest. If the gap persists, double-check the reaction, enemy resistance and DEF shred settings.',
   },
 ];

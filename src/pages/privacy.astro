@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 const title = 'Privacy Policy — Genshin Damage Calculator';
 const description =
-  'How the Genshin Damage Calculator handles your data: no accounts, no stored UIDs, showcase imports via the public Enka.network API, and anonymous analytics.';
+  'How the Genshin Damage Calculator handles your data: no accounts, nothing you enter leaves your browser, and anonymous analytics.';
 ---
 
 <BaseLayout title={title} description={description}>
@@ -14,8 +14,8 @@ const description =
     </h1>
     <p class="mt-5 max-w-[65ch] text-lg leading-relaxed text-[var(--muted)]">
       Genshin Damage Calculator collects as little data as possible: there are no accounts, no passwords, and no
-      damage presets stored on our servers. This page explains the only three data flows that exist — analytics,
-      UID imports, and email.
+      damage presets stored on our servers. Everything you type into the calculator stays in your browser. This
+      page explains the only two data flows that exist — analytics and email.
     </p>
     <p class="mt-3 text-xs text-[var(--muted)]">Last updated: September 11, 2026</p>
 
@@ -23,18 +23,9 @@ const description =
     <ul class="mt-4 max-w-[65ch] list-disc space-y-2 pl-5 leading-relaxed text-[var(--muted)]">
       <li>No account or signup — the calculator works fully without identifying yourself.</li>
       <li>No passwords or HoYoverse credentials — we never ask for them.</li>
-      <li>No stored UIDs or builds — your in-game showcase data is not written to any database.</li>
+      <li>No stored builds — the values you enter are never sent anywhere or written to any database.</li>
       <li>No advertising or cross-site tracking cookies.</li>
     </ul>
-
-    <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">UID imports and Enka.network</h2>
-    <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
-      When you use the “import UID” feature, the UID you enter is sent from your browser directly to the public
-      <a href="https://enka.network" target="_blank" rel="noopener"
-      class="text-forest-600 underline underline-offset-4">Enka.network</a> API, which reads the showcase you have
-      made public in-game. The response is rendered in your browser only. We do not proxy, log, or store the UID or
-      the returned build. To limit what is shared, adjust your in-game showcase visibility settings before importing.
-    </p>
 
     <h2 class="mt-12 text-2xl font-semibold tracking-tight text-[var(--text)]">Anonymous analytics (Google Analytics 4)</h2>
     <p class="mt-4 max-w-[65ch] leading-relaxed text-[var(--muted)]">
