@@ -567,12 +567,10 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                     <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[pendingCharacter.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
                     <img src={`/images/portraits/${pendingCharacter.id}.webp`} alt="" width="256" height="256" className="absolute inset-0 h-full w-full object-cover" />
                   </span>
-                  <span className="min-w-0 leading-tight">
-                    <span className="block truncate text-xs font-semibold text-[var(--text)]">
-                      Swap {pendingCharacter.name} in — tap a slot
-                    </span>
-                    <span className="hidden text-[10px] text-[var(--muted)] sm:block">Team is full, so one member steps out.</span>
-                  </span>
+                  {/* Just the name: the pulsing ⇄ slots already say what to do,
+                      and screen readers get the full instruction from the
+                      live region and the slots' labels. */}
+                  <span className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">{pendingCharacter.name}</span>
                   <button
                     type="button"
                     onClick={() => setPendingSwap(null)}
