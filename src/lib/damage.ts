@@ -313,6 +313,9 @@ export function levelMultiplierFor(level: number): number {
 const BASE_CRIT_RATE = 0.05;
 const BASE_CRIT_DMG = 0.5;
 
+/** Hard cap on a single damage instance (damage doc, sections 1 and 10). */
+const DAMAGE_CAP = 20_000_000;
+
 interface StatBag {
   critRate: number;
   critDMG: number;
@@ -543,10 +546,13 @@ export function computeDamage(input: DamageInput): DamageResult {
   // BaseDmg = (stat × multiplier) × (1 + baseDmg%) + catalyze + flat additive.
   const baseDamage =
     baseStat * skillMultiplier * (1 + buffs.baseDmgBonus) + additive + buffs.flatBaseDmg;
-  const nonCrit =
-    baseDamage * dmgBonusMult * reactionMultiplier * defMultiplier * resMultiplier;
-  const critHit = nonCrit * (1 + critDMG);
-  const expected = nonCrit * (1 + critRate * critDMG);
+  const nonCritRaw = baseDamage * dmgBonusMult * reactionMultiplier * defMultiplier * resMultiplier;
+  const critHitRaw = nonCritRaw * (1 + critDMG);
+  const expectedRaw = nonCritRaw * (1 + critRate * critDMG);
+  // A single instance can never exceed the 20M damage cap.
+  const nonCrit = Math.min(nonCritRaw, DAMAGE_CAP);
+  const critHit = Math.min(critHitRaw, DAMAGE_CAP);
+  const expected = Math.min(expectedRaw, DAMAGE_CAP);
 
   // ---- Transformative reaction ----
   let transformative = 0;

@@ -10,12 +10,30 @@ import { getWeapon, weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, BUFF_PRESETS, BUFF_BY_CHARACTER, NO_ARTIFACTS } from '../data/presets';
 import { addBuffs, computeDamage, formatNumber } from '../lib/damage';
-import type { AdditiveReaction, AmplifiedReaction, BuffState, CharacterData, ElementType, TransformativeReaction } from '../lib/damage';
+import type { AdditiveReaction, AmplifiedReaction, BuffState, CharacterData, ElementType, SecondaryStatType, TransformativeReaction } from '../lib/damage';
 import { ELEMENT_LABEL } from '../data/elements';
 import { signatureTalent } from '../data/talents';
 
 const ELEMENTS: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
 const WEAPON_TYPES = ['sword', 'claymore', 'polearm', 'bow', 'catalyst'] as const;
+
+const SECONDARY_LABEL: Record<SecondaryStatType, string> = {
+  'atk%': 'ATK',
+  'hp%': 'HP',
+  'def%': 'DEF',
+  critRate: 'CRIT Rate',
+  critDMG: 'CRIT DMG',
+  em: 'Elemental Mastery',
+  er: 'Energy Recharge',
+  physical: 'Physical DMG',
+  'dmg%': 'DMG Bonus',
+};
+
+/** "CRIT DMG 66.2%" / "Elemental Mastery 221" for a weapon's secondary stat. */
+function formatSecondary(type: SecondaryStatType, value: number): string {
+  const label = SECONDARY_LABEL[type];
+  return type === 'em' ? `${Math.round(value)} ${label}` : `${(value * 100).toFixed(1)}% ${label}`;
+}
 
 // Element-tinted tile backgrounds (the transparent avatar sits on top).
 const ELEMENT_BG: Record<string, string> = {
@@ -40,21 +58,6 @@ const RESONANCE: Record<string, { name: string; effect: string; buffs: Partial<B
   geo: { name: 'Enduring Rock', effect: '+15% Shield Strength; +15% DMG while shielded', buffs: {} },
   anemo: { name: 'Impetuous Winds', effect: '−15% Stamina cost, +10% movement SPD, −5% Skill CD', buffs: {} },
 };
-
-// Reactions a team's element mix makes possible.
-const REACTIONS: { name: string; needs: ElementType[]; extra?: ElementType[] }[] = [
-  { name: 'Vaporize', needs: ['pyro', 'hydro'] },
-  { name: 'Melt', needs: ['pyro', 'cryo'] },
-  { name: 'Overload', needs: ['pyro', 'electro'] },
-  { name: 'Superconduct', needs: ['electro', 'cryo'] },
-  { name: 'Electro-Charged', needs: ['hydro', 'electro'] },
-  { name: 'Frozen', needs: ['hydro', 'cryo'] },
-  { name: 'Burning', needs: ['dendro', 'pyro'] },
-  { name: 'Bloom', needs: ['dendro', 'hydro'] },
-  { name: 'Quicken · Aggravate / Spread', needs: ['dendro', 'electro'] },
-  { name: 'Swirl', needs: ['anemo'], extra: ['pyro', 'hydro', 'electro', 'cryo'] },
-  { name: 'Crystallize', needs: ['geo'], extra: ['pyro', 'hydro', 'electro', 'cryo'] },
-];
 
 const ROTATION_SECONDS = 20;
 
@@ -92,6 +95,7 @@ function reactionFor(element: ElementType, team: Set<ElementType>): ReactionPick
 
   if (element === 'pyro') {
     if (has('cryo')) return amp('melt'); // Pyro on Cryo → 2.0
+    if (has('dendro') && has('hydro')) return tr('burgeon'); // Pyro detonates a Bloom core
     if (has('hydro')) return amp('vaporize'); // Pyro on Hydro → 1.5
     if (has('electro')) return tr('overload');
     if (has('dendro')) return tr('burning');
@@ -142,6 +146,15 @@ function describeBuffs(buffs: Partial<BuffState>): string {
   if (buffs.resShred) parts.push(`${pct(-buffs.resShred)} enemy RES`);
   if (buffs.defShred) parts.push(`${pct(-buffs.defShred)} enemy DEF`);
   return parts.join(' · ');
+}
+
+/** Resolve a buff-source id to the avatar to show: a character portrait or an element logo. */
+function sourceAvatar(
+  id: string,
+): { kind: 'char'; charId: string } | { kind: 'element'; element: ElementType } | null {
+  if (id.startsWith('char-')) return { kind: 'char', charId: id.slice(5) };
+  if (id.startsWith('res-')) return { kind: 'element', element: id.slice(4) as ElementType };
+  return null;
 }
 
 /** The element logo that replaces the old coloured dot everywhere. */
@@ -330,11 +343,7 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     const resonances: ElementType[] = (Object.keys(RESONANCE) as ElementType[]).filter(
       (el) => (counts[el] ?? 0) >= 2,
     );
-    const set = new Set(teamElements);
-    const reactions = REACTIONS.filter(
-      (r) => r.needs.every((n) => set.has(n)) && (!r.extra || r.extra.some((n) => set.has(n))),
-    );
-    return { resonances, reactions };
+    return { resonances };
   }, [selected]);
 
   /** Every buff source that is currently active (auto-detected characters + resonance). */
@@ -417,6 +426,9 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
     // eslint-disable-next-line react-hooks/exhaustive-deps -- computeRows is derived from these
     [buffSources, selected, configs, total],
   );
+
+  /** Only the elemental-resonance sources belong in the synergy module. */
+  const resonanceBreakdown = breakdown.filter((b) => b.id.startsWith('res-'));
 
   const animatedTotal = useCountUp(total);
   const animatedDps = useCountUp(dps);
@@ -876,83 +888,75 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
         </div>
       </div>
 
-      {/* ============ Team synergy + buff breakdown ============ */}
+      {/* ============ Team synergy (hero style, compact) ============ */}
       {selected.length > 0 && (
-        <div className="mt-8 grid grid-cols-1 gap-5">
-          <div className="panel p-5">
-            <h2 className="text-sm font-semibold text-[var(--text)]">Team synergy</h2>
-
-            <div className="mt-3">
-              <p className="text-xs font-medium text-[var(--muted)]">Elemental resonance</p>
+        <section className="relative mt-6 overflow-hidden rounded-2xl border border-[var(--line)]">
+          <div className="absolute inset-0 bg-linear-to-br from-forest-500/[0.08] via-transparent to-forest-200/[0.45]" aria-hidden="true"></div>
+          <div className="relative px-5 py-6 text-center md:px-8 md:py-7">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-forest-600">Team synergy</p>
+            <h2 className="mt-1.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-2xl font-semibold tracking-tight text-[var(--text)] md:text-3xl">
               {synergy.resonances.length > 0 ? (
-                <ul className="mt-1.5 space-y-1">
-                  {synergy.resonances.map((el) => (
-                    <li key={el} className="flex flex-wrap items-center gap-2 text-xs text-[var(--text)]">
-                      <ElementIcon el={el} className="h-4 w-4" />
-                      <span className="font-medium">{RESONANCE[el].name}</span>
-                      <span className="text-[var(--muted)]">{RESONANCE[el].effect}</span>
-                    </li>
-                  ))}
-                </ul>
+                synergy.resonances.map((el) => (
+                  <span key={el} className="inline-flex items-center gap-2" title={RESONANCE[el].effect}>
+                    <ElementIcon el={el} className="h-7 w-7" />
+                    {RESONANCE[el].name}
+                  </span>
+                ))
               ) : (
-                <p className="mt-1 text-xs text-[var(--muted)]">None — two of the same element unlocks a resonance.</p>
+                <span className="text-[var(--muted)]">No resonance yet</span>
               )}
-            </div>
+            </h2>
 
-            <div className="mt-3">
-              <p className="text-xs font-medium text-[var(--muted)]">Reactions available</p>
-              {synergy.reactions.length > 0 ? (
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {synergy.reactions.map((r) => (
-                    <span key={r.name} className="rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-2.5 py-0.5 text-[11px] text-[var(--text)]">
-                      {r.name}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-1 text-xs text-[var(--muted)]">No reactions — try mixing two different elements.</p>
-              )}
-            </div>
-
-            <div className="mt-4 border-t border-[var(--line)] pt-4">
-              <p className="text-xs font-medium text-[var(--muted)]">Damage from buffs &amp; resonance</p>
-              {breakdown.length > 0 ? (
-                <ul className="mt-2 space-y-1.5">
-                  {breakdown.map((b) => {
-                    const damage = Math.max(0, b.delta);
-                    const noDamage = damage < 0.5;
-                    return (
-                      <li key={b.id} className="flex items-center justify-between gap-3 text-xs">
-                        <span className="min-w-0">
-                          <span className="font-medium text-[var(--text)]">{b.label}</span>
-                          <span className="ml-1.5 text-[var(--muted)]">{b.effect}</span>
-                        </span>
-                        {noDamage ? (
-                          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
-                            No damage effect
+            {resonanceBreakdown.length > 0 ? (
+              <div className="mt-5 flex flex-wrap justify-center gap-2.5 border-t border-[var(--line)] pt-5">
+                {resonanceBreakdown.map((b) => {
+                  const av = sourceAvatar(b.id);
+                  const hasDamage = Math.max(0, b.delta) >= 0.5;
+                  return (
+                    <div
+                      key={b.id}
+                      className="flex items-center gap-2.5 rounded-xl border border-[var(--line)] bg-white/70 px-3 py-2"
+                    >
+                      {av?.kind === 'char' ? (
+                        <img
+                          src={`/images/portraits/${av.charId}.webp`}
+                          alt=""
+                          width="128"
+                          height="128"
+                          className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-[var(--line)]"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : av?.kind === 'element' ? (
+                        <ElementIcon el={av.element} className="h-9 w-9 shrink-0" />
+                      ) : null}
+                      <span className="text-left">
+                        {av?.kind !== 'element' && (
+                          <span className="block text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
+                            {b.label}
                           </span>
-                        ) : (
-                          <span className="tnum shrink-0 font-semibold text-forest-600">
-                            +{formatNumber(damage)}
-                            <span className="ml-1 text-[10px] font-normal text-[var(--muted)]">
-                              ({total > 0 ? `${Math.round((damage / total) * 100)}%` : '0%'})
+                        )}
+                        <span className="block text-[11px] font-medium leading-tight text-forest-700">{b.effect}</span>
+                        {hasDamage && (
+                          <span className="tnum">
+                            <span className="damage-number-sm text-xl">+{formatNumber(b.delta)}</span>
+                            <span className="ml-1 text-[10px] font-semibold text-forest-600">
+                              {total > 0 ? `${Math.round((Math.max(0, b.delta) / total) * 100)}%` : '0%'}
                             </span>
                           </span>
                         )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="mt-1 text-xs text-[var(--text)]">None — add Bennett, Kazuha, Zhongli, Xilonen, Citlali, or two of one element.</p>
-              )}
-              <p className="mt-3 text-[11px] leading-relaxed text-[var(--muted)]">
-                The team total already includes every buff listed above. Anemo and Electro resonance give no direct
-                damage, so they are listed as informational only.
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-5 border-t border-[var(--line)] pt-5 text-xs text-[var(--muted)]">
+                Line up two of the same element to unlock a resonance.
               </p>
-            </div>
+            )}
           </div>
-        </div>
+        </section>
       )}
 
       {/* ============ Level / weapon dialog ============ */}
@@ -1004,20 +1008,45 @@ export default function TeamCalculator({ defaultTeam }: { defaultTeam?: string[]
                   className="w-24 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-right text-[var(--text)]"
                 />
               </label>
-              <label className="block text-sm">
+              <div className="text-sm">
                 <span className="font-medium text-[var(--muted)]">Weapon</span>
-                <select
-                  value={gearConfig.weaponId}
-                  onChange={(e) => updateConfig(gearCharacter, { weaponId: e.target.value })}
-                  className="mt-1.5 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[var(--text)]"
-                >
-                  {weaponsForType(gearCharacter.weaponType).map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <div className="mt-1.5 max-h-72 overflow-y-auto rounded-lg border border-[var(--line)] bg-[var(--surface)]">
+                  {weaponsForType(gearCharacter.weaponType).map((w) => {
+                    const active = w.id === gearConfig.weaponId;
+                    return (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => updateConfig(gearCharacter, { weaponId: w.id })}
+                        aria-pressed={active}
+                        className={`flex w-full items-center gap-3 px-3 py-2 text-left transition-colors ${
+                          active ? 'bg-forest-500/12' : 'hover:bg-[var(--soft)]'
+                        }`}
+                      >
+                        <img
+                          src={`/images/weapons/${w.id}.webp`}
+                          alt=""
+                          width="64"
+                          height="64"
+                          className="h-10 w-10 shrink-0 rounded-md object-contain"
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            e.currentTarget.style.visibility = 'hidden';
+                          }}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-[var(--text)]">{w.name}</span>
+                          <span className="block text-[10px] text-[var(--muted)]">
+                            {w.rarity}★ · {formatSecondary(w.secondary.type, w.secondary.value)}
+                          </span>
+                        </span>
+                        {active && <span className="shrink-0 text-forest-600" aria-hidden="true">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 flex justify-end">
