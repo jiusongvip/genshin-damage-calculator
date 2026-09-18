@@ -75,9 +75,10 @@ export interface CharacterData {
   note: string;
   /**
    * Not in the live game yet, so the stats and multipliers are unverified.
-   * These are kept out of the reference-damage table and the default team, and
-   * badged wherever they are shown, so an unreleased guess never reads as a
-   * measured number.
+   * Flagged characters are kept off the site entirely (see RELEASED_CHARACTERS)
+   * so an unreleased guess never reads as a measured number. Check the flag
+   * against a release list when adding one — it goes stale the day the
+   * character ships.
    */
   unreleased?: true;
 }
