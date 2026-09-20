@@ -1,11 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import TeamCalculator from '../components/TeamCalculator.tsx';
+import SingleCalculator from '../components/SingleCalculator.tsx';
 import AdRails from '../components/AdRails.astro';
 import { RELEASED_CHARACTERS } from '../data/characters';
 import { getWeapon } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
-import { DEFAULT_BUFFS, DEFAULT_BUFFERS, NO_ARTIFACTS } from '../data/presets';
+import { DEFAULT_BUFFS, NO_ARTIFACTS } from '../data/presets';
 import { FAQS } from '../data/faqs';
 import { FEATURED_CHARACTERS, OFFICIAL_VIDEOS, OFFICIAL_YOUTUBE } from '../data/media';
 import { computeDamage, formatNumber, formatPercent } from '../lib/damage';
@@ -38,20 +38,6 @@ const presetRows = RELEASED_CHARACTERS.map((c) => {
   return { character: c, weapon, expected: r.expected, critRate: r.critRate, critDMG: r.critDMG };
 });
 
-// Opening team: the strongest released carry by the numbers above, plus the
-// buffers the calculator actually models.
-//
-// A straight "top 4 by damage" reads well as a number but demonstrates nothing
-// — four solo carries share no element, so the Elemental resonance and "Damage
-// from buffs" panels both open on "None", which is the one thing a team
-// calculator should never show first. Deriving the carry keeps this honest as
-// the data changes; the buffers come from the site's own modelled-buff list.
-const rankedIds = [...presetRows].sort((a, b) => b.expected - a.expected).map((r) => r.character.id);
-const DEFAULT_TEAM_IDS = [
-  rankedIds[0],
-  ...DEFAULT_BUFFERS.filter((id) => id !== rankedIds[0] && RELEASED_CHARACTERS.some((c) => c.id === id)),
-].slice(0, 4);
-
 // Group presets by element for a crawlable, per-element directory.
 const ELEMENT_ORDER: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
 const presetByElement = ELEMENT_ORDER.map((el) => ({
@@ -71,7 +57,7 @@ const ELEMENT_LABEL: Record<ElementType, string> = {
 };
 const title = 'Genshin Damage Calculator — Free & Accurate (Updated 7.0)';
 const description =
-  'Free Genshin Impact damage calculator for every character. Build a team, compare weapons, and see exactly how much damage each character deals with no artifacts.';
+  'Free Genshin Impact damage calculator for every character. Edit the six damage multipliers — base, DMG bonus, CRIT, reaction, DEF and RES — and see exactly how each one changes the final number. Character + weapon, no artifacts.';
 
 const schema = [
   {
@@ -88,9 +74,9 @@ const schema = [
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     featureList: [
       'Zero-input character presets: level 90, best weapon, no artifacts',
-      'Weapon comparison',
-      'Per-buff and elemental resonance damage breakdown',
-      'Team buff simulation',
+      'Six damage multipliers, each independently editable',
+      'Live formula chain and per-zone contribution breakdown',
+      'Shareable URL state',
     ],
   },
   {
@@ -161,7 +147,7 @@ const schema = [
     <div class="mb-3 flex justify-end">
       <a href="#guide" class="hidden text-sm text-forest-600 underline decoration-forest-500/50 underline-offset-2 sm:inline">How to use it</a>
     </div>
-    <TeamCalculator client:load defaultTeam={DEFAULT_TEAM_IDS} />
+    <SingleCalculator client:load />
   </section>
 
   <!-- ============ Formula (compact) ============ -->
@@ -303,9 +289,9 @@ const schema = [
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-electro/15 text-electro">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
           </span>
-          <h3 class="text-lg font-semibold text-[var(--text)]">Buff &amp; resonance breakdown</h3>
+          <h3 class="text-lg font-semibold text-[var(--text)]">Six multipliers, in the open</h3>
         </div>
-        <p class="mt-3 text-[var(--muted)]">See how much Bennett, Kazuha’s VV shred and elemental resonance each add to the team — as a number and as a share of the total.</p>
+        <p class="mt-3 text-[var(--muted)]">Base × DMG bonus × CRIT × reaction × DEF × RES — every multiplier is its own editable zone, with the full formula chain and each zone’s contribution to the result.</p>
       </div>
     </div>
   </section>
@@ -314,7 +300,7 @@ const schema = [
   <section id="presets" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
     <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Reference damage for every character</h2>
     <p class="mt-3 max-w-[65ch] text-[var(--muted)]">
-      Level 90, talent 10, best weapon, <strong>no artifacts</strong>, vs a level-90 enemy with 10% resistance, <strong>with no elemental reaction applied</strong> so every character is measured the same way. Each number uses the character’s highest-damage talent, named on the card. Artifacts add a large share on top of these in game, so treat them as a character’s own baseline — set a different level or weapon in the calculator above, and add reactions and team buffs there too.
+      Level 90, talent 10, best weapon, <strong>no artifacts</strong>, vs a level-90 enemy with 10% resistance, <strong>with no elemental reaction applied</strong> so every character is measured the same way. Each number uses the character’s highest-damage talent, named on the card. Artifacts add a large share on top of these in game, so treat them as a character’s own baseline — set a different level or weapon in the calculator above, and add reactions and buffs there too.
     </p>
 
     {presetByElement.map((group) => (
@@ -413,33 +399,33 @@ const schema = [
     <ol class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">01</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Pick 1–4 characters</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Search or filter the full roster and click a portrait — it flies into your team bar. Teams cap at four characters, exactly like the game.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Pick a character</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Open the roster and search or filter by element. The character loads at level 90 with their best weapon, no artifacts.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">02</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Damage updates live</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">There is no Calculate button. The team total recalculates the moment you add, swap or remove a character, and stays pinned to the top as you scroll.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">The six multipliers</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Base, DMG bonus, CRIT, reaction, enemy DEF and enemy RES — the damage formula laid out as six editable zones.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">03</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">See what every buff is worth</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Bennett, Kazuha, Zhongli and elemental resonance are applied automatically — the panel shows how much damage each one actually adds.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Damage updates live</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">There is no Calculate button. The result, the formula chain and every zone’s contribution update as you type.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">04</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Change weapon &amp; level</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Press Gear under a team slot to change that character's level or weapon and watch the number move in real time.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Change one thing</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Edit a single field and watch its multiplier — and the final number — move. That is the answer to “what is this stat worth?”.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">05</span>
-        <h3 class="mt-2 font-semibold text-[var(--text)]">Remove with one click</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Click a portrait in the team bar, or a ticked card in the roster, to drop that character; Clear empties the team. A full team flashes 4/4 when you try to add a fifth.</p>
+        <h3 class="mt-2 font-semibold text-[var(--text)]">Share the exact setup</h3>
+        <p class="mt-2 text-sm text-[var(--muted)]">Only the fields you changed are written to the URL — copy the link and the whole setup restores on a new page.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">06</span>
         <h3 class="mt-2 font-semibold text-[var(--text)]">Check the reference table</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Every character’s reference damage at a graduated build, measured the same way with no reaction, is listed further down the page.</p>
+        <p class="mt-2 text-sm text-[var(--muted)]">Every character’s whiteboard number, measured the same way with no reaction, is listed further down the page.</p>
       </li>
     </ol>
   </section>
@@ -459,7 +445,7 @@ const schema = [
           <span>Version 7.0 data snapshot — Snezhnaya patch (new characters, weapons &amp; artifact sets)</span>
           <span class="shrink-0 text-[var(--text)]">Aug 12, 2026</span>
         </li>
-        <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Five-multiplier damage engine (official formula)</span><span class="text-[var(--text)]">Current</span></li>
+        <li class="flex justify-between gap-4 border-b border-[var(--line)] pb-3"><span>Six-multiplier damage engine (official formula)</span><span class="text-[var(--text)]">Current</span></li>
         <li class="flex justify-between gap-4"><span>New characters &amp; weapons</span><span class="text-[var(--text)]">Added each patch</span></li>
       </ul>
     </div>
