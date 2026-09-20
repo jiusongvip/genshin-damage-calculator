@@ -138,12 +138,12 @@ button:disabled {
    content simply uses the screen. The ad-rail offsets further down derive from
    this same expression; change them together. */
 .page-shell {
-  width: min(100% - 2rem, 1040px);
+  width: min(100% - 2rem, 1280px);
   margin-inline: auto;
 }
 @media (min-width: 1280px) {
   .page-shell {
-    width: min(100% - 400px, 1040px);
+    width: min(100% - 400px, 1280px);
   }
 }
 
@@ -333,10 +333,10 @@ details.accordion summary::-webkit-details-marker {
     width: 160px;
   }
   .ad-rail--left {
-    left: calc((100% - min(100% - 400px, 1040px)) / 2 - 184px);
+    left: calc((100% - min(100% - 400px, 1280px)) / 2 - 184px);
   }
   .ad-rail--right {
-    right: calc((100% - min(100% - 400px, 1040px)) / 2 - 184px);
+    right: calc((100% - min(100% - 400px, 1280px)) / 2 - 184px);
   }
 }
 .ad-slot {

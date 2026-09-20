@@ -41,6 +41,9 @@ export type SecondaryStatType =
   | 'atk%'
   | 'hp%'
   | 'def%'
+  | 'flatATK'
+  | 'flatHP'
+  | 'flatDEF'
   | 'critRate'
   | 'critDMG'
   | 'em'
@@ -93,18 +96,25 @@ export interface WeaponData {
   secondary: { type: SecondaryStatType; value: number };
 }
 
-/** A full set of main stats + a reasonable roll of sub stats (for presets). */
+/** One sub-stat roll group on an artifact piece (value already totalled). */
+export interface ArtifactSub {
+  type: SecondaryStatType;
+  value: number;
+}
+
+/** A full set of main stats + sub stats (for presets / the calculator). */
 export interface ArtifactBuild {
   sandsMain: { type: SecondaryStatType; value: number };
   gobletMain: { type: SecondaryStatType; value: number };
   circletMain: { type: SecondaryStatType; value: number };
-  subCritRate: number;
-  subCritDMG: number;
-  subATKPercent: number;
-  subEM: number;
-  subER: number;
-  subHPPercent: number;
-  subDEFPercent?: number;
+  /** Flower main stat — always flat HP (+4780 at 5★ +20). */
+  flowerHP?: number;
+  /** Plume main stat — always flat ATK (+311 at 5★ +20). */
+  plumeATK?: number;
+  /** Which set each piece belongs to ('' = off-piece). Drives 2pc/4pc bonuses. */
+  sets?: { flower: string; plume: string; sands: string; goblet: string; circlet: string };
+  /** Sub-stats for each of the five pieces (flower, plume, sands, goblet, circlet). */
+  pieceSubs?: (ArtifactSub | undefined)[][];
 }
 
 export interface BuffState {
@@ -131,6 +141,20 @@ export interface BuffState {
   critRate: number;
   critDMG: number;
   em: number;
+  /** Energy Recharge (flat fraction added to the 100% base). */
+  er: number;
+  /** Flat ATK gained per point of Max HP (Staff of Homa 0.008, Jade Cutter 0.012). */
+  atkFromHP: number;
+  /** Flat ATK gained per point of Elemental Mastery (Staff of the Scarlet Sands 0.52). */
+  atkFromEM: number;
+  /** ATK% gained per 1.0 of Energy Recharge above the base 100% (Engulfing Lightning). */
+  atkFromER: number;
+  /** Cap on the ATK% gained from Energy Recharge; 0 means uncapped. */
+  atkFromERMax: number;
+  /** DMG bonus gained per 1,000 Max HP (Jadefall's Splendor 0.003). */
+  dmgBonusFromHP: number;
+  /** Cap on the DMG bonus gained from Max HP; 0 means uncapped. */
+  dmgBonusFromHPMax: number;
   /** Enemy DEF reduction (capped at 90%). */
   defShred: number;
   /** Enemy DEF ignore (multiplicative with reduction). */
@@ -143,6 +167,14 @@ export interface BuffState {
   ampReactionBonus: number;
   /** Extra bonus that applies only to transformative / additive reactions. */
   transformReactionBonus: number;
+  /**
+   * Per-reaction DMG bonus, keyed by the reaction the hit triggers. Artifact
+   * sets and weapons that boost one reaction (Crimson Witch's +40% to
+   * Overloaded/Burning/Burgeon, Thundering Fury's +40% to Electro-Charged…)
+   * feed this instead of the generic buckets above, so a bonus never leaks
+   * onto a reaction it does not belong to.
+   */
+  reactionDmg: Partial<Record<ReactionKey, number>>;
   /** Target's damage reduction, subtracted from your DMG bonus. */
   dmgReduction: number;
 }
@@ -155,13 +187,21 @@ export interface BuffState {
  * on the order the sources were listed in.
  */
 export function addBuffs(base: BuffState, ...patches: Partial<BuffState>[]): BuffState {
-  const merged: BuffState = { ...base };
+  const merged = { ...base } as Record<string, unknown>;
   for (const patch of patches) {
-    for (const key of Object.keys(patch) as (keyof BuffState)[]) {
-      merged[key] = (merged[key] ?? 0) + (patch[key] ?? 0);
+    const src = patch as Record<string, unknown>;
+    for (const key of Object.keys(src)) {
+      if (key === 'reactionDmg') {
+        const next = { ...((merged.reactionDmg as Record<string, number>) ?? {}) };
+        const incoming = (src.reactionDmg as Record<string, number>) ?? {};
+        for (const rk of Object.keys(incoming)) next[rk] = (next[rk] ?? 0) + (incoming[rk] ?? 0);
+        merged.reactionDmg = next;
+        continue;
+      }
+      merged[key] = ((merged[key] as number) ?? 0) + ((src[key] as number) ?? 0);
     }
   }
-  return merged;
+  return merged as unknown as BuffState;
 }
 
 export interface EnemyData {
@@ -188,6 +228,12 @@ export type TransformativeReaction =
 
 export type AdditiveReaction = 'none' | 'aggravate' | 'spread';
 
+/** Any reaction that can carry its own DMG bonus. */
+export type ReactionKey =
+  | Exclude<AmplifiedReaction, 'none'>
+  | Exclude<TransformativeReaction, 'none'>
+  | Exclude<AdditiveReaction, 'none'>;
+
 export interface DamageInput {
   character: CharacterData;
   weapon: WeaponData;
@@ -208,11 +254,17 @@ export interface DamageInput {
   skillMultiplier?: number;
   /** Which attack the hit represents — drives attack-type DMG bonuses. */
   attackType?: TalentKey;
+  /** Element this hit deals. Defaults to the character's element. */
+  element?: ElementType;
+  /** Scaling stat for this hit. Defaults to the character's scaling. */
+  scaling?: ScalingStat;
 }
 
 export interface DamageResult {
   /** The stat the signature skill scales off. */
   scaling: ScalingStat;
+  /** Element this hit deals (may differ from the character's on a per-hit basis). */
+  element: ElementType;
   /** Value of the scaling stat (total ATK / DEF / HP / EM). */
   baseStat: number;
   /** Talent multiplier actually used for this hit. */
@@ -221,6 +273,10 @@ export interface DamageResult {
   skillLabel: string;
   totalATK: number;
   baseATK: number;
+  /** Character base HP at the active level (no weapon/artifacts). */
+  baseHP: number;
+  /** Character base DEF at the active level (no weapon/artifacts). */
+  baseDEF: number;
   totalHP: number;
   totalDEF: number;
   critRate: number;
@@ -231,6 +287,8 @@ export interface DamageResult {
   /** Base DMG multiplier applied (baseDmg%). */
   baseDmgBonus: number;
   em: number;
+  /** Energy Recharge bonus above the base 100%. */
+  er: number;
   defMultiplier: number;
   resMultiplier: number;
   reactionMultiplier: number;
@@ -325,6 +383,9 @@ interface StatBag {
   defPercent: number;
   em: number;
   er: number;
+  flatATK: number;
+  flatHP: number;
+  flatDEF: number;
 }
 
 /** Split a secondary-stat / ascension-stat into a flat stat bag. */
@@ -338,6 +399,9 @@ function statBag(sec: { type: SecondaryStatType; value: number }): StatBag {
     defPercent: 0,
     em: 0,
     er: 0,
+    flatATK: 0,
+    flatHP: 0,
+    flatDEF: 0,
   };
   switch (sec.type) {
     case 'critRate':
@@ -359,6 +423,15 @@ function statBag(sec: { type: SecondaryStatType; value: number }): StatBag {
     case 'def%':
       out.defPercent = sec.value;
       break;
+    case 'flatATK':
+      out.flatATK = sec.value;
+      break;
+    case 'flatHP':
+      out.flatHP = sec.value;
+      break;
+    case 'flatDEF':
+      out.flatDEF = sec.value;
+      break;
     case 'em':
       out.em = sec.value;
       break;
@@ -369,24 +442,35 @@ function statBag(sec: { type: SecondaryStatType; value: number }): StatBag {
   return out;
 }
 
-/** Sum all flat & percent artifact mains + subs into a single stat bag. */
-function collectArtifactStats(a: ArtifactBuild): {
-  critRate: number;
-  critDMG: number;
-  atkPercent: number;
-  hpPercent: number;
-  defPercent: number;
-  em: number;
-  dmgBonus: number;
-} {
-  const critRate = a.subCritRate + (a.circletMain.type === 'critRate' ? a.circletMain.value : 0);
-  const critDMG = a.subCritDMG + (a.circletMain.type === 'critDMG' ? a.circletMain.value : 0);
-  const atkPercent = a.subATKPercent + (a.sandsMain.type === 'atk%' ? a.sandsMain.value : 0);
-  const hpPercent = a.subHPPercent + (a.sandsMain.type === 'hp%' ? a.sandsMain.value : 0);
-  const defPercent = (a.subDEFPercent ?? 0) + (a.sandsMain.type === 'def%' ? a.sandsMain.value : 0);
-  const em = a.subEM + (a.sandsMain.type === 'em' ? a.sandsMain.value : 0);
-  const dmgBonus = a.gobletMain.type === 'dmg%' ? a.gobletMain.value : 0;
-  return { critRate, critDMG, atkPercent, hpPercent, defPercent, em, dmgBonus };
+/** Sum all flat & percent artifact mains + sub stats into a single stat bag. */
+function collectArtifactStats(a: ArtifactBuild): StatBag {
+  const out: StatBag = {
+    critRate: 0,
+    critDMG: 0,
+    dmgBonus: 0,
+    atkPercent: 0,
+    hpPercent: 0,
+    defPercent: 0,
+    em: 0,
+    er: 0,
+    flatATK: a.plumeATK ?? 0,
+    flatHP: a.flowerHP ?? 0,
+    flatDEF: 0,
+  };
+  // Mains.
+  for (const main of [a.sandsMain, a.gobletMain, a.circletMain]) {
+    const bag = statBag({ type: main.type, value: main.value });
+    for (const k of Object.keys(bag) as (keyof StatBag)[]) out[k] += bag[k];
+  }
+  // Sub stats (flattened across the five pieces).
+  for (const piece of a.pieceSubs ?? []) {
+    for (const sub of piece ?? []) {
+      if (!sub || !sub.type) continue;
+      const bag = statBag(sub);
+      for (const k of Object.keys(bag) as (keyof StatBag)[]) out[k] += bag[k];
+    }
+  }
+  return out;
 }
 
 function defMultiplierFor(
@@ -433,7 +517,8 @@ const ALT_SCALING_ATTACKS: Record<string, Partial<Record<'normal' | 'charged', S
 export function computeDamage(input: DamageInput): DamageResult {
   const { character, weapon, artifacts, buffs, enemy } = input;
   const charLevel = input.characterLevel ?? 90;
-  const scaling: ScalingStat = character.scaling ?? 'atk';
+  const scaling: ScalingStat = input.scaling ?? character.scaling ?? 'atk';
+  const hitElement: ElementType = input.element ?? character.element;
 
   const w = statBag(weapon.secondary);
   const art = collectArtifactStats(artifacts);
@@ -452,20 +537,37 @@ export function computeDamage(input: DamageInput): DamageResult {
   const bakedBase = curve ? (ascType === 'critRate' ? BASE_CRIT_RATE : ascType === 'critDMG' ? BASE_CRIT_DMG : 0) : 0;
   const ascStat = statBag({ type: ascType, value: (curve?.spec ?? character.ascension.value) - bakedBase });
 
-  // ---- Total ATK / DEF / Max HP ----
-  const baseATKTotal = baseATK + weapon.baseATK;
-  const totalATK =
-    baseATKTotal *
-      (1 + art.atkPercent + w.atkPercent + ascStat.atkPercent + buffs.atkPercent) +
-    buffs.flatATK;
-
+  // ---- Max HP / DEF / EM / ER (computed before ATK: some passives derive ATK
+  //      from these, e.g. Staff of Homa's Max-HP bonus) ----
   const totalDEF =
     baseDEF * (1 + art.defPercent + w.defPercent + ascStat.defPercent + buffs.defPercent) +
-    buffs.flatDEF;
+    buffs.flatDEF +
+    art.flatDEF;
 
   const totalHP =
     baseHP * (1 + art.hpPercent + w.hpPercent + ascStat.hpPercent + buffs.hpPercent) +
-    buffs.flatHP;
+    buffs.flatHP +
+    art.flatHP;
+
+  // ---- Elemental Mastery ----
+  const em = art.em + w.em + ascStat.em + buffs.em;
+
+  // ---- Energy Recharge (bonus above the base 100%) ----
+  const er = w.er + art.er + ascStat.er + buffs.er;
+
+  // ---- Attribute conversions ----
+  const convertedFlatAtk = buffs.atkFromHP * totalHP + buffs.atkFromEM * em;
+  const erAtkCap = buffs.atkFromERMax > 0 ? buffs.atkFromERMax : Infinity;
+  const convertedAtkPct = Math.min(buffs.atkFromER * er, erAtkCap);
+
+  // ---- Total ATK ----
+  const baseATKTotal = baseATK + weapon.baseATK;
+  const totalATK =
+    baseATKTotal *
+      (1 + art.atkPercent + w.atkPercent + ascStat.atkPercent + buffs.atkPercent + convertedAtkPct) +
+    buffs.flatATK +
+    art.flatATK +
+    convertedFlatAtk;
 
   // ---- Crit ----
   const critRateRaw = BASE_CRIT_RATE + art.critRate + w.critRate + ascStat.critRate + buffs.critRate;
@@ -487,11 +589,10 @@ export function computeDamage(input: DamageInput): DamageResult {
           : buffs.burstDmgBonus;
 
   // ---- DMG bonus (minus target DMG reduction) ----
-  const dmgBonus = art.dmgBonus + w.dmgBonus + ascStat.dmgBonus + buffs.dmgBonus + typeBonus;
+  const dmgBonusFromHPCap = buffs.dmgBonusFromHPMax > 0 ? buffs.dmgBonusFromHPMax : Infinity;
+  const convertedDmgBonus = Math.min(buffs.dmgBonusFromHP * (totalHP / 1000), dmgBonusFromHPCap);
+  const dmgBonus = art.dmgBonus + w.dmgBonus + ascStat.dmgBonus + buffs.dmgBonus + typeBonus + convertedDmgBonus;
   const dmgBonusMult = Math.max(0, 1 + dmgBonus - buffs.dmgReduction);
-
-  // ---- Elemental Mastery ----
-  const em = art.em + w.em + ascStat.em + buffs.em;
 
   // ---- Base stat by scaling ----
   // `character.scaling` describes the talent the character is *known* for, but
@@ -501,9 +602,10 @@ export function computeDamage(input: DamageInput): DamageResult {
   // combo and pushed healers to the top of the damage ranking, so Normal and
   // Charged attacks fall back to ATK unless the character is a known exception.
   const effectiveScaling: ScalingStat =
-    attackType === 'normal' || attackType === 'charged'
+    input.scaling ??
+    (attackType === 'normal' || attackType === 'charged'
       ? (ALT_SCALING_ATTACKS[character.id]?.[attackType] ?? 'atk')
-      : scaling;
+      : scaling);
   const baseStat =
     effectiveScaling === 'def'
       ? totalDEF
@@ -517,9 +619,9 @@ export function computeDamage(input: DamageInput): DamageResult {
   let reactionMultiplier = 1;
   let reactionName = 'No reaction';
   if (input.amplified !== 'none') {
-    const base = amplifyBase(input.amplified, character.element);
+    const base = amplifyBase(input.amplified, hitElement);
     const emBonus = (2.78 * em) / (em + 1400);
-    reactionMultiplier = base * (1 + emBonus + buffs.reactionBonus + buffs.ampReactionBonus);
+    reactionMultiplier = base * (1 + emBonus + buffs.reactionBonus + buffs.ampReactionBonus + (buffs.reactionDmg[input.amplified] ?? 0));
     reactionName =
       input.amplified === 'vaporize'
         ? `Vaporize (×${base.toFixed(1)})`
@@ -533,13 +635,13 @@ export function computeDamage(input: DamageInput): DamageResult {
     const base = ADDITIVE_BASE[input.additive];
     const emBonus = (5 * em) / (1200 + em);
     additive =
-      base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + buffs.transformReactionBonus);
+      base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + buffs.transformReactionBonus + (buffs.reactionDmg[input.additive] ?? 0));
     additiveName = ADDITIVE_NAMES[input.additive];
   }
 
   // ---- DEF / RES ----
   const defMultiplier = defMultiplierFor(charLevel, enemy.level, buffs.defShred, buffs.defIgnore);
-  const rawRes = enemy.resistances[character.element] ?? enemy.resistances.default;
+  const rawRes = enemy.resistances[hitElement] ?? enemy.resistances.default;
   const resMultiplier = resMultiplierFor(rawRes, buffs.resShred);
 
   // ---- Per-hit damage ----
@@ -578,7 +680,7 @@ export function computeDamage(input: DamageInput): DamageResult {
     const tRawRes = enemy.resistances[reactionElement] ?? enemy.resistances.default;
     const tResMult = resMultiplierFor(tRawRes, buffs.resShred);
     transformative =
-      base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + buffs.transformReactionBonus) * tResMult;
+      base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + buffs.transformReactionBonus + (buffs.reactionDmg[input.transformative] ?? 0)) * tResMult;
     transformativeName =
       input.transformative === 'swirl' && input.swirlElement
         ? `Swirl (${input.swirlElement[0].toUpperCase()}${input.swirlElement.slice(1)})`
@@ -586,12 +688,15 @@ export function computeDamage(input: DamageInput): DamageResult {
   }
 
   return {
-    scaling,
+    scaling: effectiveScaling,
+    element: hitElement,
     baseStat,
     skillMultiplier,
     skillLabel,
     totalATK,
     baseATK: baseATKTotal,
+    baseHP,
+    baseDEF,
     totalHP,
     totalDEF,
     critRate,
@@ -600,6 +705,7 @@ export function computeDamage(input: DamageInput): DamageResult {
     dmgBonus,
     baseDmgBonus: buffs.baseDmgBonus,
     em,
+    er,
     defMultiplier,
     resMultiplier,
     reactionMultiplier,

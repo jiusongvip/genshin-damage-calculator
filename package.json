@@ -7,7 +7,8 @@
     "dev": "astro dev",
     "build": "npx astro build && node scripts/fix-sitemap-home.mjs",
     "preview": "astro preview",
-    "lint": "astro check"
+    "lint": "astro check",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",
@@ -26,7 +27,9 @@
     "@tailwindcss/vite": "^4.0.15",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
+    "genshin-db": "^5.2.13",
     "tailwindcss": "^4.0.15",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.1"
   }
 }

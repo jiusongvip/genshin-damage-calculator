@@ -1,23 +1,45 @@
 ---
+import { RELEASED_CHARACTERS } from '../data/characters';
+
 const navItems = [
   { label: 'Calculator', href: '#calculator' },
   { label: 'Presets', href: '#presets' },
   { label: 'Guides', href: '#guides' },
-  { label: 'Guide', href: '#guide' },
   { label: 'FAQ', href: '#faq' },
   { label: 'About', href: '/about/' },
+];
+
+const badges = [
+  { label: 'Free' },
+  { label: 'No signup' },
+  { label: `All ${RELEASED_CHARACTERS.length} characters` },
+  { label: 'Data snapshot v7.0', solid: true },
 ];
 ---
 
 <header class="relative z-50 border-b border-[var(--line)] bg-[#FFFBE7]">
-  <nav class="page-shell flex h-16 items-center justify-between" aria-label="Main navigation">
-    <a href="/" class="flex min-w-0 items-center gap-2.5 font-semibold tracking-[-0.02em] text-[var(--text)]">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-forest-600">
-        <path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2z" fill="currentColor" />
-        <path d="M12 6l1.1 4.9L18 12l-4.9 1.1L12 18l-1.1-4.9L6 12l4.9-1.1L12 6z" fill="#FFFBE7" />
-      </svg>
-      <span class="truncate">Genshin Damage Calculator</span>
-    </a>
+  <nav class="page-shell flex h-16 items-center justify-between gap-3" aria-label="Main navigation">
+    <div class="flex min-w-0 items-center gap-3">
+      <a href="/" class="flex min-w-0 items-center gap-2.5 font-semibold tracking-[-0.02em] text-[var(--text)]">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-forest-600">
+          <path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2z" fill="currentColor" />
+          <path d="M12 6l1.1 4.9L18 12l-4.9 1.1L12 18l-1.1-4.9L6 12l4.9-1.1L12 6z" fill="#FFFBE7" />
+        </svg>
+        <span class="truncate">Genshin Damage Calculator</span>
+      </a>
+      <ul class="hidden items-center gap-1.5 xl:flex" aria-label="Calculator highlights">
+        {badges.map((b) => (
+          <li
+            class:list={[
+              'whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold',
+              b.solid ? 'bg-forest-600 text-white' : 'border border-forest-500/30 bg-white/70 text-forest-700',
+            ]}
+          >
+            {b.label}
+          </li>
+        ))}
+      </ul>
+    </div>
 
     <div class="hidden items-center gap-1 lg:flex">
       {navItems.map((item) => (

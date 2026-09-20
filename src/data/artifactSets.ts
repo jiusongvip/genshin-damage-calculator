@@ -35,7 +35,7 @@ export const ARTIFACT_SETS: ArtifactSet[] = [
     id: 'crimson-witch-of-flames',
     name: 'Crimson Witch of Flames',
     two: { elemDmg: { element: 'pyro', value: 0.15 } },
-    four: { elemDmg: { element: 'pyro', value: 0.225 }, buffs: { ampReactionBonus: 0.15, transformReactionBonus: 0.4 } },
+    four: { elemDmg: { element: 'pyro', value: 0.225 }, buffs: { reactionDmg: { vaporize: 0.15, melt: 0.15, overload: 0.4, burning: 0.4, burgeon: 0.4 } } },
     note: '4pc assumes max 3 stacks (2pc +50% ×3); Vaporize/Melt +15%, Overload/Burning/Burgeon +40%.',
   },
   {
@@ -70,8 +70,8 @@ export const ARTIFACT_SETS: ArtifactSet[] = [
     id: 'thundering-fury',
     name: 'Thundering Fury',
     two: { elemDmg: { element: 'electro', value: 0.15 } },
-    four: { buffs: { transformReactionBonus: 0.4 } },
-    note: '4pc: Overload/Electro-Charged/Superconduct/Hyperbloom +40%, Aggravate +20% (uses +40%).',
+    four: { buffs: { reactionDmg: { overload: 0.4, electroCharged: 0.4, superconduct: 0.4, hyperbloom: 0.4, aggravate: 0.2 } } },
+    note: '4pc: Overload/Electro-Charged/Superconduct/Hyperbloom +40%, Aggravate +20%.',
   },
   {
     id: 'viridescent-venerer',
@@ -212,8 +212,17 @@ export interface SetPick {
 
 function applyEffect(out: Partial<BuffState>, eff: SetEffect, element: ElementType, attackType: TalentKey): void {
   if (eff.buffs) {
-    for (const key of Object.keys(eff.buffs) as (keyof BuffState)[]) {
-      out[key] = (out[key] ?? 0) + (eff.buffs[key] ?? 0);
+    const dst = out as Record<string, unknown>;
+    const src = eff.buffs as Record<string, unknown>;
+    for (const key of Object.keys(src)) {
+      if (key === 'reactionDmg') {
+        const next = { ...((dst.reactionDmg as Record<string, number>) ?? {}) };
+        const incoming = (src.reactionDmg as Record<string, number>) ?? {};
+        for (const rk of Object.keys(incoming)) next[rk] = (next[rk] ?? 0) + (incoming[rk] ?? 0);
+        dst.reactionDmg = next;
+        continue;
+      }
+      dst[key] = ((dst[key] as number) ?? 0) + ((src[key] as number) ?? 0);
     }
   }
   if (eff.elemDmg && eff.elemDmg.element === element) {

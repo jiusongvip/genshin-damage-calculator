@@ -6,6 +6,13 @@
 // (transformativeReactionLevelMultipliers, commit cf769c7, 2026-08-19), which
 // is exported from game data. Spot checks: Lv90 1446.85 matches KQM's damage
 // formula page; Lv80 1077.44 matches the value this project used before.
+//
+// This is the official/game-data curve, deliberately kept even though at least
+// one reference calculator runs ~1.6% lower (it implies ~1423.5 at Lv90). That
+// divergence is a modelling choice on their side, not a bug here — see the
+// transform-reaction cases in src/lib/competitor.test.ts, which assert a 2%
+// tolerance for exactly this reason. Do not "fix" this table toward a
+// competitor's output.
 // ============================================================================
 
 export const REACTION_LEVEL_MULTIPLIER: readonly number[] = [
