@@ -540,9 +540,25 @@ export default function SingleCalculator() {
     [character, weapon, enemy, draft.level, draft.artifacts],
   );
 
-  const whiteCritRate = whiteboard.critRate;
-  const whiteCritDMG = whiteboard.critDMG;
-  const whiteEM = whiteboard.em;
+  // The character's own stats (character + weapon + ascension), before any
+  // artifacts or zone bonuses — a fixed floor the user can only add to.
+  const own = useMemo(
+    () =>
+      computeDamage({
+        character,
+        weapon,
+        artifacts: NO_ARTIFACTS,
+        buffs: DEFAULT_BUFFS,
+        enemy,
+        characterLevel: draft.level,
+        amplified: 'none',
+        transformative: 'none',
+      }),
+    [character, weapon, enemy, draft.level],
+  );
+  const ownCritRate = own.critRate;
+  const ownCritDMG = own.critDMG;
+  const ownEM = own.em;
   const scaling = character.scaling ?? 'atk';
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
@@ -562,11 +578,9 @@ export default function SingleCalculator() {
     const patches: Partial<BuffState>[] = [
       { dmgBonus: draft.dmgBonus, dmgReduction: draft.dmgReduction },
       { baseDmgBonus: draft.baseDmgBonus, flatBaseDmg: draft.flatBaseDmg },
-      {
-        critRate: draft.critRate ? draft.critRate - whiteCritRate : 0,
-        critDMG: draft.critDMG ? draft.critDMG - whiteCritDMG : 0,
-      },
-      { em: draft.em ? draft.em - whiteEM : 0 },
+      // CRIT and EM are bonuses added on top of the character's own stats,
+      // so the base can never be typed below its real value.
+      { critRate: draft.critRate, critDMG: draft.critDMG, em: draft.em },
       {
         reactionBonus: draft.reactionBonus,
         ampReactionBonus: draft.ampReactionBonus,
@@ -581,7 +595,7 @@ export default function SingleCalculator() {
       else patches.push({ flatATK: delta });
     }
     return addBuffs(DEFAULT_BUFFS, ...patches);
-  }, [draft, scaling, whiteboard.baseStat, whiteCritRate, whiteCritDMG, whiteEM]);
+  }, [draft, scaling, whiteboard.baseStat]);
 
   const result = useMemo(
     () =>
@@ -936,10 +950,10 @@ export default function SingleCalculator() {
                 <input
                   type="number"
                   inputMode="decimal"
-                  min={0}
+                  min={Math.round(whiteboard.baseStat)}
                   max={1_000_000}
                   value={Math.round(draft.statOverride ?? whiteboard.baseStat)}
-                  onChange={(e) => set('statOverride', clamp(parseFloat(e.target.value) || 0, 0, 1_000_000))}
+                  onChange={(e) => set('statOverride', clamp(parseFloat(e.target.value) || 0, Math.round(whiteboard.baseStat), 1_000_000))}
                   className="mt-1 w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-2 py-1.5 text-right text-[var(--text)]"
                 />
               </label>
@@ -975,8 +989,8 @@ export default function SingleCalculator() {
           {/* 3 — Crit */}
           <Zone id="crit" index={3} title="CRIT" value={`×${critMult.toFixed(3)}`} changed={!!(draft.critRate || draft.critDMG || draft.critMode !== 'expected')} onReset={() => setDraft((d) => ({ ...d, critRate: 0, critDMG: 0, critMode: 'expected' }))} onEnter={setHighlight}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Pct label="CRIT Rate" value={draft.critRate || whiteCritRate} onChange={(v) => set('critRate', v)} min={0} max={100} />
-              <Pct label="CRIT DMG" value={draft.critDMG || whiteCritDMG} onChange={(v) => set('critDMG', v)} min={0} max={1000} />
+              <Pct label="CRIT Rate bonus" value={draft.critRate} onChange={(v) => set('critRate', v)} min={0} max={100} />
+              <Pct label="CRIT DMG bonus" value={draft.critDMG} onChange={(v) => set('critDMG', v)} min={0} max={1000} />
               <label className="block">
                 <span className="text-xs font-medium text-[var(--muted)]">Settlement</span>
                 <IconSelect
@@ -990,6 +1004,9 @@ export default function SingleCalculator() {
                 />
               </label>
             </div>
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              Character base (weapon + ascension): {formatPercent(ownCritRate)} CRIT Rate, {formatPercent(ownCritDMG)} CRIT DMG — this is the floor. Total now: {formatPercent(result.critRate)} / {formatPercent(result.critDMG)}.
+            </p>
             {result.critRateRaw > 1 && (
               <p className="mt-2 text-xs text-pyro">CRIT Rate is overcapped — {((result.critRateRaw - 1) * 100).toFixed(1)}% of it is wasted past the 100% cap.</p>
             )}
@@ -1016,7 +1033,7 @@ export default function SingleCalculator() {
                   <IconSelect value={draft.swirlElement} onChange={(v) => set('swirlElement', v)} options={SWIRLABLE.map((el) => ({ value: el, label: ELEMENT_LABEL[el], icon: <ElementIcon el={el} className="h-5 w-5" /> }))} />
                 </label>
               )}
-              <Num label="Elemental Mastery" value={draft.em || Math.round(whiteEM)} onChange={(v) => set('em', v)} step={10} min={0} max={3000} />
+              <Num label={`Elemental Mastery bonus (base ${Math.round(ownEM)})`} value={draft.em} onChange={(v) => set('em', v)} step={10} min={0} max={3000} />
             </div>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Pct label="Reaction bonus" value={draft.reactionBonus} onChange={(v) => set('reactionBonus', v)} min={0} max={1000} />
@@ -1056,7 +1073,7 @@ export default function SingleCalculator() {
               </button>
             </div>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              The character already has its own stats — e.g. base {formatPercent(whiteCritRate)} CRIT Rate / {formatPercent(whiteCritDMG)} CRIT DMG plus weapon and ascension. These fields add more on top.
+              The character already has its own stats — e.g. base {formatPercent(ownCritRate)} CRIT Rate / {formatPercent(ownCritDMG)} CRIT DMG plus weapon and ascension. These fields add more on top.
             </p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {MAIN_OPTIONS.map((m) => {
