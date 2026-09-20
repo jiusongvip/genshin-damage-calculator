@@ -5,7 +5,7 @@ import { getWeapon, weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, BUFF_PRESETS, resolvePreset } from '../data/presets';
 import { computeDamage, formatNumber } from '../lib/damage';
-import type { AdditiveReaction, AmplifiedReaction, BuffState, CharacterData, ElementType, TransformativeReaction } from '../lib/damage';
+import type { AdditiveReaction, AmplifiedReaction, BuffState, CharacterData, ElementType, ReactionKey, TransformativeReaction } from '../lib/damage';
 import { ELEMENT_LABEL } from '../data/elements';
 import { ARTIFACT_SETS, SET_BY_ID, resolveSetBuffs } from '../data/artifactSets';
 import { signatureTalent } from '../data/talents';
@@ -279,8 +279,17 @@ export default function TeamCalculator() {
       const pick = reactionFor(c.element, teamSet);
       const attackType = signatureTalent(c.id)?.key ?? 'burst';
       const setPatch = cfg.setId ? resolveSetBuffs([{ id: cfg.setId, pieces: 4 }], c.element, attackType) : {};
-      const charBuffs: BuffState = { ...merged };
+      const charBuffs: BuffState = { ...merged, reactionBonuses: { ...merged.reactionBonuses } };
       for (const key of Object.keys(setPatch) as (keyof BuffState)[]) {
+        if (key === 'reactionBonuses') {
+          const map = setPatch.reactionBonuses;
+          if (map) {
+            for (const rk of Object.keys(map) as ReactionKey[]) {
+              charBuffs.reactionBonuses[rk] = (charBuffs.reactionBonuses[rk] ?? 0) + (map[rk] ?? 0);
+            }
+          }
+          continue;
+        }
         charBuffs[key] = (charBuffs[key] ?? 0) + (setPatch[key] ?? 0);
       }
       const r = computeDamage({

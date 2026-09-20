@@ -9,7 +9,7 @@
 // the attack element matches; attack-type bonuses only for that attack type.
 // ============================================================================
 
-import type { BuffState, ElementType } from '../lib/damage';
+import type { BuffState, ElementType, ReactionKey } from '../lib/damage';
 import type { TalentKey } from './talents';
 
 export interface SetEffect {
@@ -19,6 +19,8 @@ export interface SetEffect {
   elemDmg?: { element: ElementType; value: number };
   /** DMG bonus that applies only to the listed attack types */
   typeDmg?: Partial<Record<TalentKey, number>>;
+  /** Per-reaction DMG bonus (KQM "ReactionBonus"), keyed by reaction. */
+  reactions?: Partial<Record<ReactionKey, number>>;
 }
 
 export interface ArtifactSet {
@@ -35,7 +37,10 @@ export const ARTIFACT_SETS: ArtifactSet[] = [
     id: 'crimson-witch-of-flames',
     name: 'Crimson Witch of Flames',
     two: { elemDmg: { element: 'pyro', value: 0.15 } },
-    four: { elemDmg: { element: 'pyro', value: 0.225 }, buffs: { ampReactionBonus: 0.15, transformReactionBonus: 0.4 } },
+    four: {
+      elemDmg: { element: 'pyro', value: 0.225 },
+      reactions: { vaporize: 0.15, melt: 0.15, overload: 0.4, burning: 0.4, burgeon: 0.4 },
+    },
     note: '4pc assumes max 3 stacks (2pc +50% ×3); Vaporize/Melt +15%, Overload/Burning/Burgeon +40%.',
   },
   {
@@ -70,8 +75,17 @@ export const ARTIFACT_SETS: ArtifactSet[] = [
     id: 'thundering-fury',
     name: 'Thundering Fury',
     two: { elemDmg: { element: 'electro', value: 0.15 } },
-    four: { buffs: { transformReactionBonus: 0.4 } },
-    note: '4pc: Overload/Electro-Charged/Superconduct/Hyperbloom +40%, Aggravate +20% (uses +40%).',
+    four: {
+      reactions: {
+        overload: 0.4,
+        electroCharged: 0.4,
+        superconduct: 0.4,
+        hyperbloom: 0.4,
+        aggravate: 0.2,
+        spread: 0.2,
+      },
+    },
+    note: '4pc: Overload/Electro-Charged/Superconduct/Hyperbloom +40%, Aggravate/Spread +20%.',
   },
   {
     id: 'viridescent-venerer',
@@ -213,7 +227,14 @@ export interface SetPick {
 function applyEffect(out: Partial<BuffState>, eff: SetEffect, element: ElementType, attackType: TalentKey): void {
   if (eff.buffs) {
     for (const key of Object.keys(eff.buffs) as (keyof BuffState)[]) {
+      if (key === 'reactionBonuses') continue;
       out[key] = (out[key] ?? 0) + (eff.buffs[key] ?? 0);
+    }
+  }
+  if (eff.reactions) {
+    const map = (out.reactionBonuses = out.reactionBonuses ?? {});
+    for (const key of Object.keys(eff.reactions) as ReactionKey[]) {
+      map[key] = (map[key] ?? 0) + (eff.reactions[key] ?? 0);
     }
   }
   if (eff.elemDmg && eff.elemDmg.element === element) {

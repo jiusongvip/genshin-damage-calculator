@@ -111,6 +111,8 @@ export const DEFAULT_BUFFS: BuffState = {
   defPercent: 0,
   flatDEF: 0,
   dmgBonus: 0,
+  baseDmgBonus: 0,
+  flatBaseDmg: 0,
   naDmgBonus: 0,
   caDmgBonus: 0,
   skillDmgBonus: 0,
@@ -124,6 +126,7 @@ export const DEFAULT_BUFFS: BuffState = {
   reactionBonus: 0,
   ampReactionBonus: 0,
   transformReactionBonus: 0,
+  reactionBonuses: {},
   dmgReduction: 0,
 };
 

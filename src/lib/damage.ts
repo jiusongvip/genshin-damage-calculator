@@ -25,6 +25,7 @@
 import { signatureTalent } from '../data/talents';
 import type { TalentKey } from '../data/talents';
 import { baseStatsAt } from '../data/levelStats';
+import { REACTION_LEVEL_MULTIPLIER } from '../data/reactionLevel';
 
 export type ElementType =
   | 'pyro'
@@ -98,6 +99,21 @@ export interface ArtifactBuild {
   subDEFPercent?: number;
 }
 
+export type ReactionKey =
+  | 'vaporize'
+  | 'melt'
+  | 'aggravate'
+  | 'spread'
+  | 'overload'
+  | 'superconduct'
+  | 'electroCharged'
+  | 'swirl'
+  | 'shatter'
+  | 'bloom'
+  | 'hyperbloom'
+  | 'burgeon'
+  | 'burning';
+
 export interface BuffState {
   atkPercent: number;
   flatATK: number;
@@ -106,6 +122,10 @@ export interface BuffState {
   defPercent: number;
   flatDEF: number;
   dmgBonus: number;
+  /** Base DMG multiplier ("deals X% of original DMG") — multiplies base damage, not the DMG-bonus bucket. */
+  baseDmgBonus: number;
+  /** Flat base damage added after the base-DMG multiplier (non-catalyze). */
+  flatBaseDmg: number;
   /** Attack-type DMG bonus — applies only to the matching attack (sets/weapons). */
   naDmgBonus: number;
   caDmgBonus: number;
@@ -126,6 +146,8 @@ export interface BuffState {
   ampReactionBonus: number;
   /** Extra bonus that applies only to transformative / additive reactions. */
   transformReactionBonus: number;
+  /** Per-reaction DMG bonus (KQM "ReactionBonus"), keyed by reaction id. */
+  reactionBonuses: Partial<Record<ReactionKey, number>>;
   /** Target's damage reduction, subtracted from your DMG bonus. */
   dmgReduction: number;
 }
@@ -146,6 +168,7 @@ export type TransformativeReaction =
   | 'superconduct'
   | 'electroCharged'
   | 'swirl'
+  | 'shatter'
   | 'bloom'
   | 'hyperbloom'
   | 'burgeon'
@@ -167,6 +190,10 @@ export interface DamageInput {
   transformative: TransformativeReaction;
   /** Additive reaction (Aggravate / Spread) added to the base damage. */
   additive?: AdditiveReaction;
+  /** True when the hit is Physical (used for RES and Physical DMG bonus). */
+  physical?: boolean;
+  /** Element a Swirl absorbs; its damage is of that element, not Anemo. */
+  swirlElement?: ElementType;
   /** Override the talent multiplier (defaults to the character's signature). */
   skillMultiplier?: number;
   /** Which attack the hit represents — drives attack-type DMG bonuses. */
@@ -187,8 +214,12 @@ export interface DamageResult {
   totalHP: number;
   totalDEF: number;
   critRate: number;
+  /** Crit rate before the 100% cap — lets the UI flag wasted crit. */
+  critRateRaw: number;
   critDMG: number;
   dmgBonus: number;
+  /** Base DMG multiplier applied (baseDmg%). */
+  baseDmgBonus: number;
   em: number;
   defMultiplier: number;
   resMultiplier: number;
@@ -225,6 +256,7 @@ const TRANSFORMATIVE_BASE: Record<Exclude<TransformativeReaction, 'none'>, numbe
   superconduct: 1.5,
   electroCharged: 2,
   swirl: 0.6,
+  shatter: 3,
   bloom: 2,
   hyperbloom: 3,
   burgeon: 3,
@@ -236,6 +268,7 @@ const TRANSFORMATIVE_NAMES: Record<Exclude<TransformativeReaction, 'none'>, stri
   superconduct: 'Superconduct',
   electroCharged: 'Electro-Charged',
   swirl: 'Swirl',
+  shatter: 'Shatter',
   bloom: 'Bloom',
   hyperbloom: 'Hyperbloom',
   burgeon: 'Burgeon',
@@ -253,21 +286,30 @@ const ADDITIVE_NAMES: Record<Exclude<AdditiveReaction, 'none'>, string> = {
   spread: 'Spread',
 };
 
-// Level multiplier for transformative / additive reactions.
-const LEVEL_MULTIPLIER: Record<number, number> = {
-  80: 1077.44,
-  85: 1285.43,
-  90: 1446.85,
-};
+// Hard cap on a single damage instance (damage doc, sections 1 and 10).
+const DAMAGE_CAP = 20_000_000;
 
+/** Every character starts with these before any weapon, artifact or buff. */
+const BASE_CRIT_RATE = 0.05;
+const BASE_CRIT_DMG = 0.5;
+
+/**
+ * Level multiplier for transformative / additive reactions.
+ *
+ * Used to hold only levels 80/85/90 and fell back to the level-90 value for
+ * anything else, so a level-60 Bloom was computed as if the character were 90.
+ * Now read from the full per-level table.
+ */
 export function levelMultiplierFor(level: number): number {
-  return LEVEL_MULTIPLIER[level] ?? LEVEL_MULTIPLIER[90];
+  const lv = Math.min(90, Math.max(1, Math.round(level)));
+  return REACTION_LEVEL_MULTIPLIER[lv - 1];
 }
 
 interface StatBag {
   critRate: number;
   critDMG: number;
   dmgBonus: number;
+  physical: number;
   atkPercent: number;
   hpPercent: number;
   defPercent: number;
@@ -281,6 +323,7 @@ function statBag(sec: { type: SecondaryStatType; value: number }): StatBag {
     critRate: 0,
     critDMG: 0,
     dmgBonus: 0,
+    physical: 0,
     atkPercent: 0,
     hpPercent: 0,
     defPercent: 0,
@@ -295,8 +338,10 @@ function statBag(sec: { type: SecondaryStatType; value: number }): StatBag {
       out.critDMG = sec.value;
       break;
     case 'dmg%':
-    case 'physical':
       out.dmgBonus = sec.value;
+      break;
+    case 'physical':
+      out.physical = sec.value;
       break;
     case 'atk%':
       out.atkPercent = sec.value;
@@ -326,6 +371,7 @@ function collectArtifactStats(a: ArtifactBuild): {
   defPercent: number;
   em: number;
   dmgBonus: number;
+  physical: number;
 } {
   const critRate = a.subCritRate + (a.circletMain.type === 'critRate' ? a.circletMain.value : 0);
   const critDMG = a.subCritDMG + (a.circletMain.type === 'critDMG' ? a.circletMain.value : 0);
@@ -334,7 +380,8 @@ function collectArtifactStats(a: ArtifactBuild): {
   const defPercent = (a.subDEFPercent ?? 0) + (a.sandsMain.type === 'def%' ? a.sandsMain.value : 0);
   const em = a.subEM + (a.sandsMain.type === 'em' ? a.sandsMain.value : 0);
   const dmgBonus = a.gobletMain.type === 'dmg%' ? a.gobletMain.value : 0;
-  return { critRate, critDMG, atkPercent, hpPercent, defPercent, em, dmgBonus };
+  const physical = a.gobletMain.type === 'physical' ? a.gobletMain.value : 0;
+  return { critRate, critDMG, atkPercent, hpPercent, defPercent, em, dmgBonus, physical };
 }
 
 function defMultiplierFor(
@@ -350,6 +397,16 @@ function defMultiplierFor(
     ((charLevel + 100) + (enemyLevel + 100) * (1 - reduction) * (1 - ignore))
   );
 }
+
+/**
+ * Normal and Charged attacks default to ATK scaling, but a few talents convert
+ * them to HP/DEF. Everyone not listed uses ATK for those two attack types.
+ */
+const ALT_SCALING_ATTACKS: Record<string, Partial<Record<'normal' | 'charged', ScalingStat>>> = {
+  neuvillette: { charged: 'hp' },
+  noelle: { normal: 'def', charged: 'def' },
+  itto: { normal: 'def', charged: 'def' },
+};
 
 function resMultiplierFor(rawRes: number, resShred: number): number {
   const res = rawRes - resShred;
@@ -371,7 +428,12 @@ export function computeDamage(input: DamageInput): DamageResult {
   const baseHP = curve?.hp ?? character.baseHP;
   const baseATK = curve?.atk ?? character.baseATK;
   const baseDEF = curve?.def ?? character.baseDEF;
-  const ascStat = statBag({ type: character.ascension.type, value: curve?.spec ?? character.ascension.value });
+  // genshin-db's level curve reports a CRIT ascension stat including the base
+  // crit every character has (Hu Tao's CRIT DMG runs 0.5 -> 0.884). Strip it
+  // back out because the base is added for everyone below.
+  const ascType = character.ascension.type;
+  const bakedBase = curve ? (ascType === 'critRate' ? BASE_CRIT_RATE : ascType === 'critDMG' ? BASE_CRIT_DMG : 0) : 0;
+  const ascStat = statBag({ type: ascType, value: (curve?.spec ?? character.ascension.value) - bakedBase });
 
   // ---- Total ATK / DEF / Max HP ----
   const baseATKTotal = baseATK + weapon.baseATK;
@@ -389,8 +451,9 @@ export function computeDamage(input: DamageInput): DamageResult {
     buffs.flatHP;
 
   // ---- Crit ----
-  const critRate = Math.min(art.critRate + w.critRate + ascStat.critRate + buffs.critRate, 1);
-  const critDMG = art.critDMG + w.critDMG + ascStat.critDMG + buffs.critDMG;
+  const critRateRaw = BASE_CRIT_RATE + art.critRate + w.critRate + ascStat.critRate + buffs.critRate;
+  const critRate = Math.min(Math.max(critRateRaw, 0), 1);
+  const critDMG = BASE_CRIT_DMG + art.critDMG + w.critDMG + ascStat.critDMG + buffs.critDMG;
 
   // ---- Attack type (drives type-specific DMG bonuses from sets / weapons) ----
   const sig = input.skillMultiplier == null ? signatureTalent(character.id) : undefined;
@@ -406,16 +469,26 @@ export function computeDamage(input: DamageInput): DamageResult {
           ? buffs.skillDmgBonus
           : buffs.burstDmgBonus;
 
+  // ---- Damage type (Elemental vs Physical) ----
+  const isPhysical = input.physical === true;
+  const attackElement: ElementType = isPhysical ? 'physical' : character.element;
+
   // ---- DMG bonus (minus target DMG reduction) ----
-  const dmgBonus = art.dmgBonus + w.dmgBonus + ascStat.dmgBonus + buffs.dmgBonus + typeBonus;
+  // Physical DMG bonus only applies to physical hits, and vice versa.
+  const elementalBonus = art.dmgBonus + w.dmgBonus + ascStat.dmgBonus + buffs.dmgBonus + typeBonus;
+  const dmgBonus = elementalBonus + (isPhysical ? art.physical + w.physical : 0);
   const dmgBonusMult = Math.max(0, 1 + dmgBonus - buffs.dmgReduction);
 
   // ---- Elemental Mastery ----
   const em = art.em + w.em + ascStat.em + buffs.em;
 
-  // ---- Base stat by scaling ----
+  // ---- Base stat by scaling: per-talent, not per-character ----
+  const effectiveScaling: ScalingStat =
+    attackType === 'normal' || attackType === 'charged'
+      ? (ALT_SCALING_ATTACKS[character.id]?.[attackType] ?? 'atk')
+      : scaling;
   const baseStat =
-    scaling === 'def' ? totalDEF : scaling === 'hp' ? totalHP : scaling === 'em' ? em : totalATK;
+    effectiveScaling === 'def' ? totalDEF : effectiveScaling === 'hp' ? totalHP : effectiveScaling === 'em' ? em : totalATK;
 
   // ---- Amplified reaction ----
   let reactionMultiplier = 1;
@@ -423,7 +496,8 @@ export function computeDamage(input: DamageInput): DamageResult {
   if (input.amplified !== 'none') {
     const base = amplifyBase(input.amplified, character.element);
     const emBonus = (2.78 * em) / (em + 1400);
-    reactionMultiplier = base * (1 + emBonus + buffs.reactionBonus + buffs.ampReactionBonus);
+    const ampBonus = buffs.reactionBonuses[input.amplified] ?? 0;
+    reactionMultiplier = base * (1 + emBonus + buffs.reactionBonus + buffs.ampReactionBonus + ampBonus);
     reactionName =
       input.amplified === 'vaporize'
         ? `Vaporize (×${base.toFixed(1)})`
@@ -436,22 +510,27 @@ export function computeDamage(input: DamageInput): DamageResult {
   if (input.additive && input.additive !== 'none') {
     const base = ADDITIVE_BASE[input.additive];
     const emBonus = (5 * em) / (1200 + em);
+    const typeBonusR = buffs.reactionBonuses[input.additive] ?? 0;
     additive =
-      base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + buffs.transformReactionBonus);
+      base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + typeBonusR);
     additiveName = ADDITIVE_NAMES[input.additive];
   }
 
   // ---- DEF / RES ----
   const defMultiplier = defMultiplierFor(charLevel, enemy.level, buffs.defShred, buffs.defIgnore);
-  const rawRes = enemy.resistances[character.element] ?? enemy.resistances.default;
+  const rawRes = enemy.resistances[attackElement] ?? enemy.resistances.default;
   const resMultiplier = resMultiplierFor(rawRes, buffs.resShred);
 
   // ---- Per-hit damage ----
-  const baseDamage = baseStat * skillMultiplier + additive;
-  const nonCrit =
-    baseDamage * dmgBonusMult * reactionMultiplier * defMultiplier * resMultiplier;
-  const critHit = nonCrit * (1 + critDMG);
-  const expected = nonCrit * (1 + critRate * critDMG);
+  const baseDamage =
+    baseStat * skillMultiplier * (1 + buffs.baseDmgBonus) + additive + buffs.flatBaseDmg;
+  const nonCritRaw = baseDamage * dmgBonusMult * reactionMultiplier * defMultiplier * resMultiplier;
+  const critHitRaw = nonCritRaw * (1 + critDMG);
+  const expectedRaw = nonCritRaw * (1 + critRate * critDMG);
+  // A single instance can never exceed the 20M damage cap.
+  const nonCrit = Math.min(nonCritRaw, DAMAGE_CAP);
+  const critHit = Math.min(critHitRaw, DAMAGE_CAP);
+  const expected = Math.min(expectedRaw, DAMAGE_CAP);
 
   // ---- Transformative reaction ----
   let transformative = 0;
@@ -468,19 +547,27 @@ export function computeDamage(input: DamageInput): DamageResult {
           : input.transformative === 'electroCharged'
             ? 'electro'
             : input.transformative === 'swirl'
-              ? character.element
-              : input.transformative === 'burning'
-                ? 'pyro'
-                : 'dendro';
+              ? (input.swirlElement ?? character.element)
+              : input.transformative === 'shatter'
+                ? 'physical'
+                : input.transformative === 'burning'
+                  ? 'pyro'
+                  : 'dendro';
     const tRawRes = enemy.resistances[reactionElement] ?? enemy.resistances.default;
     const tResMult = resMultiplierFor(tRawRes, buffs.resShred);
-    transformative =
-      base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + buffs.transformReactionBonus) * tResMult;
-    transformativeName = TRANSFORMATIVE_NAMES[input.transformative];
+    const typeBonusT = buffs.reactionBonuses[input.transformative] ?? 0;
+    transformative = Math.min(
+      base * levelMultiplierFor(charLevel) * (1 + emBonus + buffs.reactionBonus + typeBonusT) * tResMult,
+      DAMAGE_CAP,
+    );
+    transformativeName =
+      input.transformative === 'swirl' && input.swirlElement
+        ? `Swirl (${input.swirlElement[0].toUpperCase()}${input.swirlElement.slice(1)})`
+        : TRANSFORMATIVE_NAMES[input.transformative];
   }
 
   return {
-    scaling,
+    scaling: effectiveScaling,
     baseStat,
     skillMultiplier,
     skillLabel,
@@ -489,8 +576,10 @@ export function computeDamage(input: DamageInput): DamageResult {
     totalHP,
     totalDEF,
     critRate,
+    critRateRaw,
     critDMG,
     dmgBonus,
+    baseDmgBonus: buffs.baseDmgBonus,
     em,
     defMultiplier,
     resMultiplier,
@@ -614,9 +703,11 @@ export function computeFromPanel(input: PanelInput): PanelResult {
 
   const dmgBonusMult = Math.max(0, 1 + input.dmgBonus - (input.dmgReduction ?? 0));
   const baseDamage = baseStat * input.skillMultiplier + additive;
-  const nonCrit = baseDamage * dmgBonusMult * reactionMultiplier * defMultiplier * resMultiplier;
-  const critHit = nonCrit * (1 + input.critDMG);
-  const expected = nonCrit * (1 + input.critRate * input.critDMG);
+  const critRate = Math.min(Math.max(input.critRate, 0), 1);
+  const nonCritRaw = baseDamage * dmgBonusMult * reactionMultiplier * defMultiplier * resMultiplier;
+  const nonCrit = Math.min(nonCritRaw, DAMAGE_CAP);
+  const critHit = Math.min(nonCritRaw * (1 + input.critDMG), DAMAGE_CAP);
+  const expected = Math.min(nonCritRaw * (1 + critRate * input.critDMG), DAMAGE_CAP);
 
   let transformative = 0;
   let transformativeName = 'None';
@@ -632,13 +723,17 @@ export function computeFromPanel(input: PanelInput): PanelResult {
             ? 'electro'
             : input.transformative === 'swirl'
               ? input.element
-              : input.transformative === 'burning'
-                ? 'pyro'
-                : 'dendro';
+              : input.transformative === 'shatter'
+                ? 'physical'
+                : input.transformative === 'burning'
+                  ? 'pyro'
+                  : 'dendro';
     const tRawRes = enemy.resistances[reactionElement] ?? enemy.resistances.default;
     const tResMult = resMultiplierFor(tRawRes, input.resShred);
-    transformative =
-      base * levelMultiplierFor(input.characterLevel) * (1 + emBonus + input.reactionBonus) * tResMult;
+    transformative = Math.min(
+      base * levelMultiplierFor(input.characterLevel) * (1 + emBonus + input.reactionBonus) * tResMult,
+      DAMAGE_CAP,
+    );
     transformativeName = TRANSFORMATIVE_NAMES[input.transformative];
   }
 

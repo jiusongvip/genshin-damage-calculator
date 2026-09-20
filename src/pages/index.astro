@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DamageCalculator from '../components/DamageCalculator.tsx';
-import TeamCalculator from '../components/TeamCalculator.tsx';
 import { CHARACTERS } from '../data/characters';
 import { getWeapon } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
@@ -26,11 +25,14 @@ const presetRows = CHARACTERS.map((c) => {
     buffs: DEFAULT_BUFFS,
     enemy,
     characterLevel: 90,
-    amplified: c.element === 'pyro' ? 'vaporize' : c.element === 'cryo' ? 'melt' : 'none',
+    amplified: 'none',
     transformative: 'none',
   });
   return { character: c, weapon, expected: r.expected, critRate: r.critRate, critDMG: r.critDMG };
 });
+const defaultCharacterId =
+  FEATURED_CHARACTERS.find((c) => CHARACTERS.some((x) => x.id === c.id))?.id ??
+  [...presetRows].sort((a, b) => b.expected - a.expected)[0].character.id;
 
 // Group presets by element for a crawlable, per-element directory.
 const ELEMENT_ORDER: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
@@ -144,12 +146,12 @@ const schema = [
   </section>
 
   <!-- ============ Calculator ============ -->
-  <section id="calculator" class="page-shell-wide scroll-mt-20 py-8 md:py-10">
+  <section id="calculator" class="page-shell scroll-mt-20 py-8 md:py-10">
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">The calculator</p>
       <a href="#guide" class="text-sm text-forest-600 underline decoration-forest-500/50 underline-offset-2">How to use it</a>
     </div>
-    <TeamCalculator client:load />
+    <DamageCalculator client:load initialCharacterId={defaultCharacterId} />
   </section>
 
   <!-- ============ Formula (compact) ============ -->
@@ -163,9 +165,6 @@ const schema = [
         </p>
       </div>
       <a href="/how-damage-is-calculated/" class="text-sm text-forest-600 underline decoration-forest-500/50 underline-offset-4 transition-colors hover:text-forest-700">Read the full breakdown &rarr;</a>
-    </div>
-    <div class="mt-8">
-      <DamageCalculator client:idle />
     </div>
   </section>
 
@@ -345,7 +344,7 @@ const schema = [
                 </div>
               </div>
               <p class="tnum mt-4 text-2xl font-semibold tracking-tight text-forest-600">{formatNumber(expected)}</p>
-              <p class="text-xs text-[var(--muted)]">expected {character.element === 'pyro' ? 'Vaporize' : character.element === 'cryo' ? 'Melt' : 'raw'} damage</p>
+              <p class="text-xs text-[var(--muted)]">expected damage (no reaction)</p>
               <p class="mt-2 text-xs leading-relaxed text-[var(--muted)]">{character.note}</p>
               <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--line)] pt-3 text-xs text-[var(--muted)]">
                 <span>CR {formatPercent(critRate)}</span>
