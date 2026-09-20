@@ -431,6 +431,25 @@ details.accordion summary::-webkit-details-marker {
   to { opacity: 1; transform: none; }
 }
 
+/* Character picker — larger than the gear dialog, with the same chrome */
+.picker-dialog {
+  width: min(96vw, 64rem);
+  max-height: min(100% - 2rem, 88vh);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 60px -24px rgb(31 43 34 / 0.45);
+}
+.picker-dialog::backdrop {
+  background: rgb(31 43 34 / 0.45);
+}
+.picker-dialog[open] {
+  animation: gearIn 0.18s ease;
+}
+
 /* Damage number: count-up + Genshin-style crit burst */
 .damage-pop {
   animation: damagePop 0.5s cubic-bezier(0.2, 0.9, 0.25, 1.5);

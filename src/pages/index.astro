@@ -57,7 +57,7 @@ const ELEMENT_LABEL: Record<ElementType, string> = {
 };
 const title = 'Genshin Damage Calculator — Free & Accurate (Updated 7.0)';
 const description =
-  'Free Genshin Impact damage calculator for every character. Edit the six damage multipliers — base, DMG bonus, CRIT, reaction, DEF and RES — and see exactly how each one changes the final number. Character + weapon, no artifacts.';
+  'Free Genshin Impact damage calculator for every character. Edit the six damage multipliers — base, DMG bonus, CRIT, reaction, DEF and RES — and see exactly how each one changes the final number. Character + weapon, with optional artifact stats.';
 
 const schema = [
   {
@@ -73,7 +73,8 @@ const schema = [
     author: { '@type': 'Person', name: 'Kai Ren', jobTitle: 'Independent developer', url: siteURL },
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     featureList: [
-      'Zero-input character presets: level 90, best weapon, no artifacts',
+      'Zero-input character presets: level 90, best weapon',
+      'Optional artifact main stats and sub-stats',
       'Six damage multipliers, each independently editable',
       'Live formula chain and per-zone contribution breakdown',
       'Shareable URL state',
@@ -400,7 +401,7 @@ const schema = [
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">01</span>
         <h3 class="mt-2 font-semibold text-[var(--text)]">Pick a character</h3>
-        <p class="mt-2 text-sm text-[var(--muted)]">Open the roster and search or filter by element. The character loads at level 90 with their best weapon, no artifacts.</p>
+        <p class="mt-2 text-sm text-[var(--muted)]">Open the roster and search or filter by element. The character loads at level 90 with their best weapon; add artifact stats if you want a fuller panel.</p>
       </li>
       <li class="panel p-5">
         <span class="tnum text-2xl font-semibold text-forest-500/70">02</span>
