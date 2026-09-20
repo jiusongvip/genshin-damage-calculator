@@ -11,7 +11,7 @@ export interface Faq {
 export const FAQS: Faq[] = [
   {
     q: 'How is Genshin Impact damage calculated?',
-    a: 'A single hit multiplies five independent factors: Total ATK, the skill\u2019s talent multiplier, a DMG Bonus factor (elemental goblet, weapon passives, set bonuses), a CRIT factor (1 + Crit Rate \u00d7 Crit DMG for expected damage), and two defensive factors \u2014 enemy DEF and enemy RES. The full formula is Damage = Total ATK \u00d7 Skill Multiplier \u00d7 (1 + DMG Bonus) \u00d7 CRIT \u00d7 Reaction \u00d7 DEF multiplier \u00d7 RES multiplier. Because every factor multiplies the others, stacking one factor very high has diminishing value compared to raising several factors together.',
+    a: 'A single hit multiplies six independent factors: Base damage (the scaling stat \u00d7 talent multiplier), a DMG Bonus factor (elemental goblet, weapon passives, set bonuses), a CRIT factor (1 + Crit Rate \u00d7 Crit DMG for expected damage), a reaction factor, and two defensive factors \u2014 enemy DEF and enemy RES. The full formula is Damage = Base damage \u00d7 (1 + DMG Bonus) \u00d7 CRIT \u00d7 Reaction \u00d7 DEF multiplier \u00d7 RES multiplier. Because every factor multiplies the others, stacking one factor very high has diminishing value compared to raising several factors together.',
   },
   {
     q: 'What is the Genshin damage formula?',
@@ -87,7 +87,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'What are transformative reactions and how much do they hit for?',
-    a: 'Transformative reactions \u2014 Overload, Superconduct, Electro-Charged, Swirl, Bloom, Hyperbloom and Burgeon \u2014 deal their own damage independent of ATK and CRIT. Their damage = Level Multiplier \u00d7 base reaction coefficient \u00d7 (1 + EM bonus + reaction bonuses) \u00d7 RES multiplier. At level 90 the level multiplier is 1446.85, so a Hyperbloom (coefficient 6) with 800 EM deals roughly 30,000+ before resistance. Because they ignore CRIT, they are cheap to build and scale purely with EM and character level.',
+    a: 'Transformative reactions \u2014 Overload, Superconduct, Electro-Charged, Swirl, Bloom, Hyperbloom and Burgeon \u2014 deal their own damage independent of ATK and CRIT. Their damage = Level Multiplier \u00d7 base reaction coefficient \u00d7 (1 + EM bonus + reaction bonuses) \u00d7 RES multiplier. At level 90 the level multiplier is 1446.85, so a Hyperbloom (coefficient 3) with 800 EM deals roughly 24,000 before resistance. Because they ignore CRIT, they are cheap to build and scale purely with EM and character level.',
   },
   {
     q: 'How do Aggravate, Spread, Hyperbloom and other Dendro reactions work?',
@@ -103,7 +103,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Is EM or ATK% better for Hu Tao?',
-    a: 'For a Vaporize Hu Tao, Elemental Mastery is usually better until you have roughly 100-200 EM, because her low base ATK makes ATK% scale poorly while her HP conversion already covers attack. Past that point, Crit and HP% pull ahead of both. A common optimal sands is HP% or EM with EM sub-stats, depending on your weapon \u2014 if you run Dragon\u2019s Bane (which grants EM), an HP% sands is best; with Staff of Homa, an EM sands often wins. Set your exact weapon in the calculator and compare the team total with each option.',
+    a: 'For a Vaporize Hu Tao, Elemental Mastery is usually better until you have roughly 100-200 EM, because her low base ATK makes ATK% scale poorly while her HP conversion already covers attack. Past that point, Crit and HP% pull ahead of both. A common optimal sands is HP% or EM with EM sub-stats, depending on your weapon \u2014 if you run Dragon\u2019s Bane (which grants EM), an HP% sands is best; with Staff of Homa, an EM sands often wins. Set your exact weapon in the calculator and compare the damage number with each option.',
   },
   {
     q: 'What is the difference between DPS and single-hit damage?',
@@ -175,7 +175,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'Staff of Homa vs Engulfing Lightning \u2014 which is better?',
-    a: 'They serve different characters. Staff of Homa (CRIT DMG sub-stat, HP + ATK passive) is the universal polearm for Hu Tao, Zhongli, Xiangling and Xiao \u2014 it is the best all-round polearm in the game. Engulfing Lightning (Energy Recharge sub-stat) is tailor-made for Raiden Shogun and anyone who converts ER into damage. For Raiden specifically, Engulfing Lightning edges out Homa at equal refinement; for everyone else, Homa wins. To check on your own team, add the character in the calculator, open Gear under their slot, and switch between Homa and Engulfing Lightning.',
+    a: 'They serve different characters. Staff of Homa (CRIT DMG sub-stat, HP + ATK passive) is the universal polearm for Hu Tao, Zhongli, Xiangling and Xiao \u2014 it is the best all-round polearm in the game. Engulfing Lightning (Energy Recharge sub-stat) is tailor-made for Raiden Shogun and anyone who converts ER into damage. For Raiden specifically, Engulfing Lightning edges out Homa at equal refinement; for everyone else, Homa wins. To check for your character, pick them in the calculator and switch the weapon between Homa and Engulfing Lightning.',
   },
   {
     q: 'Is The Catch good for Raiden Shogun?',

@@ -1,15 +1,15 @@
 # Genshin Damage Calculator
 
-> Free Genshin Impact damage calculator for every character. Build a team, compare weapons, and see each character's damage with no artifacts (character + weapon only).
+> Free Genshin Impact damage calculator for every character. Edit the six damage multipliers (base, DMG bonus, CRIT, reaction, DEF, RES) and see how each one changes the final number. Character + weapon only, no artifacts.
 
-Independent fan-made web tool. Damage values are computed from the official five-multiplier formula; data is refreshed within 48 hours of each version patch. No signup, no download, no paywall.
+Independent fan-made web tool. Damage values are computed from the official six-multiplier formula; data is refreshed within 48 hours of each version patch. No signup, no download, no paywall.
 
 ## Core content
 
-- [Genshin Damage Calculator (home)](https://www.genshindamagecalculator.com/): Calculator with full character presets, a team builder, an elemental reaction directory, and FAQ.
-- [Damage Formula Guide](https://www.genshindamagecalculator.com/guides/damage-formula/): The five-multiplier damage formula breakdown, DEF/RES math, and elemental reaction coefficients (Vaporize ×1.5, Melt ×2.0, EM scaling).
+- [Genshin Damage Calculator (home)](https://www.genshindamagecalculator.com/): A single-character calculator built from the six damage multipliers — each independently editable, with a live formula chain and per-zone contribution. Character + weapon only (no artifacts).
+- [Damage Formula Guide](https://www.genshindamagecalculator.com/guides/damage-formula/): The six-multiplier damage formula breakdown, DEF/RES math, and elemental reaction coefficients (Vaporize ×1.5, Melt ×2.0, EM scaling).
 - [Character Build Guide](https://www.genshindamagecalculator.com/guides/builds/): Weapon comparisons, artifact set picks, constellation value tiers, and talent priority ranked by computed damage impact.
-- [How to Increase Damage](https://www.genshindamagecalculator.com/guides/improve-damage/): Buffs by multiplier impact, team buff setups, and common build mistakes.
+- [How to Increase Damage](https://www.genshindamagecalculator.com/guides/improve-damage/): Buffs by multiplier impact, common build mistakes, and how to raise your damage.
 
 ## Site info
 
@@ -20,7 +20,7 @@ Independent fan-made web tool. Damage values are computed from the official five
 
 ## Key facts
 
-- The damage formula is: Total ATK × Skill Multiplier × (1 + DMG Bonus) × CRIT × Reaction × DEF × RES.
+- The damage formula is: Base damage (scaling stat × talent multiplier) × (1 + DMG Bonus) × CRIT × Reaction × DEF × RES.
 - Amplifying reactions: Vaporize ×1.5, Melt ×2.0; Elemental Mastery scales by 2.78 × EM ÷ (EM + 1400).
 - Transformative reactions ignore ATK and CRIT; they scale with level and EM (level-90 multiplier 1446.85).
 - Data snapshot targets version 7.0 (Snezhnaya, launched August 12, 2026); data is refreshed within 48 hours of each version patch and new characters are added as they release.
