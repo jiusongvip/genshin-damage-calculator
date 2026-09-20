@@ -928,49 +928,6 @@ export default function SingleCalculator() {
 
       <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)]">
         <div className="space-y-4">
-          {/* Artifacts — feed the stats the six zones read */}
-          <section className="panel p-5">
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="text-base font-semibold text-[var(--text)]">
-                Artifacts{' '}
-                <span className="text-xs font-normal text-[var(--muted)]">optional — feeds the stats below</span>
-              </h3>
-              <button type="button" onClick={() => set('artifacts', { ...NO_ARTIFACTS })} className="text-[11px] text-[var(--muted)] underline underline-offset-2 hover:text-forest-600">
-                clear
-              </button>
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {MAIN_OPTIONS.map((m) => {
-                const cur = draft.artifacts[m.slot];
-                return (
-                  <label key={m.slot} className="block">
-                    <span className="text-xs font-medium text-[var(--muted)]">{m.label}</span>
-                    <IconSelect
-                      value={cur.value > 0 ? cur.type : 'none'}
-                      onChange={(v) => {
-                        if (v === 'none') setArtifact({ [m.slot]: { ...NO_ARTIFACTS[m.slot] } } as Partial<ArtifactBuild>);
-                        else setArtifact({ [m.slot]: { type: v as SecondaryStatType, value: mainValueFor(v as SecondaryStatType) } } as Partial<ArtifactBuild>);
-                      }}
-                      options={[
-                        { value: 'none', label: 'None' },
-                        ...m.options.map((o) => ({ value: o as string, label: SECONDARY_LABEL[o], icon: <Glyph name={STAT_GLYPH[o]} className="h-5 w-5" /> })),
-                      ]}
-                    />
-                  </label>
-                );
-              })}
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {SUB_FIELDS.map((s) =>
-                s.percent ? (
-                  <Pct key={s.key} label={s.label} value={(draft.artifacts[s.key] ?? 0) as number} onChange={(v) => setArtifact({ [s.key]: v } as Partial<ArtifactBuild>)} min={0} max={s.max} />
-                ) : (
-                  <Num key={s.key} label={s.label} value={(draft.artifacts[s.key] ?? 0) as number} onChange={(v) => setArtifact({ [s.key]: v } as Partial<ArtifactBuild>)} step={10} min={0} max={s.max} />
-                ),
-              )}
-            </div>
-          </section>
-
           {/* 1 — Base */}
           <Zone id="base" index={1} title="Base damage" value={formatNumber(baseDamage)} changed={draft.statOverride != null} onReset={() => set('statOverride', null)} onEnter={setHighlight}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1086,6 +1043,55 @@ export default function SingleCalculator() {
             </div>
             <p className="mt-2 text-xs text-[var(--muted)]">Effective RES {(formatPercent((enemy.resistances[character.element] ?? enemy.resistances.default) - draft.resShred))} → ×{result.resMultiplier.toFixed(3)} {result.resMultiplier > 1 ? '(negative RES, amplified)' : (result.resMultiplier === 1 ? '(standard band)' : '(reduced)')}</p>
           </Zone>
+
+          {/* Artifacts — added on top of the character's own stats */}
+          <section className="panel p-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="text-base font-semibold text-[var(--text)]">
+                Artifacts{' '}
+                <span className="text-xs font-normal text-[var(--muted)]">optional — added on top of the stats above</span>
+              </h3>
+              <button type="button" onClick={() => set('artifacts', { ...NO_ARTIFACTS })} className="text-[11px] text-[var(--muted)] underline underline-offset-2 hover:text-forest-600">
+                clear
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              The character already has its own stats — e.g. base {formatPercent(whiteCritRate)} CRIT Rate / {formatPercent(whiteCritDMG)} CRIT DMG plus weapon and ascension. These fields add more on top.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {MAIN_OPTIONS.map((m) => {
+                const cur = draft.artifacts[m.slot];
+                return (
+                  <label key={m.slot} className="block">
+                    <span className="text-xs font-medium text-[var(--muted)]">{m.label}</span>
+                    <IconSelect
+                      value={cur.value > 0 ? cur.type : 'none'}
+                      onChange={(v) => {
+                        if (v === 'none') setArtifact({ [m.slot]: { ...NO_ARTIFACTS[m.slot] } } as Partial<ArtifactBuild>);
+                        else setArtifact({ [m.slot]: { type: v as SecondaryStatType, value: mainValueFor(v as SecondaryStatType) } } as Partial<ArtifactBuild>);
+                      }}
+                      options={[
+                        { value: 'none', label: 'None' },
+                        ...m.options.map((o) => ({ value: o as string, label: SECONDARY_LABEL[o], icon: <Glyph name={STAT_GLYPH[o]} className="h-5 w-5" /> })),
+                      ]}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {SUB_FIELDS.map((s) =>
+                s.percent ? (
+                  <Pct key={s.key} label={s.label} value={(draft.artifacts[s.key] ?? 0) as number} onChange={(v) => setArtifact({ [s.key]: v } as Partial<ArtifactBuild>)} min={0} max={s.max} />
+                ) : (
+                  <Num key={s.key} label={s.label} value={(draft.artifacts[s.key] ?? 0) as number} onChange={(v) => setArtifact({ [s.key]: v } as Partial<ArtifactBuild>)} step={10} min={0} max={s.max} />
+                ),
+              )}
+            </div>
+            <p className="mt-3 border-t border-[var(--line)] pt-3 text-xs text-[var(--muted)]">
+              With artifacts: ATK <strong className="text-[var(--text)]">{formatNumber(result.totalATK)}</strong> · CRIT <strong className="text-[var(--text)]">{formatPercent(result.critRate)}</strong> / <strong className="text-[var(--text)]">{formatPercent(result.critDMG)}</strong> · EM <strong className="text-[var(--text)]">{Math.round(result.em)}</strong>
+            </p>
+          </section>
         </div>
 
         {/* ============ Result panel ============ */}
