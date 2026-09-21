@@ -164,9 +164,12 @@ export const MAIN_OPTIONS: { slot: MainSlot; label: string; options: SecondarySt
   { slot: 'circletMain', label: 'Circlet', options: ['critRate', 'critDMG', 'atk%', 'hp%', 'def%', 'em'] },
 ];
 
-/** The five artifact slots: flower / plume have a fixed main, the rest are selectable. */
+/** The five artifact slots. */
+export type PieceKey = 'flower' | 'plume' | 'sands' | 'goblet' | 'circlet';
+
+/** Flower / plume have a fixed main stat, the rest are selectable. */
 export const PIECE_ROWS: {
-  piece: 'flower' | 'plume' | 'sands' | 'goblet' | 'circlet';
+  piece: PieceKey;
   label: string;
   mainSlot?: MainSlot;
   fixed?: string;

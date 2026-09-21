@@ -33,8 +33,12 @@ const ELEMENTS = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
 const OFFICIAL_SUFFIXES = ['-450', '-540', '-720', ''];
 
 const missing = [];
-const check = (p, label) => {
-  if (!exists(p)) missing.push(`${label} → /images/${p}`);
+/** Weapon art missing from every upstream source (genshin.jmp.blue lags new
+ *  patches) — ScenarioBar falls back to a glyph, so these are reported but
+ *  tolerated. Every other asset type must have its file. */
+const tolerable = [];
+const check = (p, label, soft = false) => {
+  if (!exists(p)) (soft ? tolerable : missing).push(`${label} → /images/${p}`);
 };
 
 const characters = idsFrom('characters.ts');
@@ -43,7 +47,7 @@ const sets = setIdsFrom('artifactSets.ts');
 const featured = idsFrom('media.ts');
 
 for (const id of characters) check(`portraits/${id}.webp`, `character ${id}`);
-for (const id of weapons) check(`weapons/${id}.webp`, `weapon ${id}`);
+for (const id of weapons) check(`weapons/${id}.webp`, `weapon ${id}`, true);
 for (const id of sets)
   for (const piece of PIECES) check(`artifact-sets/${id}-${piece}.webp`, `artifact set ${id}`);
 for (const id of featured)
@@ -57,7 +61,11 @@ console.log(
 );
 
 if (missing.length === 0) {
-  console.log('all image references resolve.');
+  if (tolerable.length) {
+    console.log(`\n${tolerable.length} weapon icons not in any upstream source yet — UI falls back to a glyph:`);
+    for (const m of tolerable) console.log(`  ~ ${m}`);
+  }
+  console.log('all required image references resolve.');
   process.exit(0);
 }
 

@@ -3,7 +3,7 @@ import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
 import { weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { NO_ARTIFACTS, DEFAULT_BUFFS, setPicksFromPieces } from '../data/presets';
-import { addBuffs, computeDamage, formatNumber, formatPercent } from '../lib/damage';
+import { addBuffs, computeDamage, formatNumber } from '../lib/damage';
 import type {
   AdditiveReaction,
   AmplifiedReaction,
@@ -21,10 +21,10 @@ import type { TalentGroup } from '../data/generated/talents';
 import { CONSTELLATION_TALENT_BONUS } from '../data/generated/constellationTalents';
 import { weaponPassiveFor } from '../data/generated/weaponPassives';
 import { weaponBuffAt, weaponPassiveMaxStacks, WEAPON_PASSIVE_EFFECTS } from '../data/weaponPassives';
-import { ARTIFACT_SETS, resolveSetBuffs } from '../data/artifactSets';
+import { resolveSetBuffs } from '../data/artifactSets';
 import { constellationsFor, passivesFor } from '../data/generated/constellations';
 import { constellationBuffs, passiveBuffs, CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
-import DamageTable, { Delta, GROUP_LABEL, overlayBaseline, snapshotBaseline } from './DamageTable';
+import { GROUP_LABEL, overlayBaseline, snapshotBaseline } from './DamageTable';
 import type { DamageRowVm, DamageGroupVm, DamageBaseline } from './DamageTable';
 import { ElementIcon } from './ElementIcon';
 import {
@@ -32,12 +32,7 @@ import {
   ELEMENT_BG,
   ELEMENTS,
   GROUP_TO_TALENT,
-  MAIN_OPTIONS,
-  PIECE_ROWS,
   REACHABLE_REACTIONS,
-  SECONDARY_LABEL,
-  STAT_GLYPH,
-  SUB_OPTIONS,
   TRANSFORMATIVE,
 } from './calculator/constants';
 import {
@@ -46,14 +41,17 @@ import {
   defaultsFor,
   effectiveTalentLevels,
   EMPTY_SETS,
-  formatMainValue,
   formatRowText,
   mainValueFor,
   sanitize,
   signatureMultiplierAt,
 } from './calculator/draft';
 import type { CritMode, Draft } from './calculator/draft';
-import { Glyph, IconSelect, zoneRefs } from './calculator/primitives';
+import { zoneRefs } from './calculator/primitives';
+import { DamagePanel } from './calculator/DamagePanel';
+import { EquipmentPanel } from './calculator/EquipmentPanel';
+import { CharacterPassives, CharacterStats } from './calculator/CharacterPanel';
+import { ScenarioBar } from './calculator/ScenarioBar';
 import { BaseZone } from './calculator/zones/BaseZone';
 import { BonusZone } from './calculator/zones/BonusZone';
 import { CritZone } from './calculator/zones/CritZone';
@@ -151,8 +149,31 @@ export default function SingleCalculator() {
       scalingOverride: null,
     }));
 
+  /** From a chain step in the damage tab, reveal and highlight its zone. */
+  const jumpToZone = (id: string) => {
+    setHighlight(id);
+    setTab('multipliers');
+    requestAnimationFrame(() => zoneRefs.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  };
+
   /** Editing the multiplier by hand detaches it from the picked row. */
   const changeSkillMult = (v: number) => setDraft((d) => ({ ...d, skillMult: v, activeRowId: null }));
+
+  /** Raising the constellation re-derives the signature multiplier — unless a
+   *  table row is loaded, in which case that row owns the multiplier. */
+  const changeConstellation = (cn: number) =>
+    setDraft((d) => ({
+      ...d,
+      constellation: cn,
+      skillMult: d.activeRowId
+        ? d.skillMult
+        : signatureMultiplierAt(character.id, d.attackType, effectiveTalentLevels(character.id, d.talentLevels, cn)) || d.skillMult,
+    }));
+
+  /** Picking "Custom…" seeds the level from the preset it replaces. */
+  const changeEnemy = (id: string) =>
+    setDraft((d) => (id === 'custom' ? { ...d, customEnemy: true, enemyLevel: enemy.level } : { ...d, customEnemy: false, enemyId: id }));
+
   const setArtifact = (patch: Partial<ArtifactBuild>) =>
     setDraft((d) => ({ ...d, artifacts: { ...d.artifacts, ...patch } }));
 
@@ -323,6 +344,12 @@ export default function SingleCalculator() {
   ]
     .filter(Boolean)
     .join(' · ');
+  /** This level feeds the engine only via the effect table or its own talent bump. */
+  const bumpAtLevel = (l: number) => (l === 3 || l === 5 ? consTalent[l] : undefined);
+  const constellationNote =
+    draft.constellation > 0 && !consModelled[draft.constellation] && !bumpAtLevel(draft.constellation)
+      ? `C${draft.constellation} not modelled — its text is shown, but it does not change the number.`
+      : '';
   const levelForGroup = (group: TalentGroup) => effLevels[bucketOf(group)];
 
   const damageGroups: DamageGroupVm[] = useMemo(() => {
@@ -574,191 +601,32 @@ export default function SingleCalculator() {
       active ? 'border-forest-600 bg-forest-600/10 text-forest-700' : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)]'
     }`;
 
-  const statRows: { label: string; base: number; mod: number; total: number; fmt: 'int' | 'pct' }[] = [
-    { label: 'HP', base: result.baseHP, mod: result.totalHP - result.baseHP, total: result.totalHP, fmt: 'int' },
-    { label: 'ATK', base: result.baseATK, mod: result.totalATK - result.baseATK, total: result.totalATK, fmt: 'int' },
-    { label: 'DEF', base: result.baseDEF, mod: result.totalDEF - result.baseDEF, total: result.totalDEF, fmt: 'int' },
-    { label: 'Elemental Mastery', base: 0, mod: result.em, total: result.em, fmt: 'int' },
-    { label: 'Energy Recharge', base: 1, mod: result.er, total: 1 + result.er, fmt: 'pct' },
-    { label: 'CRIT Rate', base: 0.05, mod: result.critRateRaw - 0.05, total: result.critRateRaw, fmt: 'pct' },
-    { label: 'CRIT DMG', base: 0.5, mod: result.critDMG - 0.5, total: result.critDMG, fmt: 'pct' },
-  ];
-
-  const chain: { id: string; label: string; value: number; display: string }[] = [
-    { id: 'base', label: 'Base', value: 0, display: formatNumber(baseDamage) },
-    { id: 'bonus', label: 'Bonus', value: dmgMult, display: `×${dmgMult.toFixed(3)}` },
-    { id: 'crit', label: 'Crit', value: critMult, display: `×${critMult.toFixed(3)}` },
-    { id: 'reaction', label: 'Reaction', value: result.reactionMultiplier, display: `×${result.reactionMultiplier.toFixed(3)}` },
-    { id: 'def', label: 'DEF', value: result.defMultiplier, display: `×${result.defMultiplier.toFixed(3)}` },
-    { id: 'res', label: 'RES', value: result.resMultiplier, display: `×${result.resMultiplier.toFixed(3)}` },
-  ];
-
-  const contribution = chain
-    .filter((c) => c.id !== 'base' && c.value > 0)
-    .map((c) => ({ ...c, gain: expected - expected / c.value }));
-
   return (
     <div className="mx-auto flex w-full flex-col lg:h-[calc(100dvh-7rem)] lg:min-h-0">
       {/* ============ Scenario bar ============ */}
-      <div className="panel shrink-0 p-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
-          {/* Character card */}
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            aria-label={`Change character (currently ${character.name})`}
-            title="Change character"
-            className="group relative block w-full shrink-0 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] text-left transition-colors hover:border-forest-500 lg:w-[160px]"
-          >
-            <span className="relative block h-[160px] w-full overflow-hidden">
-              <span className={`absolute inset-0 bg-linear-to-b ${ELEMENT_BG[character.element] ?? ELEMENT_BG.physical}`} aria-hidden="true" />
-              <img src={`/images/portraits/${character.id}.webp`} alt="" width="256" height="256" className="relative h-full w-full object-cover" />
-              <ElementIcon el={character.element} className="absolute right-1.5 top-1.5 h-6 w-6" />
-              <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/40 to-transparent px-2.5 pb-2 pt-8">
-                <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-white">
-                  <ElementIcon el={character.element} className="h-4 w-4" />
-                  {character.name}
-                </span>
-                <span className="block text-[10px] text-white/80">
-                  {ELEMENT_LABEL[character.element]} · {character.weaponType}
-                </span>
-              </span>
-              <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h13l-3-3M20 17H7l3 3" /></svg>
-                <span className="text-[11px] font-semibold uppercase tracking-wide">Change</span>
-              </span>
-            </span>
-          </button>
-
-          {/* Controls — a grid that fills the width instead of wrapping with gaps */}
-          <div className="grid flex-1 grid-cols-2 content-start gap-2.5 sm:grid-cols-4">
-            <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-medium text-[var(--muted)]">Level</span>
-              <input
-                type="number"
-                min={1}
-                max={90}
-                value={draft.level}
-                onChange={(e) => set('level', Math.min(90, Math.max(1, parseInt(e.target.value, 10) || 90)))}
-                className="h-9 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2.5 text-right text-sm text-[var(--text)]"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-medium text-[var(--muted)]">Constellation</span>
-              <select
-                value={draft.constellation}
-                onChange={(e) => {
-                  const cn = parseInt(e.target.value, 10);
-                  setDraft((d) => ({
-                    ...d,
-                    constellation: cn,
-                    skillMult: d.activeRowId
-                      ? d.skillMult
-                      : signatureMultiplierAt(character.id, d.attackType, effectiveTalentLevels(character.id, d.talentLevels, cn)) || d.skillMult,
-                  }));
-                }}
-                className="h-9 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2.5 text-sm text-[var(--text)]"
-              >
-                {[0, 1, 2, 3, 4, 5, 6].map((c) => (
-                  <option key={c} value={c}>
-                    C{c}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="col-span-2 flex flex-col gap-1">
-              <span className="text-[11px] font-medium text-[var(--muted)]" title="Talent level caps at 10. Constellation C3 / C5 raise one talent by +3 (up to 15); a few passives add +1. Set 11-15 only when that applies.">
-                Talents — Normal / Skill / Burst <span className="text-[10px] font-normal">(cap 10)</span>
-              </span>
-              <div className="grid grid-cols-3 gap-1.5">
-                {(
-                  [
-                    ['normal', 'Normal Attack (also Charged / Plunge)'],
-                    ['skill', 'Elemental Skill'],
-                    ['burst', 'Elemental Burst'],
-                  ] as const
-                ).map(([g, label]) => (
-                  <input
-                    key={g}
-                    type="number"
-                    min={1}
-                    max={15}
-                    value={draft.talentLevels[g]}
-                    onChange={(e) => changeTalentLevel(g, parseInt(e.target.value, 10) || 1)}
-                    title={label}
-                    aria-label={label}
-                    className="h-9 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-1 text-center text-sm text-[var(--text)]"
-                  />
-                ))}
-              </div>
-              {talentBonusNote && <span className="text-[10px] font-semibold text-forest-600">{talentBonusNote}</span>}
-            </div>
-
-            <label className="col-span-2 flex flex-col gap-1">
-              <span className="text-[11px] font-medium text-[var(--muted)]">Weapon</span>
-              <IconSelect
-                className="relative w-full"
-                value={weapon?.id ?? ''}
-                onChange={(v) => set('weaponId', v)}
-                options={weaponOptions.map((w) => ({
-                  value: w.id,
-                  label: `${w.name} · ${w.rarity}★`,
-                  icon: <img src={`/images/weapons/${w.id}.webp`} alt="" width="48" height="48" className="h-6 w-6 object-contain" loading="lazy" decoding="async" />,
-                }))}
-              />
-            </label>
-
-            <div className="col-span-2 flex flex-col gap-1">
-              <span className="text-[11px] font-medium text-[var(--muted)]">Enemy</span>
-              <div className="flex items-center gap-2">
-                <IconSelect
-                  className="relative flex-1"
-                  value={draft.customEnemy ? 'custom' : draft.enemyId}
-                  onChange={(v) => {
-                    if (v === 'custom') {
-                      setDraft((d) => ({ ...d, customEnemy: true, enemyLevel: enemy.level }));
-                    } else {
-                      setDraft((d) => ({ ...d, customEnemy: false, enemyId: v }));
-                    }
-                  }}
-                  options={[
-                    ...ENEMIES.map((en) => ({ value: en.id, label: `${en.name} · Lv${en.level}`, icon: <Glyph name="enemy" className="h-5 w-5 text-[var(--muted)]" /> })),
-                    { value: 'custom', label: 'Custom…' },
-                  ]}
-                />
-                {draft.customEnemy && (
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={draft.enemyLevel}
-                    onChange={(e) => set('enemyLevel', clamp(parseInt(e.target.value, 10) || 90, 1, 100))}
-                    aria-label="Enemy level"
-                    className="h-9 w-16 shrink-0 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-right text-sm text-[var(--text)]"
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Result */}
-          <div className="flex shrink-0 items-center justify-between gap-3 rounded-xl border border-forest-500/25 bg-forest-500/8 px-4 py-2.5 lg:w-[190px] lg:flex-col lg:items-end lg:justify-center">
-            <div className="text-right">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">Expected</span>
-              <span className="damage-number tnum text-3xl leading-none">{formatNumber(expected)}</span>
-            </div>
-            <span className="text-[11px] leading-tight text-[var(--muted)] lg:text-right">
-              {formatNumber(result.nonCrit)}
-              <span className="hidden lg:inline"> non-crit</span>
-              <br />
-              {formatNumber(result.critHit)}
-              <span className="hidden lg:inline"> crit</span>
-            </span>
-          </div>
-        </div>
-      </div>
+      <ScenarioBar
+        character={character}
+        weapon={weapon}
+        weaponOptions={weaponOptions}
+        enemy={enemy}
+        level={draft.level}
+        constellation={draft.constellation}
+        talentLevels={draft.talentLevels}
+        customEnemy={draft.customEnemy}
+        enemyLevel={draft.enemyLevel}
+        talentBonusNote={talentBonusNote}
+        constellationNote={constellationNote}
+        expected={expected}
+        nonCrit={result.nonCrit}
+        critHit={result.critHit}
+        onOpenPicker={() => setPickerOpen(true)}
+        onLevel={(v) => set('level', v)}
+        onConstellation={changeConstellation}
+        onTalentLevel={changeTalentLevel}
+        onWeapon={(v) => set('weaponId', v)}
+        onEnemy={changeEnemy}
+        onEnemyLevel={(v) => set('enemyLevel', v)}
+      />
       {/* ============ Tabs + build tools ============ */}
       <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
@@ -789,52 +657,17 @@ export default function SingleCalculator() {
       <div className="mt-3 min-h-0 flex-1 lg:overflow-y-auto lg:pr-1">
 
       {/* ============ Constellations & passives (Character tab) ============ */}
-      {tab === 'character' && (constellations.length > 0 || ascensionPassives.length > 0) && (
-        <details className="panel mt-3 p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--text)]">Constellations &amp; ascension passives</summary>
-          <div className="mt-3">
-            <ul className="max-h-[260px] space-y-2 overflow-y-auto pr-1">
-              {constellations.map((c) => (
-                <li key={c.level} className={c.level <= draft.constellation ? '' : 'opacity-45'}>
-                  <p className="text-xs font-medium text-[var(--text)]">
-                    C{c.level} · {c.name}
-                    {consModelled[c.level] && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-forest-600">modelled</span>}
-                  </p>
-                  <p className="text-xs leading-relaxed text-[var(--muted)]">{c.description}</p>
-                </li>
-              ))}
-            </ul>
-            {ascensionPassives.length > 0 && (
-              <div className="mt-4 border-t border-[var(--line)] pt-3">
-                <p className="text-xs font-semibold text-[var(--muted)]">Ascension passives</p>
-                <ul className="mt-2 max-h-[200px] space-y-2 overflow-y-auto pr-1">
-                  {ascensionPassives.map((p, i) => (
-                    <li key={i}>
-                      <label className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          className="mt-0.5"
-                          checked={draft.passiveOn.includes(i)}
-                          disabled={!passiveModelled[i]}
-                          onChange={(e) =>
-                            set('passiveOn', e.target.checked ? [...draft.passiveOn, i] : draft.passiveOn.filter((x) => x !== i))
-                          }
-                        />
-                        <span>
-                          <span className="text-xs font-medium text-[var(--text)]">
-                            {p.name}
-                            {passiveModelled[i] && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-forest-600">modelled</span>}
-                          </span>
-                          <span className="block text-xs leading-relaxed text-[var(--muted)]">{p.description}</span>
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </details>
+      {tab === 'character' && (
+        <CharacterPassives
+          constellations={constellations}
+          ascensionPassives={ascensionPassives}
+          consModelled={consModelled}
+          consBumpLevels={[3, 5].filter((l) => !!consTalent[l as 3 | 5])}
+          passiveModelled={passiveModelled}
+          activeCons={draft.constellation}
+          passiveOn={draft.passiveOn}
+          onTogglePassive={(i, on) => set('passiveOn', on ? [...draft.passiveOn, i] : draft.passiveOn.filter((x) => x !== i))}
+        />
       )}
 
       {/* ============ Character picker ============ */}
@@ -949,34 +782,7 @@ export default function SingleCalculator() {
 
       <div>
         <div className={tab === 'multipliers' ? 'grid grid-cols-1 content-start gap-2.5 sm:grid-cols-2 lg:grid-cols-3' : tab === 'equipment' ? 'grid grid-cols-1 items-start gap-3 lg:grid-cols-2' : 'space-y-4'}>
-          {/* Character stats — base / mod / total, mirroring the reference panels */}
-          {tab === 'character' && (
-          <section className="panel p-5">
-            <h3 className="text-base font-semibold text-[var(--text)]">Character stats</h3>
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
-                    <th className="py-2 pr-3 font-medium">Stat</th>
-                    <th className="px-3 py-2 text-right font-medium">Base</th>
-                    <th className="px-3 py-2 text-right font-medium">Mod</th>
-                    <th className="py-2 pl-3 text-right font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {statRows.map((r) => (
-                    <tr key={r.label} className="border-b border-[var(--line)]/60 last:border-b-0">
-                      <td className="py-1.5 pr-3 text-[var(--muted)]">{r.label}</td>
-                      <td className="px-3 py-1.5 text-right tnum text-[var(--text)]">{r.fmt === 'pct' ? formatPercent(r.base) : formatNumber(r.base)}</td>
-                      <td className="px-3 py-1.5 text-right tnum text-forest-600">{r.mod > 0 ? '+' : ''}{r.fmt === 'pct' ? formatPercent(r.mod) : formatNumber(r.mod)}</td>
-                      <td className="py-1.5 pl-3 text-right tnum font-semibold text-[var(--text)]">{r.fmt === 'pct' ? formatPercent(r.total) : formatNumber(r.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-          )}
+          {tab === 'character' && <CharacterStats result={result} />}
 
           {tab === 'multipliers' && (
           <>
@@ -1065,279 +871,47 @@ export default function SingleCalculator() {
 
           {/* Artifacts — added on top of the character's own stats */}
           {tab === 'equipment' && (
-          <>
-          {weaponPassive && (
-            <section className="panel p-4">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <h3 className="text-sm font-semibold text-[var(--text)]">
-                  {weaponPassive.effectName}
-                  <span className="ml-2 text-xs font-normal text-[var(--muted)]">{weapon?.name}</span>
-                </h3>
-                <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
-                  Refinement
-                  <select
-                    value={draft.weaponRefine}
-                    onChange={(e) => set('weaponRefine', parseInt(e.target.value, 10))}
-                    className="h-8 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-sm text-[var(--text)]"
-                  >
-                    {[1, 2, 3, 4, 5].map((r) => (
-                      <option key={r} value={r}>
-                        R{r}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {weaponEffect ? (
-                  weaponMaxStacks > 1 ? (
-                    <span className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
-                      Stacks
-                      {Array.from({ length: weaponMaxStacks + 1 }, (_, i) => i).map((i) => (
-                        <button key={i} type="button" onClick={() => set('weaponStacks', i)} className={chip(draft.weaponStacks === i)}>
-                          {i}
-                        </button>
-                      ))}
-                    </span>
-                  ) : (
-                    <label className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
-                      <input type="checkbox" checked={draft.weaponStacks > 0} onChange={(e) => set('weaponStacks', e.target.checked ? 1 : 0)} />
-                      Applied
-                    </label>
-                  )
-                ) : (
-                  <span className="text-[11px] text-pyro">Not modelled for damage — set it manually in the zones below.</span>
-                )}
-              </div>
-              <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{weaponRefDesc}</p>
-              {weaponEffect?.note && <p className="mt-1 text-[11px] italic text-[var(--muted)]">{weaponEffect.note}</p>}
-            </section>
-          )}
-          <section className="panel p-4">
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="text-base font-semibold text-[var(--text)]">
-                Artifacts{' '}
-                <span className="text-xs font-normal text-[var(--muted)]">sample build — edit to match your own</span>
-              </h3>
-              <button type="button" onClick={() => set('artifacts', { ...NO_ARTIFACTS })} className="text-[11px] text-[var(--muted)] underline underline-offset-2 hover:text-forest-600">
-                clear
-              </button>
-            </div>
-
-            {/* Artifact pieces — 5 slots, each picks a set (+ main stat where selectable) */}
-            <div className="mt-2 rounded-[12px] border border-[var(--line)] p-2.5">
-              <span className="text-xs font-medium text-[var(--muted)]">
-                Pieces <span className="text-[10px] font-normal">— set bonuses come from 2 or 4 matching pieces</span>
-              </span>
-              <div className="mt-2 space-y-2">
-                {PIECE_ROWS.map((row) => {
-                  const mainOpt = row.mainSlot ? MAIN_OPTIONS.find((m) => m.slot === row.mainSlot) : undefined;
-                  return (
-                    <div key={row.piece} className="flex items-center gap-2">
-                      <span className="w-12 shrink-0 text-[11px] text-[var(--muted)]">{row.label}</span>
-                      <div className="min-w-0 flex-1">
-                        <IconSelect
-                          value={(draft.artifacts.sets?.[row.piece] ?? '') || 'none'}
-                          onChange={(v) => setPieceSet(row.piece, v)}
-                          options={[
-                            { value: 'none', label: 'No set' },
-                            ...ARTIFACT_SETS.map((s) => ({
-                              value: s.id,
-                              label: s.name,
-                              icon: <img src={`/images/artifact-sets/${s.id}-${row.piece}.webp`} alt="" width="48" height="48" className="h-7 w-7 object-contain" loading="lazy" decoding="async" />,
-                            })),
-                          ]}
-                        />
-                      </div>
-                      {mainOpt ? (
-                        <div className="w-36 shrink-0">
-                          <IconSelect
-                            value={draft.artifacts[mainOpt.slot].value > 0 ? draft.artifacts[mainOpt.slot].type : 'none'}
-                            onChange={(v) => {
-                              if (v === 'none') setArtifact({ [mainOpt.slot]: { ...NO_ARTIFACTS[mainOpt.slot] } } as Partial<ArtifactBuild>);
-                              else setArtifact({ [mainOpt.slot]: { type: v as SecondaryStatType, value: mainValueFor(v as SecondaryStatType) } } as Partial<ArtifactBuild>);
-                            }}
-                            options={[
-                              { value: 'none', label: 'None' },
-                              ...mainOpt.options.map((o) => ({ value: o as string, label: `${SECONDARY_LABEL[o]} · ${formatMainValue(o)}`, icon: <Glyph name={STAT_GLYPH[o]} className="h-5 w-5" /> })),
-                            ]}
-                          />
-                        </div>
-                      ) : (
-                        <span className="w-36 shrink-0 text-right text-[11px] text-[var(--muted)]">{row.fixed}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            {/* Sub-stats — four per piece, pieces across, slots down */}
-            <div className="mt-3">
-              <span className="text-xs font-medium text-[var(--muted)]">
-                Sub-stats <span className="text-[10px] font-normal">— four per piece</span>
-              </span>
-              <div className="mt-2 grid grid-cols-5 gap-2">
-                {PIECE_ROWS.map((row, pieceIdx) => (
-                  <div key={row.piece} className="min-w-0">
-                    <span className="mb-1 block text-center text-[10px] text-[var(--muted)]">{row.label}</span>
-                    <div className="space-y-1.5">
-                      {[0, 1, 2, 3].map((slot) => {
-                        const sub = draft.artifacts.pieceSubs?.[pieceIdx]?.[slot];
-                        const opt = SUB_OPTIONS.find((o) => o.type === sub?.type);
-                        return (
-                          <div key={slot} className="flex items-center gap-1">
-                            <select
-                              value={sub?.type ?? 'none'}
-                              aria-label={`${row.label} sub-stat ${slot + 1}`}
-                              onChange={(e) => setPieceSub(pieceIdx, slot, e.target.value as SecondaryStatType | 'none')}
-                              className="h-8 w-full min-w-0 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-1 text-[11px] text-[var(--text)]"
-                            >
-                              <option value="none">—</option>
-                              {SUB_OPTIONS.map((o) => (
-                                <option key={o.type} value={o.type}>
-                                  {o.label}
-                                </option>
-                              ))}
-                            </select>
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              disabled={!sub}
-                              value={sub ? (opt?.percent ? Number((sub.value * 100).toFixed(2)) : sub.value) : ''}
-                              onChange={(e) => setPieceSubValue(pieceIdx, slot, parseFloat(e.target.value) || 0, !!opt?.percent)}
-                              className="h-8 w-14 shrink-0 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-1 text-right text-[11px] text-[var(--text)] disabled:opacity-40"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <p className="mt-2 border-t border-[var(--line)] pt-2 text-[11px] text-[var(--muted)]">
-              With artifacts: ATK <strong className="text-[var(--text)]">{formatNumber(result.totalATK)}</strong> · CRIT <strong className="text-[var(--text)]">{formatPercent(result.critRate)}</strong> / <strong className="text-[var(--text)]">{formatPercent(result.critDMG)}</strong> · EM <strong className="text-[var(--text)]">{Math.round(result.em)}</strong>
-            </p>
-          </section>
-          </>
+          <EquipmentPanel
+            weaponPassive={weaponPassive}
+            weaponName={weapon?.name}
+            weaponEffect={weaponEffect}
+            weaponMaxStacks={weaponMaxStacks}
+            weaponRefDesc={weaponRefDesc}
+            weaponRefine={draft.weaponRefine}
+            weaponStacks={draft.weaponStacks}
+            onWeaponRefine={(r) => set('weaponRefine', r)}
+            onWeaponStacks={(n) => set('weaponStacks', n)}
+            artifacts={draft.artifacts}
+            onClearArtifacts={() => set('artifacts', { ...NO_ARTIFACTS })}
+            onArtifact={setArtifact}
+            onPieceSet={setPieceSet}
+            onPieceSub={setPieceSub}
+            onPieceSubValue={setPieceSubValue}
+            result={result}
+            chip={chip}
+          />
           )}
 
           {tab === 'damage' && (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
-          <div className="space-y-4">
-          <div className="max-h-[46vh] overflow-y-auto pr-1">
-            <DamageTable groups={groupsWithDiff} onPick={pickRow} />
-          </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="panel p-4">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs uppercase tracking-wide text-[var(--muted)]">Expected</span>
-                <span className="tnum text-xl font-semibold text-[var(--text)]">{formatNumber(expected)}</span>
-              </div>
-              <p className="mt-0.5 text-[11px] text-[var(--muted)]">non-crit {formatNumber(result.nonCrit)} · crit {formatNumber(result.critHit)}</p>
-              {capped && <p className="mt-1 text-[11px] text-pyro">Capped at 20,000,000 (single-hit limit).</p>}
-              <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--line)] pt-2">
-                <span className="text-[11px] text-[var(--muted)]">
-                  {activeBaseline === null ? (
-                    'Change one thing, pin it, and read the delta.'
-                  ) : baselineForActiveRow !== undefined ? (
-                    <>
-                      vs pinned <span className="tnum text-[var(--text)]">{formatNumber(baselineForActiveRow)}</span> ·{' '}
-                      <Delta from={baselineForActiveRow} to={expected} />
-                    </>
-                  ) : (
-                    'Baseline pinned — see the Diff column.'
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setBaseline(activeBaseline ? null : snapshotBaseline(character.id, damageGroups))}
-                  className="shrink-0 rounded-lg border border-[var(--line)] px-2 py-1 text-[11px] font-semibold text-[var(--muted)] transition-colors hover:border-forest-500 hover:text-forest-600"
-                >
-                  {activeBaseline ? 'Clear baseline' : 'Pin baseline'}
-                </button>
-              </div>
-            </div>
-
-            {(reactionPreviews.amplified.length > 0 || reactionPreviews.transformative.length > 0) && (
-              <details className="panel p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-[var(--text)]">
-                  Reactions <span className="ml-2 text-[11px] font-normal text-[var(--muted)]">click to apply</span>
-                </summary>
-                <div className="mt-2 space-y-1">
-                  {reactionPreviews.amplified.map((a) => (
-                    <button
-                      key={a.key}
-                      type="button"
-                      onClick={() => set('amplified', a.key)}
-                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
-                        draft.amplified === a.key ? 'bg-forest-600/12 text-forest-700' : 'text-[var(--muted)] hover:bg-[var(--soft)]'
-                      }`}
-                    >
-                      <span>{a.label}</span>
-                      <span className="tnum text-[var(--text)]">×{a.multiplier.toFixed(2)}</span>
-                    </button>
-                  ))}
-                  {reactionPreviews.transformative.map((t) => (
-                    <button
-                      key={t.key}
-                      type="button"
-                      onClick={() => set('transformative', t.key)}
-                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
-                        draft.transformative === t.key ? 'bg-forest-600/12 text-forest-700' : 'text-[var(--muted)] hover:bg-[var(--soft)]'
-                      }`}
-                    >
-                      <span>{t.label}</span>
-                      <span className="tnum text-forest-600">{formatNumber(t.value)}</span>
-                    </button>
-                  ))}
-                </div>
-              </details>
-            )}
-
-            <details className="panel p-4">
-              <summary className="cursor-pointer text-sm font-semibold text-[var(--text)]">Formula &amp; contribution</summary>
-              <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-                {chain.map((c, i) => (
-                  <span key={c.id} className="inline-flex items-center gap-1.5">
-                    {i > 0 && <span className="text-[var(--muted)]">×</span>}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHighlight(c.id);
-                        setTab('multipliers');
-                        requestAnimationFrame(() => zoneRefs.get(c.id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
-                      }}
-                      className={`tnum rounded px-1.5 py-0.5 transition-colors ${highlight === c.id ? 'bg-forest-500/15 text-forest-700' : 'text-[var(--text)] hover:bg-[var(--soft)]'}`}
-                    >
-                      {c.display}
-                    </button>
-                  </span>
-                ))}
-                <span className="text-[var(--muted)]">=</span>
-                <span className="tnum font-semibold text-forest-600">{formatNumber(expected)}</span>
-              </div>
-              <div className="mt-3 max-h-[200px] space-y-2.5 overflow-y-auto pr-1">
-                {contribution.map((c) => (
-                  <div key={c.id}>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[var(--muted)]">{c.label} {c.display}</span>
-                      <span className="tnum font-medium text-forest-600">+{formatNumber(c.gain)} ({expected > 0 ? Math.round((c.gain / expected) * 100) : 0}%)</span>
-                    </div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
-                      <div className="h-full rounded-full bg-forest-600" style={{ width: `${Math.min((c.gain / expected) * 100, 100)}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {result.transformative > 0 && (
-                <p className="mt-3 border-t border-[var(--line)] pt-2 text-[11px] text-[var(--muted)]">
-                  Transformative reaction adds <span className="tnum font-semibold text-forest-600">+{formatNumber(result.transformative)}</span> {result.transformativeName} as a separate hit.
-                </p>
-              )}
-            </details>
-          </div>
-          </div>
+          <DamagePanel
+            groups={groupsWithDiff}
+            onPickRow={pickRow}
+            result={result}
+            expected={expected}
+            capped={capped}
+            baseDamage={baseDamage}
+            dmgMult={dmgMult}
+            critMult={critMult}
+            baseline={baseline}
+            baselineForActiveRow={baselineForActiveRow}
+            onToggleBaseline={() => setBaseline(activeBaseline ? null : snapshotBaseline(character.id, damageGroups))}
+            reactionPreviews={reactionPreviews}
+            amplified={draft.amplified}
+            transformative={draft.transformative}
+            onPatch={patch}
+            highlight={highlight}
+            onJumpToZone={jumpToZone}
+          />
           )}
         </div>
 

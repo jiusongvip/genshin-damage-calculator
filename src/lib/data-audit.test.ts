@@ -1,18 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { addBuffs, computeDamage } from './damage';
 import { CHARACTERS } from '../data/characters';
-import { getWeapon } from '../data/weapons';
+import { getWeapon, WEAPONS } from '../data/weapons';
 import { DEFAULT_BUFFS, NO_ARTIFACTS, resolvePreset, resolveSetPicks } from '../data/presets';
-import { resolveSetBuffs } from '../data/artifactSets';
+import { ARTIFACT_SETS, resolveSetBuffs } from '../data/artifactSets';
 import { ENEMIES } from '../data/enemies';
 import { talentRowsFor } from '../data/generated/talents';
 import { TALENTS, signatureTalent } from '../data/talents';
 import { baseStatsAt } from '../data/levelStats';
+import { CONSTELLATION_EFFECTS, PASSIVE_EFFECTS, constellationBuffs } from '../data/constellations';
+import { effectiveTalentLevels, signatureMultiplierAt } from '../components/calculator/draft';
 
 /**
- * Data-accuracy audit for Baizhu, run against three independent sources.
+ * Data-accuracy audit: Baizhu in depth (the original template) plus three
+ * differently-shaped characters (Fischl / Neuvillette / Itto), the artifact-set
+ * and enemy tables, and the modelling-gap disclosures the UI makes.
  *
- * Every number asserted here was cross-checked on 2026-09-20 against:
+ * Every number asserted here was cross-checked on 2026-09-20/21 against:
  *   • genshin-db v5.2.13            (the dataset our generators read)
  *   • damage.paimon.app             (Nuxt bundle, `c052070.js`)
  *   • genshin.aspirine.su           (plain `js/db.js`)
@@ -221,6 +225,94 @@ describe('Baizhu — constellation modelling gap', () => {
     // Spiritvein damage; neither is represented, so picking them changes nothing.
     const rows = talentRowsFor('baizhu')!;
     expect(rows.filter((r) => /gossamer|spiritvein/i.test(r.label)).length).toBe(1);
+  });
+});
+
+/**
+ * The UI discloses which constellation / passive / weapon effects are shown as
+ * text but feed nothing. These tests pin the disclosure to the data so a level
+ * cannot be labelled "not modelled" while an entry exists, or vice versa.
+ */
+describe('modelling-gap disclosure — what the UI claims must match the tables', () => {
+  const homa = getWeapon(baizhu.bestWeapon)!;
+  const withMult = (mult: number) =>
+    computeDamage({
+      character: baizhu,
+      weapon: homa,
+      artifacts: NO_ARTIFACTS,
+      buffs: DEFAULT_BUFFS,
+      enemy,
+      characterLevel: 90,
+      skillMultiplier: mult,
+      amplified: 'none',
+      transformative: 'none',
+    }).expected;
+
+  it('an unmodelled character gets zero buff from any constellation level', () => {
+    expect(CONSTELLATION_EFFECTS['baizhu']).toBeUndefined();
+    for (const cn of [1, 2, 3, 4, 5, 6]) {
+      expect(constellationBuffs('baizhu', cn)).toEqual(constellationBuffs('baizhu', 0));
+    }
+  });
+
+  it('so C0 to C6 moves Baizhu only through the C3 / C5 talent bumps', () => {
+    const levels = { normal: 10, skill: 10, burst: 10 };
+    // His Burst — the talent C3 / C5 raise. Normal attacks are untouched by the
+    // bumps, so for those C0 and C6 damage are literally identical.
+    const atC0 = signatureMultiplierAt('baizhu', 'burst', levels);
+    const atC6 = signatureMultiplierAt('baizhu', 'burst', effectiveTalentLevels('baizhu', levels, 6));
+    expect(atC6).not.toBe(atC0);
+    expect(withMult(atC6)).toBeGreaterThan(withMult(atC0));
+  });
+
+  it('Hu Tao C6 is modelled, so the note must not fire for it', () => {
+    expect(CONSTELLATION_EFFECTS['hu-tao']?.[6]).toBeTruthy();
+    expect(constellationBuffs('hu-tao', 6)).not.toEqual(constellationBuffs('hu-tao', 0));
+  });
+
+  it('Baizhu has no modelled ascension passives either', () => {
+    expect(PASSIVE_EFFECTS['baizhu']).toBeUndefined();
+  });
+});
+
+/**
+ * The weapon table now comes from scripts/generate-weapons.mjs — 213 entries
+ * straight from genshin-db instead of 63 hand-checked ones. These invariants
+ * are what let a generated file be trusted like a curated one.
+ */
+describe('site-wide — generated weapon table', () => {
+  const TYPES = ['polearm', 'bow', 'sword', 'catalyst', 'claymore'];
+  const SECONDARY: string[] = [
+    'atk%', 'hp%', 'def%', 'flatATK', 'flatHP', 'flatDEF',
+    'critRate', 'critDMG', 'em', 'er', 'physical', 'dmg%', 'heal%',
+  ];
+
+  it('every entry is a well-formed, in-union row', () => {
+    expect(WEAPONS.length).toBeGreaterThanOrEqual(213);
+    const ids = new Set<string>();
+    for (const w of WEAPONS) {
+      expect(w.id).toMatch(/^[a-z0-9-]+$/);
+      expect(w.name.length).toBeGreaterThan(0);
+      expect(ids.has(w.id)).toBe(false);
+      ids.add(w.id);
+      expect(TYPES).toContain(w.weaponType);
+      expect([4, 5]).toContain(w.rarity);
+      expect(SECONDARY).toContain(w.secondary.type);
+      expect(w.baseATK).toBeGreaterThan(0);
+    }
+  });
+
+  it('no character points bestWeapon at a missing entry', () => {
+    for (const c of CHARACTERS) {
+      expect(getWeapon(c.bestWeapon), c.id).toBeTruthy();
+    }
+  });
+
+  it('pins four known level-90 stat lines', () => {
+    expect(getWeapon('staff-of-homa')).toMatchObject({ baseATK: 608, secondary: { type: 'critDMG', value: 0.662 } });
+    expect(getWeapon('amos-bow')).toMatchObject({ baseATK: 608, secondary: { type: 'atk%', value: 0.496 } });
+    expect(getWeapon('lost-prayer')).toMatchObject({ baseATK: 608, secondary: { type: 'critRate', value: 0.331 } });
+    expect(getWeapon('sacrificial-fragments')).toMatchObject({ baseATK: 454, secondary: { type: 'em', value: 221 } });
   });
 });
 
@@ -444,5 +536,224 @@ describe('site-wide — invariants the Diff-mode baseline depends on', () => {
     const baizhuIds = new Set(talentRowsFor('baizhu')!.map((r) => r.id));
     const shared = talentRowsFor('ganyu')!.filter((r) => baizhuIds.has(r.id)).map((r) => r.id);
     expect(shared).toContain('combat1-0-1-hit-dmg');
+  });
+});
+
+describe('site-wide — artifact set table', () => {
+  const ELEMENTS: string[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro', 'physical'];
+
+  it('every set defines both a 2pc and a 4pc and ids are well-formed and unique', () => {
+    const ids = new Set<string>();
+    for (const s of ARTIFACT_SETS) {
+      expect(s.id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+      expect(ids.has(s.id), `duplicate set id ${s.id}`).toBe(false);
+      ids.add(s.id);
+      expect(s.two, `${s.id} missing 2pc`).toBeTruthy();
+      expect(s.four, `${s.id} missing 4pc`).toBeTruthy();
+    }
+  });
+
+  it('no element bonus points outside ElementType', () => {
+    for (const s of ARTIFACT_SETS) {
+      for (const eff of [s.two, s.four]) {
+        if (eff.elemDmg) expect(ELEMENTS, `${s.id} bad elemDmg element`).toContain(eff.elemDmg.element);
+      }
+    }
+  });
+
+  it('every set carries a note — conditional effects state their assumption', () => {
+    for (const s of ARTIFACT_SETS) {
+      expect(s.note, `${s.id} has no note`).toBeTruthy();
+      expect(s.note!.length, `${s.id} note is a stub`).toBeGreaterThan(10);
+    }
+  });
+
+  it('covers every rarity-4+ set: 45 modelled, 15 documented omissions', () => {
+    expect(ARTIFACT_SETS.length).toBe(45);
+    // The 15 omissions are justified in the artifactSets.ts header — the ones
+    // listed here are the sets a visitor might otherwise think are missing.
+    for (const skipped of ['Maiden Beloved', 'Lavawalker', "Long Night's Oath"]) {
+      expect(ARTIFACT_SETS.some((s) => s.name === skipped), `${skipped} must stay omitted`).toBe(false);
+    }
+  });
+
+  it('new sets feed the engine the way their notes claim', () => {
+    // Instructor: 2pc EM + 4pc EM stack additively.
+    const inst = resolveSetBuffs([{ id: 'instructor', pieces: 4 }], 'pyro', 'skill');
+    expect(inst.em).toBe(200);
+    // Berserker 4pc is deliberately unmodelled — only the 2pc CRIT applies.
+    const bers = resolveSetBuffs([{ id: 'berserker', pieces: 4 }], 'physical', 'normal');
+    expect(bers.critRate).toBe(0.12);
+    // Flower of Paradise Lost feeds only the bloom-family reactions.
+    const fpl = resolveSetBuffs([{ id: 'flower-of-paradise-lost', pieces: 4 }], 'dendro', 'burst');
+    expect(fpl.reactionDmg).toEqual({ bloom: 0.4, hyperbloom: 0.4, burgeon: 0.4 });
+  });
+});
+
+/**
+ * Task 6 breadth — the Baizhu template applied to three different shapes:
+ * a bow user (aimed-shot grouping), an HP-scaling charged-attack carry, and a
+ * DEF-scaling claymore user. Every pinned number was cross-checked on
+ * 2026-09-21 against genshin-db v5.2.13 (stats(90) and combatN param tables).
+ */
+
+describe('Fischl — bow user: aimed-shot grouping and the combat1 element caveat', () => {
+  const fischl = CHARACTERS.find((c) => c.id === 'fischl')!;
+  const rows = talentRowsFor('fischl')!;
+  const row = (label: string) => rows.find((r) => r.label === label)!;
+
+  it('level-90 base stats and ascension match genshin-db', () => {
+    // gdb stats(90): hp 9189.3029266 / attack 244.2567708 / defense 593.79372675 / specialized 0.24
+    const curve = baseStatsAt('fischl', 90)!;
+    expect(Math.round(curve.hp)).toBe(9189);
+    expect(Math.round(curve.atk * 100) / 100).toBe(244.26);
+    expect(Math.round(curve.def)).toBe(594);
+    expect(fischl.ascension).toEqual({ type: 'atk%', value: 0.24 });
+  });
+
+  it('the five normal hits sum to the advertised combo total', () => {
+    // gdb combat1 param1..param5 at index 9: 0.8721 / 0.9248 / 1.1492 / 1.1407 / 1.4246
+    const combo = ['1-Hit DMG', '2-Hit DMG', '3-Hit DMG', '4-Hit DMG', '5-Hit DMG'].reduce((s, l) => s + row(l).values[9], 0);
+    expect(combo).toBeCloseTo(5.5114, 6);
+    expect(signatureTalent('fischl')!.multiplier).toBeCloseTo(5.511, 3);
+    expect(TALENTS['fischl'].normal).toBeCloseTo(5.511, 3);
+  });
+
+  it('Aimed Shot and Fully-Charged Aimed Shot live in the charged group', () => {
+    // In-game the shot family IS the charged attack; the generator groups it
+    // accordingly (gdb combat1 fully-charged param = 2.232, aimed = 0.867).
+    expect(row('Aimed Shot').group).toBe('charged');
+    expect(row('Aimed Shot').values[9]).toBeCloseTo(0.867, 6);
+    expect(row('Fully-Charged Aimed Shot').values[9]).toBeCloseTo(2.232, 6);
+  });
+
+  it('KNOWN GAP — her physical normal combo is tagged Electro', () => {
+    // genshin-db carries ONE element per talent; Fischl's combat1 text only
+    // mentions Electro (the fully-charged shot), so generate-talents.mjs tags
+    // every combat1 row Electro. In game the five normal shots are Physical.
+    // Harmless against the default 10%-everything enemy, wrong against
+    // Physical-RES exceptions (mechanicals). If combat1 elements are ever split
+    // per row, this is the canary that must flip.
+    for (const r of rows.filter((r) => r.isDamage && r.group === 'normal')) expect(r.element).toBe('electro');
+  });
+
+  it('engine output is stable under both panels', () => {
+    const weapon = getWeapon(fischl.bestWeapon)!;
+    const bare = computeDamage({
+      character: fischl, weapon, artifacts: NO_ARTIFACTS, buffs: DEFAULT_BUFFS,
+      enemy, characterLevel: 90, amplified: 'none', transformative: 'none',
+    });
+    expect(bare.expected).toBeCloseTo(2377.43, 1);
+    const buffs = addBuffs(DEFAULT_BUFFS, resolveSetBuffs(resolveSetPicks(fischl), fischl.element, 'normal'));
+    const preset = computeDamage({
+      character: fischl, weapon, artifacts: resolvePreset(fischl), buffs,
+      enemy, characterLevel: 90, amplified: 'none', transformative: 'none',
+    });
+    expect(preset.expected).toBeCloseTo(11464.52, 1);
+  });
+});
+
+describe('Neuvillette — HP-scaling charged carry', () => {
+  const neu = CHARACTERS.find((c) => c.id === 'neuvillette')!;
+  const rows = talentRowsFor('neuvillette')!;
+  const row = (label: string) => rows.find((r) => r.label === label)!;
+
+  it('level-90 base stats and Crit DMG ascension match genshin-db', () => {
+    // gdb stats(90): hp 14695.093176 / atk 208.32436678 / def 576.4157775 / specialized 0.884
+    const curve = baseStatsAt('neuvillette', 90)!;
+    expect(Math.round(curve.hp)).toBe(14695);
+    expect(Math.round(curve.atk * 100) / 100).toBe(208.32);
+    expect(neu.ascension).toEqual({ type: 'critDMG', value: 0.884 });
+    expect(neu.scaling).toBe('hp');
+  });
+
+  it('the signature is the charged attack, and its two rows sum to the combo', () => {
+    const charged = rows.filter((r) => r.isDamage && r.group === 'charged');
+    expect(charged.map((r) => r.label).sort()).toEqual(['Charged Attack DMG', 'Charged Attack: Equitable Judgment']);
+    expect(row('Charged Attack DMG').values[9]).toBeCloseTo(2.4624, 6);
+    expect(row('Charged Attack: Equitable Judgment').values[9]).toBeCloseTo(0.14467, 6);
+    const sig = signatureTalent('neuvillette')!;
+    expect(sig.key).toBe('charged');
+    expect(sig.multiplier).toBeCloseTo(2.607, 3);
+  });
+
+  it('bare-panel damage scales off Max HP, not ATK', () => {
+    const r = computeDamage({
+      character: neu, weapon: getWeapon(neu.bestWeapon)!, artifacts: NO_ARTIFACTS, buffs: DEFAULT_BUFFS,
+      enemy, characterLevel: 90, amplified: 'none', transformative: 'none',
+    });
+    expect(r.scaling).toBe('hp');
+    expect(r.baseStat).toBeCloseTo(r.totalHP, 6);
+    expect(r.expected).toBeCloseTo(18761.8, 1);
+  });
+});
+
+describe('Arataki Itto — DEF-scaling claymore', () => {
+  const itto = CHARACTERS.find((c) => c.id === 'itto')!;
+  const rows = talentRowsFor('itto')!;
+
+  it('level-90 base stats and CRIT Rate ascension match genshin-db', () => {
+    // gdb stats(90): def 959.15585376 / specialized 0.242 (CRIT Rate)
+    const curve = baseStatsAt('itto', 90)!;
+    expect(Math.round(curve.def)).toBe(959);
+    expect(itto.ascension).toEqual({ type: 'critRate', value: 0.242 });
+    expect(itto.scaling).toBe('def');
+  });
+
+  it('every combat1 row is Physical and sums to the 14.569 combo', () => {
+    const normal = rows.filter((r) => r.isDamage && r.group === 'normal');
+    for (const r of normal) expect(r.element).toBe('physical');
+    const combo = normal.reduce((s, r) => s + r.values[9] * r.hits, 0);
+    expect(combo).toBeCloseTo(14.569, 3);
+    expect(TALENTS['itto'].normal).toBeCloseTo(14.569, 3);
+  });
+
+  it('the Burst carries no direct multiplier — damage comes from the empowered Normal combo', () => {
+    // His combat3 grants the Oni King's Mudra state; the dataset's burst table
+    // has no damage %, so TALENTS pins it at 0 and the Kesagiri rows live in
+    // combat1. The preset card must not claim a burst multiplier.
+    expect(TALENTS['itto'].burst).toBe(0);
+    expect(rows.filter((r) => r.isDamage && r.group === 'burst')).toHaveLength(0);
+  });
+
+  it('bare-panel damage scales off DEF', () => {
+    const r = computeDamage({
+      character: itto, weapon: getWeapon(itto.bestWeapon)!, artifacts: NO_ARTIFACTS, buffs: DEFAULT_BUFFS,
+      enemy, characterLevel: 90, amplified: 'none', transformative: 'none',
+    });
+    expect(r.scaling).toBe('def');
+    expect(r.baseStat).toBeCloseTo(r.totalDEF, 6);
+    expect(r.expected).toBeCloseTo(8391.35, 1);
+  });
+});
+
+describe('site-wide — enemy table', () => {
+  it('ENEMIES[0] stays the default target and every entry is well-formed', () => {
+    expect(ENEMIES[0].id).toBe('hilichurl');
+    const ids = new Set(ENEMIES.map((e) => e.id));
+    expect(ids.size).toBe(ENEMIES.length);
+    expect(ENEMIES.length).toBeGreaterThan(30);
+    for (const e of ENEMIES) {
+      expect(e.level).toBe(90);
+      expect(e.resistances.default).toBeCloseTo(0.1, 6);
+    }
+  });
+
+  it('the +70% Physical exception is limited to the documented mechanical family', () => {
+    const mech = ENEMIES.filter((e) => (e.resistances.physical ?? 0) > 0.1).map((e) => e.id);
+    expect(mech.sort()).toEqual(['perpetual-mechanical-array', 'ruin-guard', 'ruin-sentinel']);
+    for (const e of ENEMIES) {
+      for (const el of ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'] as const) {
+        expect(e.resistances[el]).toBeUndefined();
+      }
+    }
+  });
+
+  it('weekly bosses are all-10% — the standing trivia, now pinned', () => {
+    for (const id of ['stormterror', 'azhdaha', 'la-signora', 'all-devouring-narwhal', 'shouki-no-kami']) {
+      const e = ENEMIES.find((x) => x.id === id)!;
+      expect(e, `${id} must be selectable`).toBeTruthy();
+      expect(e.resistances).toEqual({ default: 0.1 });
+    }
   });
 });

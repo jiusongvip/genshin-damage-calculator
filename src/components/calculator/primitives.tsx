@@ -114,6 +114,28 @@ export function ElementPair({ els }: { els: ElementType[] }) {
   );
 }
 
+/**
+ * Weapon icon by id. Weapons whose art has not landed in `public/images` yet
+ * (new genshin-db entries between icon runs) fall back to a neutral glyph so
+ * the dropdown never shows a broken image.
+ */
+export function WeaponIcon({ id, className = 'h-6 w-6' }: { id: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <Glyph name="atk" className={`${className} text-[var(--muted)]`} />;
+  return (
+    <img
+      src={`/images/weapons/${id}.webp`}
+      alt=""
+      width="48"
+      height="48"
+      className={`${className} object-contain`}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export interface IconOption<T extends string> {
   value: T;
   label: string;
@@ -170,7 +192,9 @@ export function IconSelect<T extends string>({
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="shrink-0 text-[var(--muted)]" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
       </button>
       {open && (
-        <ul role="listbox" className="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-[10px] border border-[var(--line)] bg-[var(--surface)] p-1 shadow-xl">
+        // z-[60] must clear the sticky site header (z-50), otherwise the open
+        // list scrolls underneath it and the last options become unclickable.
+        <ul role="listbox" className="absolute z-[60] mt-1 max-h-72 w-full overflow-y-auto rounded-[10px] border border-[var(--line)] bg-[var(--surface)] p-1 shadow-xl">
           {options.map((o) => (
             <li key={o.value}>
               <button
