@@ -1,0 +1,52 @@
+---
+// The homepage is ~21,700px on desktop and ~44,850px on mobile (24 and 53
+// viewports). The sticky header keeps the nav reachable, but nothing gets you
+// back to the hero from 40,000px down except 50 flicks of the wheel. This is
+// the cheap escape hatch.
+//
+// Progressive enhancement: it is a real anchor to <main id="top">, so it works
+// with JS off. The script only decides when to show it and keeps the scroll
+// instant for people who ask for reduced motion.
+---
+<a
+  id="back-to-top"
+  href="#top"
+  aria-label="Back to top"
+  style="display:none"
+  class="fixed bottom-5 right-5 z-40 h-11 w-11 items-center justify-center rounded-full border border-[var(--line)] bg-[#FFFBE7] text-[var(--text)] shadow-lg transition-colors hover:border-forest-500 hover:text-forest-600 lg:bottom-8 lg:right-8"
+>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 19V5M5 12l7-7 7 7" />
+  </svg>
+</a>
+
+<script>
+  const toTop = document.getElementById('back-to-top');
+  // Roughly one viewport: below that the reader has not lost their place yet,
+  // and a button floating over the hero is just noise.
+  const SHOW_AFTER = Math.max(600, window.innerHeight * 0.75);
+
+  // `display` is driven inline rather than with Tailwind's `hidden`: toggling a
+  // `hidden` class against a `flex` class is decided by CSS source order, not by
+  // the order they appear in the class attribute, so it is not reliable. It also
+  // keeps the element out of the tab order while it is invisible.
+  const sync = () => {
+    if (!toTop) return;
+    toTop.style.display = window.scrollY > SHOW_AFTER ? 'flex' : 'none';
+  };
+
+  window.addEventListener('scroll', sync, { passive: true });
+  window.addEventListener('resize', sync, { passive: true });
+  // Restoring from the back/forward cache can land mid-page with no scroll event.
+  window.addEventListener('pageshow', sync);
+  sync();
+
+  toTop?.addEventListener('click', (event) => {
+    // <main id="top"> sits just below the 64px sticky header, so the bare anchor
+    // would stop ~64px short. Preventing the default also keeps "#top" out of
+    // the address bar, which this site deliberately does not write to.
+    event.preventDefault();
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'instant' : 'smooth' });
+  });
+</script>

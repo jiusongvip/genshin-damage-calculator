@@ -25,21 +25,53 @@ const badges = [
 ];
 ---
 
-<header class="relative z-50 border-b border-[var(--line)] bg-[#FFFBE7]">
+<!--
+  Sticky, not relative. The homepage is 21,700px on desktop and 44,850px on
+  mobile (24 and 53 viewports), so a header that scrolls away leaves the
+  reader with no way back to the nav — the section anchors jump you 15,000px
+  down with nothing to click. `sticky` still occupies its 64px in flow, so
+  this costs the hero nothing; commit 6bbdfdf dropped it to "free 65px for the
+  roster", which sticky never gave back in the first place.
+
+  The id exists because `header` alone is not a unique selector: the Astro dev
+  toolbar renders five more `<header>` elements of its own, which turned
+  `page.locator('header')` in e2e/navigation.spec.ts into a strict-mode error.
+-->
+<header id="site-header" class="sticky top-0 z-50 border-b border-[var(--line)] bg-[#FFFBE7]">
   <nav class="page-shell flex h-16 items-center justify-between gap-3" aria-label="Main navigation">
     <div class="flex min-w-0 items-center gap-3">
-      <a href="/" class="flex min-w-0 items-center gap-2.5 font-semibold tracking-[-0.02em] text-[var(--text)]">
+      <!--
+        The brand name outranks the badges. It used to carry min-w-0 truncate
+        with nothing stopping the badge list from growing, so at a 1280px
+        viewport the title was the only thing that could give and it collapsed
+        to ~40px ("Ge…"). `xl:shrink-0` freezes it once the badges appear, and
+        the badge list is the one that yields.
+      -->
+      <a href="/" class="flex min-w-0 items-center gap-2.5 font-semibold tracking-[-0.02em] text-[var(--text)] xl:shrink-0">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-forest-600">
           <path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2z" fill="currentColor" />
           <path d="M12 6l1.1 4.9L18 12l-4.9 1.1L12 18l-1.1-4.9L6 12l4.9-1.1L12 6z" fill="#FFFBE7" />
         </svg>
         <span class="truncate">Genshin Damage Calculator</span>
       </a>
-      <ul class="hidden items-center gap-1.5 xl:flex" aria-label="Calculator highlights">
-        {badges.map((b) => (
+      <ul class="hidden min-w-0 items-center gap-1.5 overflow-hidden xl:flex" aria-label="Calculator highlights">
+        {badges.map((b, index) => (
           <li
             class:list={[
               'whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold',
+              // At 1280px the shell is only 880px wide — it reserves 400px for
+              // ad rails that are never rendered — so the title, the nav and
+              // four badges do not fit at once. Measured: two badges need a
+              // 399px row and fit from xl up; all four need 660px, but the row
+              // only reaches 660px at 2xl (1536px), and is 639px at 1440px.
+              // They are gated rather than allowed to shrink because the list
+              // is overflow-hidden: at 1440px the four badges needed 1040px of
+              // a 1040px row, so the last pill lost its rounded end.
+              //
+              // Note the margin at 2xl is zero, not comfortable: nav is 1136px
+              // and 660 + 12 + 464 exactly fills it. e2e/layout.spec.ts walks
+              // 1280→1920 so any growth in either block fails loudly.
+              index >= 2 ? 'hidden 2xl:inline-flex' : 'inline-flex',
               b.solid ? 'bg-forest-600 text-white' : 'border border-forest-500/30 bg-white/70 text-forest-700',
             ]}
           >
@@ -64,6 +96,8 @@ const badges = [
       id="mobile-menu-btn"
       class="inline-flex items-center justify-center rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--soft)] lg:hidden"
       aria-label="Toggle menu"
+      aria-controls="mobile-nav"
+      aria-expanded="false"
       type="button"
     >
       <svg id="menu-icon-open" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -94,9 +128,26 @@ const badges = [
   const nav = document.getElementById('mobile-nav');
   const iconOpen = document.getElementById('menu-icon-open');
   const iconClose = document.getElementById('menu-icon-close');
+
+  const setMenuOpen = (open: boolean) => {
+    nav?.classList.toggle('hidden', !open);
+    iconOpen?.classList.toggle('hidden', open);
+    iconClose?.classList.toggle('hidden', !open);
+    btn?.setAttribute('aria-expanded', String(open));
+  };
+
   btn?.addEventListener('click', () => {
-    nav?.classList.toggle('hidden');
-    iconOpen?.classList.toggle('hidden');
-    iconClose?.classList.toggle('hidden');
+    setMenuOpen(nav?.classList.contains('hidden') ?? false);
   });
+
+  // #calculator / #presets / #guides / #faq are same-document jumps, so the page
+  // never reloads and nothing else would close the menu — it stayed open over
+  // the section it had just scrolled to.
+  nav?.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => setMenuOpen(false));
+  });
+
+  // A real navigation (e.g. About) can be restored from the back/forward cache
+  // with the DOM exactly as it was left, menu open included.
+  window.addEventListener('pageshow', () => setMenuOpen(false));
 </script>

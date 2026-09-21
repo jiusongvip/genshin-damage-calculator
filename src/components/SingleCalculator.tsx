@@ -24,12 +24,11 @@ import { CONSTELLATION_TALENT_BONUS } from '../data/generated/constellationTalen
 import { weaponPassiveFor } from '../data/generated/weaponPassives';
 import { weaponBuffAt, weaponPassiveMaxStacks, WEAPON_PASSIVE_EFFECTS } from '../data/weaponPassives';
 import { ARTIFACT_SETS, resolveSetBuffs } from '../data/artifactSets';
-import type { SetPick } from '../data/artifactSets';
 import { constellationsFor, passivesFor } from '../data/generated/constellations';
 import { constellationBuffs, passiveBuffs, CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
 import DamageTable, { Delta, GROUP_LABEL, overlayBaseline, snapshotBaseline } from './DamageTable';
 import type { DamageRowVm, DamageGroupVm, DamageBaseline } from './DamageTable';
-import { ElementIcon } from './TeamCalculator';
+import { ElementIcon } from './ElementIcon';
 
 const ELEMENTS: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
 /** Enemy resistance rows — the seven elements plus Physical. */
@@ -775,8 +774,6 @@ export default function SingleCalculator() {
       }),
     [character, weapon, enemy, draft.level],
   );
-  const ownCritRate = own.critRate;
-  const ownCritDMG = own.critDMG;
   const ownEM = own.em;
   const scaling = character.scaling ?? 'atk';
 

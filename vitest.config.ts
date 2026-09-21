@@ -10,6 +10,9 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '.audit/**',
+      // Playwright specs match vitest's default `*.spec.ts` glob; running them
+      // here would try to drive a browser from the unit-test runner.
+      'e2e/**',
       '**/.{idea,git,cache,output,temp}/**',
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*',
     ],

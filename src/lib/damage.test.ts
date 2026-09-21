@@ -3,7 +3,6 @@ import { addBuffs, computeDamage, levelMultiplierFor } from './damage';
 import type { ElementType } from './damage';
 import { CHARACTERS } from '../data/characters';
 import { getWeapon } from '../data/weapons';
-import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, NO_ARTIFACTS } from '../data/presets';
 import { resolveSetBuffs } from '../data/artifactSets';
 import { weaponBuffAt } from '../data/weaponPassives';

@@ -6,7 +6,7 @@ const canonicalURL = `${siteURL}/team-building/`;
 
 const title = 'Genshin Team Building Guide — How to Make Characters Do Damage';
 const description =
-  'Why your characters feel weak and how to fix it: the four team roles, amplifying vs transformative reactions, elemental resonance, and rotation order — plus a free team damage calculator.';
+  'Why your characters feel weak and how to fix it: the four team roles, amplifying vs transformative reactions, elemental resonance, and rotation order — plus a free damage calculator.';
 
 const faqs = [
   {
@@ -23,7 +23,7 @@ const faqs = [
   },
   {
     q: 'How do I know which reactions my team can trigger?',
-    a: 'It is decided purely by the elements on the team. Pyro + Hydro enables Vaporize, Dendro + Electro enables Aggravate/Spread, and so on. The team calculator lists every reaction your current lineup can trigger.',
+    a: 'It is decided purely by the elements on the team. Pyro + Hydro enables Vaporize, Dendro + Electro enables Aggravate/Spread, and so on. The reaction section above covers every pairing and what each one multiplies.',
   },
 ];
 
@@ -246,18 +246,19 @@ const resonances = [
     </div>
   </section>
 
-  <!-- Check your team -->
+  <!-- Check your own numbers -->
   <section class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
     <div class="panel flex flex-col items-start gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 class="text-xl font-semibold text-[var(--text)]">Check your own team</h2>
+        <h2 class="text-xl font-semibold text-[var(--text)]">Check your own numbers</h2>
         <p class="mt-1 max-w-[52ch] text-[var(--muted)]">
-          Pick up to four characters in the team calculator to see their combined damage, the resonances and reactions
-          they unlock, and auto-detected buffs. Then change each character's level and weapon to watch the number move.
+          This page tells you who to bring and in what order. The calculator turns that into a number: load a character,
+          set the level, weapon, artifacts and talent level, then pick the hit you care about and watch each multiplier
+          move it.
         </p>
       </div>
       <div class="flex shrink-0 flex-col gap-2 sm:flex-row">
-        <a href="/#calculator" class="rounded-xl bg-forest-300 px-5 py-2.5 text-center text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Open the team calculator</a>
+        <a href="/#calculator" class="rounded-xl bg-forest-300 px-5 py-2.5 text-center text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Open the damage calculator</a>
       </div>
     </div>
   </section>

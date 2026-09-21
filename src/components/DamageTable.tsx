@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatNumber } from '../lib/damage';
 import type { ElementType } from '../lib/damage';
 import type { TalentGroup } from '../data/generated/talents';
@@ -133,85 +134,128 @@ export default function DamageTable({
     ...groups.flatMap((g) => [...g.rows.map((r) => r.expected), g.total?.expected ?? 0]),
   );
 
+  // The table has a 560px floor, but the panel it sits in is 352px on a phone
+  // and 510px at a 1280px viewport, so it always scrolls on the left half of
+  // the range. With no cue the reader just sees "AVERAGE" sliced in half and
+  // concludes the numbers are wrong, so each clipped edge gets a fade.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+
+  const syncEdges = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 1;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setEdges((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+  }, []);
+
+  useEffect(() => {
+    syncEdges();
+    const el = scrollRef.current;
+    if (!el) return;
+    // The panel is inside a responsive grid, so its width changes without the
+    // window resizing; a ResizeObserver catches both.
+    const observer = new ResizeObserver(syncEdges);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [syncEdges, groups]);
+
   return (
     <section id="damage-table" className="panel mt-5 overflow-hidden">
       <div className="flex items-baseline justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
         <h3 className="text-base font-semibold text-[var(--text)]">Damage per hit</h3>
-        <span className="text-xs text-[var(--muted)]">Click a row to load it into the multipliers above</span>
+        <span className="text-xs text-[var(--muted)]">
+          {edges.right ? 'Scroll sideways for CRIT and Average →' : 'Click a row to load it into the multipliers above'}
+        </span>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
-              <th className="px-5 py-2.5 font-medium">Attack</th>
-              <th className="px-3 py-2.5 text-right font-medium">Non-CRIT</th>
-              <th className="px-3 py-2.5 text-right font-medium">CRIT</th>
-              <th className={`px-3 py-2.5 text-right font-medium ${hasDiff ? '' : 'pr-5'}`}>Average</th>
-              {hasDiff && <th className="px-5 py-2.5 text-right font-medium">Diff</th>}
-            </tr>
-          </thead>
-          {groups.map((g) => (
-            <tbody key={g.group} className="border-b border-[var(--line)] last:border-b-0">
-              <tr className="bg-[var(--surface-2)]/50">
-                <td colSpan={hasDiff ? 5 : 4} className="px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-forest-600">
-                  {g.label}
-                </td>
+      <div className="relative">
+        <div ref={scrollRef} onScroll={syncEdges} className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
+                <th className="px-5 py-2.5 font-medium">Attack</th>
+                <th className="px-3 py-2.5 text-right font-medium">Non-CRIT</th>
+                <th className="px-3 py-2.5 text-right font-medium">CRIT</th>
+                <th className={`px-3 py-2.5 text-right font-medium ${hasDiff ? '' : 'pr-5'}`}>Average</th>
+                {hasDiff && <th className="px-5 py-2.5 text-right font-medium">Diff</th>}
               </tr>
-              {g.rows.map((r) => (
-                <tr
-                  key={r.id}
-                  onClick={() => onPick(r)}
-                  className={`cursor-pointer border-t border-[var(--line)]/60 transition-colors hover:bg-[var(--soft)] ${
-                    r.active ? 'bg-forest-500/10' : ''
-                  }`}
-                >
-                  <td className="px-5 py-2 text-[var(--text)]">
-                    <span className="flex items-center gap-2">
-                      {r.active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-forest-500" aria-hidden="true" />}
-                      {r.label}
-                    </span>
+            </thead>
+            {groups.map((g) => (
+              <tbody key={g.group} className="border-b border-[var(--line)] last:border-b-0">
+                <tr className="bg-[var(--surface-2)]/50">
+                  <td colSpan={hasDiff ? 5 : 4} className="px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-forest-600">
+                    {g.label}
                   </td>
-                  {r.text ? (
-                    <td colSpan={hasDiff ? 4 : 3} className="px-5 py-2 text-right tnum text-[var(--muted)]">
-                      {r.text}
+                </tr>
+                {g.rows.map((r) => (
+                  <tr
+                    key={r.id}
+                    onClick={() => onPick(r)}
+                    className={`cursor-pointer border-t border-[var(--line)]/60 transition-colors hover:bg-[var(--soft)] ${
+                      r.active ? 'bg-forest-500/10' : ''
+                    }`}
+                  >
+                    <td className="px-5 py-2 text-[var(--text)]">
+                      <span className="flex items-center gap-2">
+                        {r.active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-forest-500" aria-hidden="true" />}
+                        {r.label}
+                      </span>
                     </td>
-                  ) : (
-                    <>
-                      <td className="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
-                      <td className="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
-                      <td className={`relative px-3 py-2 text-right tnum font-semibold text-[var(--text)] ${hasDiff ? '' : 'pr-5'}`}>
-                        <ValueBar value={r.expected} max={maxExpected} />
-                        <span className="relative">{formatNumber(r.expected)}</span>
+                    {r.text ? (
+                      <td colSpan={hasDiff ? 4 : 3} className="px-5 py-2 text-right tnum text-[var(--muted)]">
+                        {r.text}
                       </td>
-                      {hasDiff && (
-                        <td className="px-5 py-2 text-right">
-                          <Delta from={r.diff} to={r.expected} />
+                    ) : (
+                      <>
+                        <td className="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
+                        <td className="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
+                        <td className={`relative px-3 py-2 text-right tnum font-semibold text-[var(--text)] ${hasDiff ? '' : 'pr-5'}`}>
+                          <ValueBar value={r.expected} max={maxExpected} />
+                          <span className="relative">{formatNumber(r.expected)}</span>
                         </td>
-                      )}
-                    </>
-                  )}
-                </tr>
-              ))}
-              {g.total && (
-                <tr className="border-t border-[var(--line)]">
-                  <td className="px-5 py-2 font-medium text-[var(--muted)]">Total DMG</td>
-                  <td className="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.nonCrit)}</td>
-                  <td className="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.crit)}</td>
-                  <td className={`relative px-3 py-2 text-right tnum font-semibold text-forest-600 ${hasDiff ? '' : 'pr-5'}`}>
-                    <ValueBar value={g.total.expected} max={maxExpected} />
-                    <span className="relative">{formatNumber(g.total.expected)}</span>
-                  </td>
-                  {hasDiff && (
-                    <td className="px-5 py-2 text-right">
-                      <Delta from={g.total.diff} to={g.total.expected} />
+                        {hasDiff && (
+                          <td className="px-5 py-2 text-right">
+                            <Delta from={r.diff} to={r.expected} />
+                          </td>
+                        )}
+                      </>
+                    )}
+                  </tr>
+                ))}
+                {g.total && (
+                  <tr className="border-t border-[var(--line)]">
+                    <td className="px-5 py-2 font-medium text-[var(--muted)]">Total DMG</td>
+                    <td className="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.nonCrit)}</td>
+                    <td className="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.crit)}</td>
+                    <td className={`relative px-3 py-2 text-right tnum font-semibold text-forest-600 ${hasDiff ? '' : 'pr-5'}`}>
+                      <ValueBar value={g.total.expected} max={maxExpected} />
+                      <span className="relative">{formatNumber(g.total.expected)}</span>
                     </td>
-                  )}
-                </tr>
-              )}
-            </tbody>
-          ))}
-        </table>
+                    {hasDiff && (
+                      <td className="px-5 py-2 text-right">
+                        <Delta from={g.total.diff} to={g.total.expected} />
+                      </td>
+                    )}
+                  </tr>
+                )}
+              </tbody>
+            ))}
+          </table>
+        </div>
+
+        {edges.left && (
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-[var(--surface)] to-transparent"
+            aria-hidden="true"
+          />
+        )}
+        {edges.right && (
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[var(--surface)] to-transparent"
+            aria-hidden="true"
+          />
+        )}
       </div>
     </section>
   );
