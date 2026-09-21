@@ -36,7 +36,59 @@ const GROUP_LABEL: Record<TalentGroup, string> = {
 
 export { GROUP_LABEL };
 
-function Delta({ from, to }: { from: number | undefined; to: number }) {
+/**
+ * A pinned baseline for Diff mode. It stores the *computed* numbers rather than
+ * the inputs that produced them: the comparison stays exact without a second
+ * engine run. Row ids are character-specific, so a baseline is only meaningful
+ * for the character it was pinned on.
+ */
+export interface DamageBaseline {
+  characterId: string;
+  /** row id → expected damage at pin time */
+  rows: Map<string, number>;
+  /** talent group → Total DMG at pin time */
+  totals: Map<string, number>;
+}
+
+/** Capture the numbers a later comparison will be measured against. */
+export function snapshotBaseline(characterId: string, groups: DamageGroupVm[]): DamageBaseline {
+  const rows = new Map<string, number>();
+  const totals = new Map<string, number>();
+  for (const g of groups) {
+    for (const r of g.rows) if (r.text === undefined) rows.set(r.id, r.expected);
+    if (g.total) totals.set(g.group, g.total.expected);
+  }
+  return { characterId, rows, totals };
+}
+
+/**
+ * Overlay pinned numbers onto the live table. Only rows the baseline actually
+ * had get a `diff`; anything else keeps `undefined`, which the Diff column
+ * renders as "—" rather than a fake 0.0%.
+ *
+ * `characterId` is required, not inferred: row ids are only unique *within* a
+ * character (`combat1-0-1-hit-dmg` exists on all of them), so a baseline from
+ * another character would match row-for-row and report garbage. Mismatches are
+ * ignored outright.
+ */
+export function overlayBaseline(
+  groups: DamageGroupVm[],
+  baseline: DamageBaseline | null,
+  characterId: string,
+): DamageGroupVm[] {
+  if (!baseline || baseline.characterId !== characterId) return groups;
+  return groups.map((g) => ({
+    ...g,
+    rows: g.rows.map((r) =>
+      r.text === undefined && baseline.rows.has(r.id) ? { ...r, diff: baseline.rows.get(r.id) } : r,
+    ),
+    total: g.total ? { ...g.total, diff: baseline.totals.get(g.group) } : null,
+  }));
+}
+
+/** Signed percentage change from a pinned baseline. `from` is undefined for a
+ *  row the baseline never had, which reads as "—" rather than a fake 0.0%. */
+export function Delta({ from, to }: { from: number | undefined; to: number }) {
   if (from === undefined || from <= 0) return <span className="text-[var(--muted)]">—</span>;
   const pct = ((to - from) / from) * 100;
   if (Math.abs(pct) < 0.05) return <span className="text-[var(--muted)]">0.0%</span>;
@@ -46,6 +98,17 @@ function Delta({ from, to }: { from: number | undefined; to: number }) {
       {pct.toFixed(1)}%
     </span>
   );
+}
+
+/**
+ * Data bar drawn behind a value, scaled to the biggest number in the table, so
+ * "which hit actually carries the rotation" reads without comparing digits.
+ * Rows and group totals share one scale, so a Burst total visibly dwarfs a
+ * single Normal hit.
+ */
+function ValueBar({ value, max }: { value: number; max: number }) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  return <span className="absolute inset-y-1 right-0 rounded-sm bg-forest-500/15" style={{ width: `${pct.toFixed(2)}%` }} aria-hidden="true" />;
 }
 
 /**
@@ -63,6 +126,12 @@ export default function DamageTable({
   onPick: (row: DamageRowVm) => void;
 }) {
   const hasDiff = groups.some((g) => g.total?.diff !== undefined || g.rows.some((r) => r.diff !== undefined));
+
+  // One shared scale for every bar in the table (rows and group totals alike).
+  const maxExpected = Math.max(
+    1,
+    ...groups.flatMap((g) => [...g.rows.map((r) => r.expected), g.total?.expected ?? 0]),
+  );
 
   return (
     <section id="damage-table" className="panel mt-5 overflow-hidden">
@@ -111,7 +180,10 @@ export default function DamageTable({
                     <>
                       <td className="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
                       <td className="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
-                      <td className={`px-3 py-2 text-right tnum font-semibold text-[var(--text)] ${hasDiff ? '' : 'pr-5'}`}>{formatNumber(r.expected)}</td>
+                      <td className={`relative px-3 py-2 text-right tnum font-semibold text-[var(--text)] ${hasDiff ? '' : 'pr-5'}`}>
+                        <ValueBar value={r.expected} max={maxExpected} />
+                        <span className="relative">{formatNumber(r.expected)}</span>
+                      </td>
                       {hasDiff && (
                         <td className="px-5 py-2 text-right">
                           <Delta from={r.diff} to={r.expected} />
@@ -126,7 +198,10 @@ export default function DamageTable({
                   <td className="px-5 py-2 font-medium text-[var(--muted)]">Total DMG</td>
                   <td className="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.nonCrit)}</td>
                   <td className="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.crit)}</td>
-                  <td className={`px-3 py-2 text-right tnum font-semibold text-forest-600 ${hasDiff ? '' : 'pr-5'}`}>{formatNumber(g.total.expected)}</td>
+                  <td className={`relative px-3 py-2 text-right tnum font-semibold text-forest-600 ${hasDiff ? '' : 'pr-5'}`}>
+                    <ValueBar value={g.total.expected} max={maxExpected} />
+                    <span className="relative">{formatNumber(g.total.expected)}</span>
+                  </td>
                   {hasDiff && (
                     <td className="px-5 py-2 text-right">
                       <Delta from={g.total.diff} to={g.total.expected} />

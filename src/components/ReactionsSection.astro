@@ -1,6 +1,38 @@
 ---
 // Elemental reactions deep dive — targets "vaporize vs melt", "elemental
 // mastery calculator", "reaction damage" long-tail queries.
+//
+// Element names in the two tables are drawn with the element logos instead of
+// spelled out; the name survives in each icon's alt text, so the tables stay
+// readable to crawlers and screen readers.
+const ELEMENT_NAME: Record<string, string> = {
+  pyro: 'Pyro',
+  hydro: 'Hydro',
+  electro: 'Electro',
+  cryo: 'Cryo',
+  anemo: 'Anemo',
+  geo: 'Geo',
+  dendro: 'Dendro',
+};
+
+const elIcon = (el: string) =>
+  `<img src="/images/element-${el}.webp" alt="${ELEMENT_NAME[el] ?? el}" width="120" height="120" class="inline-block rounded-full bg-white object-contain p-px shadow-sm ring-1 ring-black/5 align-middle h-5 w-5" loading="lazy" decoding="async" />`;
+
+/** "Hydro on Pyro" — the element that lands, then the aura it reacts with. */
+const elOn = (applied: string, aura: string) =>
+  `<span class="inline-flex items-center gap-1.5">${elIcon(applied)}<span class="text-xs text-[var(--muted)]">on</span>${elIcon(aura)}</span>`;
+
+/** "Pyro + Electro" */
+const elPair = (els: string[]) =>
+  `<span class="inline-flex items-center gap-1.5">${els.map((e) => elIcon(e)).join('<span class="text-xs text-[var(--muted)]">+</span>')}</span>`;
+
+/** "Dendro core + Electro" */
+const elCore = (el: string) =>
+  `<span class="inline-flex items-center gap-1.5">${elIcon('dendro')}<span class="text-xs text-[var(--muted)]">core</span><span class="text-xs text-[var(--muted)]">+</span>${elIcon(el)}</span>`;
+
+/** "Anemo + absorbed element" */
+const elAbsorb = () =>
+  `<span class="inline-flex items-center gap-1.5">${elIcon('anemo')}<span class="text-xs text-[var(--muted)]">+ absorbed element</span></span>`;
 ---
 
 <section id="reactions" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
@@ -30,25 +62,25 @@
         <tbody class="text-[var(--text)]">
           <tr class="border-b border-[var(--line)]">
             <td class="py-2.5 pr-4">Vaporize</td>
-            <td class="py-2.5 pr-4">Hydro on Pyro</td>
+            <td class="py-2.5 pr-4" set:html={elOn('hydro', 'pyro')}></td>
             <td class="tnum py-2.5 pr-4 text-forest-600">2.0×</td>
             <td class="py-2.5">Reverse Vaporize</td>
           </tr>
           <tr class="border-b border-[var(--line)]">
             <td class="py-2.5 pr-4">Vaporize</td>
-            <td class="py-2.5 pr-4">Pyro on Hydro</td>
+            <td class="py-2.5 pr-4" set:html={elOn('pyro', 'hydro')}></td>
             <td class="tnum py-2.5 pr-4 text-forest-600">1.5×</td>
             <td class="py-2.5">Forward Vaporize</td>
           </tr>
           <tr class="border-b border-[var(--line)]">
             <td class="py-2.5 pr-4">Melt</td>
-            <td class="py-2.5 pr-4">Pyro on Cryo</td>
+            <td class="py-2.5 pr-4" set:html={elOn('pyro', 'cryo')}></td>
             <td class="tnum py-2.5 pr-4 text-forest-600">2.0×</td>
             <td class="py-2.5">Forward Melt</td>
           </tr>
           <tr>
             <td class="py-2.5 pr-4">Melt</td>
-            <td class="py-2.5 pr-4">Cryo on Pyro</td>
+            <td class="py-2.5 pr-4" set:html={elOn('cryo', 'pyro')}></td>
             <td class="tnum py-2.5 pr-4 text-forest-600">1.5×</td>
             <td class="py-2.5">Reverse Melt</td>
           </tr>
@@ -92,15 +124,15 @@
           </tr>
         </thead>
         <tbody class="text-[var(--text)]">
-          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Overload</td><td class="tnum py-2.5 pr-4">2.75</td><td class="py-2.5 pr-4">Pyro + Electro</td><td class="py-2.5">Full EM</td></tr>
-          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Superconduct</td><td class="tnum py-2.5 pr-4">1.5</td><td class="py-2.5 pr-4">Cryo + Electro</td><td class="py-2.5">Support only</td></tr>
-          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Electro-Charged</td><td class="tnum py-2.5 pr-4">2.0</td><td class="py-2.5 pr-4">Hydro + Electro</td><td class="py-2.5">Full EM</td></tr>
-          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Swirl</td><td class="tnum py-2.5 pr-4">0.6</td><td class="py-2.5 pr-4">Anemo + absorbed element</td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Overload</td><td class="tnum py-2.5 pr-4">2.75</td><td class="py-2.5 pr-4" set:html={elPair(['pyro', 'electro'])}></td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Superconduct</td><td class="tnum py-2.5 pr-4">1.5</td><td class="py-2.5 pr-4" set:html={elPair(['cryo', 'electro'])}></td><td class="py-2.5">Support only</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Electro-Charged</td><td class="tnum py-2.5 pr-4">2.0</td><td class="py-2.5 pr-4" set:html={elPair(['hydro', 'electro'])}></td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Swirl</td><td class="tnum py-2.5 pr-4">0.6</td><td class="py-2.5 pr-4" set:html={elAbsorb()}></td><td class="py-2.5">Full EM</td></tr>
           <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Shatter</td><td class="tnum py-2.5 pr-4">3.0</td><td class="py-2.5 pr-4">Heavy hit on a Frozen target</td><td class="py-2.5">Physical carry</td></tr>
-          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Burning</td><td class="tnum py-2.5 pr-4">0.25</td><td class="py-2.5 pr-4">Dendro + Pyro</td><td class="py-2.5">Support</td></tr>
-          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Bloom</td><td class="tnum py-2.5 pr-4">2.0</td><td class="py-2.5 pr-4">Hydro + Dendro</td><td class="py-2.5">Full EM</td></tr>
-          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Hyperbloom</td><td class="tnum py-2.5 pr-4">3.0</td><td class="py-2.5 pr-4">Dendro core + Electro</td><td class="py-2.5">Full EM</td></tr>
-          <tr><td class="py-2.5 pr-4">Burgeon</td><td class="tnum py-2.5 pr-4">3.0</td><td class="py-2.5 pr-4">Dendro core + Pyro</td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Burning</td><td class="tnum py-2.5 pr-4">0.25</td><td class="py-2.5 pr-4" set:html={elPair(['dendro', 'pyro'])}></td><td class="py-2.5">Support</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Bloom</td><td class="tnum py-2.5 pr-4">2.0</td><td class="py-2.5 pr-4" set:html={elPair(['hydro', 'dendro'])}></td><td class="py-2.5">Full EM</td></tr>
+          <tr class="border-b border-[var(--line)]"><td class="py-2.5 pr-4">Hyperbloom</td><td class="tnum py-2.5 pr-4">3.0</td><td class="py-2.5 pr-4" set:html={elCore('electro')}></td><td class="py-2.5">Full EM</td></tr>
+          <tr><td class="py-2.5 pr-4">Burgeon</td><td class="tnum py-2.5 pr-4">3.0</td><td class="py-2.5 pr-4" set:html={elCore('pyro')}></td><td class="py-2.5">Full EM</td></tr>
         </tbody>
       </table>
     </div>

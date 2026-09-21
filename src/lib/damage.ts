@@ -49,7 +49,10 @@ export type SecondaryStatType =
   | 'em'
   | 'er'
   | 'physical'
-  | 'dmg%';
+  | 'dmg%'
+  /** Healing Bonus — a real ascension stat (Qiqi, Jean, Jahoda) that does not
+   *  feed any damage term, so it is deliberately a no-op in statBag(). */
+  | 'heal%';
 
 /** Which stat a talent's damage scales off. */
 export type ScalingStat = 'atk' | 'def' | 'hp' | 'em';
@@ -437,6 +440,9 @@ function statBag(sec: { type: SecondaryStatType; value: number }): StatBag {
       break;
     case 'er':
       out.er = sec.value;
+      break;
+    case 'heal%':
+      // Healing Bonus boosts healing, not damage. Intentionally ignored.
       break;
   }
   return out;

@@ -81,8 +81,20 @@ const comparisons = WEAPON_SETS.map(([charId, weaponIds]) => {
               {rows.map(({ weapon, expected, pct }, i) => (
                 <tr class="border-b border-[var(--line)] last:border-b-0">
                   <td class="px-3 py-2.5 text-[var(--text)]">
-                    {weapon.name}
-                    {i === 0 && <span class="ml-2 rounded bg-forest-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-forest-600">BEST</span>}
+                    <span class="flex items-center gap-2.5">
+                      <img
+                        src={`/images/weapons/${weapon.id}.webp`}
+                        alt=""
+                        width="48"
+                        height="48"
+                        class="h-7 w-7 shrink-0 object-contain"
+                        loading="lazy"
+                        decoding="async"
+                        aria-hidden="true"
+                      />
+                      <span>{weapon.name}</span>
+                      {i === 0 && <span class="shrink-0 rounded bg-forest-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-forest-600">BEST</span>}
+                    </span>
                   </td>
                   <td class="tnum px-3 py-2.5 text-right font-medium text-[var(--text)]">{formatNumber(expected)}</td>
                   <td class={`tnum w-16 px-3 py-2.5 text-right font-semibold ${i === 0 ? 'text-forest-600' : 'text-[var(--muted)]'}`}>

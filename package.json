@@ -8,6 +8,14 @@
     "build": "npx astro build && node scripts/fix-sitemap-home.mjs",
     "preview": "astro preview",
     "lint": "astro check",
+    "check:images": "node scripts/check-asset-images.mjs",
+    "check:data": "node scripts/verify-baseline.mjs",
+    "gen:talents": "node scripts/generate-talents.mjs",
+    "gen:talents-summary": "node scripts/generate-talents-summary.mjs",
+    "gen:level-stats": "node scripts/generate-level-stats.mjs",
+    "gen:ascension-report": "node scripts/generate-level-stats.mjs --ascension-report > .audit/ascension-truth.json",
+    "sync:characters": "node scripts/sync-character-stats.mjs",
+    "gen:data": "npm run gen:level-stats && npm run gen:ascension-report && npm run sync:characters && npm run gen:talents && npm run gen:talents-summary",
     "test": "vitest run"
   },
   "dependencies": {

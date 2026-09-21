@@ -1,9 +1,10 @@
 // ============================================================================
-// Download artifact-set icons (one representative piece per set) into
-// public/images/artifact-sets/{id}.webp, so the Artifacts panel reads visually
-// regardless of the UI language. Source: genshin-db icon filename → Enka's UI
-// icon CDN → webp via sharp.
+// Download artifact-set icons (all five pieces per set) into
+// public/images/artifact-sets/{id}-{flower|plume|sands|goblet|circlet}.webp, so
+// the Artifacts panel reads visually regardless of the UI language.
+// Source: genshin-db icon filename → Enka's UI icon CDN → webp via sharp.
 //
+// Existing files are skipped, so re-running only fills in what is missing.
 // Run: node scripts/generate-artifact-icons.mjs
 // ============================================================================
 
@@ -18,7 +19,12 @@ const gdb = require('genshin-db');
 const sharp = require('sharp');
 
 const src = readFileSync(join(root, 'src/data/artifactSets.ts'), 'utf8');
-const sets = [...src.matchAll(/\{\s*id: '([^']+)',\s*name: '([^']+)'/g)].map((m) => ({ id: m[1], name: m[2] }));
+// `name` may be quoted with ' or " — names containing an apostrophe
+// (Gladiator's Finale, Shimenawa's Reminiscence, Wanderer's Troupe) use ".
+const sets = [...src.matchAll(/\{\s*id: '([^']+)',\s*name: (?:'([^']+)'|"([^"]+)")/g)].map((m) => ({
+  id: m[1],
+  name: m[2] ?? m[3],
+}));
 
 const outDir = join(root, 'public/images/artifact-sets');
 mkdirSync(outDir, { recursive: true });

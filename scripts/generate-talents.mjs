@@ -18,13 +18,18 @@
 //   • element              — parsed from the coloured "<color>…DMG</color>"
 //                            spans in descriptionRaw; a melee Normal combo
 //                            with no element span is Physical
-//   • scaling stat         — NOT in the dataset. Normal/Charged fall back to
-//                            ATK unless listed in AltScalingAttacks, and
-//                            Skill/Burst use the character's `scaling` field,
-//                            mirroring src/lib/damage.ts exactly
-//   • hit count (×N)       — NOT in the dataset. A curated HitCountOverride
-//                            table covers the multi-instance attacks we know;
-//                            anything unlisted is a single hit
+//   • scaling stat         — read from the format string when it names exactly
+//                            one stat ("Max HP", "DEF", "Elemental Mastery").
+//                            Otherwise: Normal/Charged fall back to ATK unless
+//                            listed in AltScalingAttacks, and Skill/Burst use
+//                            the character's `scaling` field, mirroring
+//                            src/lib/damage.ts. Dual-stat rows ("ATK+Elemental
+//                            Mastery") keep the fallback — one row can only
+//                            carry one scaling stat.
+//   • hit count (×N)       — parsed from the format string: genshin-db writes
+//                            "{param3:F1P}×2" for an attack that lands twice.
+//                            HitCountOverride patches the few multi-instance
+//                            attacks the dataset does not mark (Klee's bombs).
 //
 // Run: node scripts/generate-talents.mjs
 // ============================================================================
@@ -37,6 +42,15 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const gdb = require('genshin-db');
+
+import {
+  HIT_COUNT_OVERRIDE,
+  isDamageLabel,
+  isPercentFormat,
+  groupFor,
+  parseHits,
+  scalingFromFormat,
+} from './lib/talent-rules.mjs';
 
 // ---------------------------------------------------------------------------
 // Source data: the character roster (id -> name / element / scaling) and the
@@ -62,16 +76,6 @@ if (ALT_BLOCK) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Curated hit counts for multi-instance attacks (×N). The multiplier stored in
-// the dataset is a single instance, so the table multiplies by this count.
-// Keys are `${characterId}:${label}`. Extend as attacks are verified in-game.
-// ---------------------------------------------------------------------------
-const HIT_COUNT_OVERRIDE = {
-  'klee:Jumpy Dumpty DMG': 3,
-  'klee:Mine DMG': 8,
-  "klee:Sparks 'n' Splash DMG": 19,
-};
 
 // ---------------------------------------------------------------------------
 // Element parsing. The coloured damage-type spans are the only reliable signal
@@ -100,33 +104,8 @@ function elementFromDescription(raw) {
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Label classification.
-// ---------------------------------------------------------------------------
-const NON_DAMAGE = /(Cost|Duration|Interval|Instances|Regeneration|Restored|HP Loss|Increase|Bonus|SPD|Energy|Stamina|Absorption|^CD$|Activation|Stacks?|Charges)/i;
 
-function isDamageLabel(label) {
-  if (NON_DAMAGE.test(label)) return false;
-  return (
-    /DMG/i.test(label) ||
-    /Equitable Judgment/i.test(label) ||
-    /Aimed Shot/i.test(label) ||
-    /Blood Blossom/i.test(label) ||
-    /^Charged Attack$/i.test(label)
-  );
-}
 
-function groupFor(label, combatKey) {
-  if (combatKey === 'combat2') return 'skill';
-  if (combatKey === 'combat3') return 'burst';
-  if (/Plunge/i.test(label)) return 'plunge';
-  if (/Charged|Equitable Judgment/i.test(label)) return 'charged';
-  return 'normal';
-}
-
-function isPercentFormat(fmt) {
-  return /P\b/.test(fmt); // F1P / P / P1 all end in a percentage token
-}
 
 function sumValues(params, parameters) {
   const out = new Array(15).fill(0);
@@ -175,11 +154,17 @@ for (const char of ROSTER) {
       const params = (fmt.match(/param\d+/g) ?? []).map((p) => p);
       if (params.length === 0) return;
 
-      const group = groupFor(label, combatKey);
+      const group = groupFor(label, combatKey, char.weaponType);
       const isDamage = isDamageLabel(label);
 
       const emit = (finalLabel, paramList) => {
         const id = `${combatKey}-${index}-${finalLabel}`.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+        const groupFallback =
+          group === 'normal' || group === 'charged'
+            ? ALT_SCALING[char.id]?.[group] ?? 'atk'
+            : group === 'skill' || group === 'burst'
+              ? char.scaling
+              : 'atk';
         rows.push({
           id,
           label: finalLabel,
@@ -187,13 +172,8 @@ for (const char of ROSTER) {
           values: sumValues(paramList, parameters),
           percent: isPercentFormat(fmt),
           isDamage,
-          hits: HIT_COUNT_OVERRIDE[`${char.id}:${finalLabel}`] ?? 1,
-          scaling:
-            group === 'normal' || group === 'charged'
-              ? ALT_SCALING[char.id]?.[group] ?? 'atk'
-              : group === 'skill' || group === 'burst'
-                ? char.scaling
-                : 'atk',
+          hits: HIT_COUNT_OVERRIDE[`${char.id}:${finalLabel}`] ?? parseHits(fmt),
+          scaling: scalingFromFormat(fmt, groupFallback),
           element: groupElement,
         });
       };
@@ -256,5 +236,15 @@ export function talentRowsFor(id: string): TalentRow[] | undefined {
 
 writeFileSync(join(outDir, 'talents.ts'), banner + body);
 
+const multiHit = Object.entries(table).flatMap(([id, rows]) =>
+  rows.filter((r) => r.hits > 1).map((r) => `${id}:${r.label}×${r.hits}`),
+);
+const fromDataset = Object.entries(table).flatMap(([id, rows]) =>
+  rows.filter((r) => r.hits > 1 && !HIT_COUNT_OVERRIDE[`${id}:${r.label}`]).map(() => id),
+);
+
 console.log(`characters: ${report.characters}/${ROSTER.length}, rows: ${report.rows}`);
+console.log(
+  `multi-hit rows: ${multiHit.length} (dataset-derived: ${fromDataset.length}, override: ${multiHit.length - fromDataset.length})`,
+);
 if (report.missing.length) console.log(`MISSING (${report.missing.length}): ${report.missing.join(', ')}`);

@@ -21,6 +21,12 @@ pnpm-debug.log*
 # local SEO audit reports
 genshindamagecalculator.com-audit/
 
+# local data-audit evidence (competitor bundles, baseline dumps)
+.audit/
+
+# local agent workspace state (project memory, scratch)
+.workbuddy-ai/
+
 # local preview logs
 preview.log
 

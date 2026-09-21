@@ -27,8 +27,8 @@ import { ARTIFACT_SETS, resolveSetBuffs } from '../data/artifactSets';
 import type { SetPick } from '../data/artifactSets';
 import { constellationsFor, passivesFor } from '../data/generated/constellations';
 import { constellationBuffs, passiveBuffs, CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
-import DamageTable, { GROUP_LABEL } from './DamageTable';
-import type { DamageRowVm, DamageGroupVm } from './DamageTable';
+import DamageTable, { Delta, GROUP_LABEL, overlayBaseline, snapshotBaseline } from './DamageTable';
+import type { DamageRowVm, DamageGroupVm, DamageBaseline } from './DamageTable';
 import { ElementIcon } from './TeamCalculator';
 
 const ELEMENTS: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
@@ -436,6 +436,7 @@ const SECONDARY_LABEL: Record<SecondaryStatType, string> = {
   er: 'Energy Recharge',
   physical: 'Physical DMG',
   'dmg%': 'DMG Bonus',
+  'heal%': 'Healing Bonus',
 };
 
 const STAT_GLYPH: Record<string, string> = {
@@ -613,6 +614,40 @@ function IconSelect<T extends string>({
   );
 }
 
+/**
+ * One glyph per multiplier zone, so the six-zone chain is scannable by shape
+ * instead of by reading six labels. Keyed by the zone id used for anchors.
+ */
+const ZONE_ICONS: Record<string, ReactNode> = {
+  base: <path d="M12 20V10M18 20V4M6 20v-4" />,
+  bonus: (
+    <>
+      <path d="M19 5L5 19" />
+      <circle cx="6.5" cy="6.5" r="2.5" />
+      <circle cx="17.5" cy="17.5" r="2.5" />
+    </>
+  ),
+  crit: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="4" />
+    </>
+  ),
+  reaction: (
+    <>
+      <circle cx="9.5" cy="12" r="5" />
+      <circle cx="14.5" cy="12" r="5" />
+    </>
+  ),
+  def: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+  res: (
+    <>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="M4 4l16 16" />
+    </>
+  ),
+};
+
 function Zone({
   id,
   index,
@@ -643,6 +678,23 @@ function Zone({
     >
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--text)]">
+          {ZONE_ICONS[id] && (
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-forest-500/12 text-forest-600">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                {ZONE_ICONS[id]}
+              </svg>
+            </span>
+          )}
           <span className="tnum text-sm text-forest-500/70">{String(index).padStart(2, '0')}</span>
           {title}
           {changed && (
@@ -983,6 +1035,26 @@ export default function SingleCalculator() {
     });
   }, [talentRows, draft.talentLevels, draft.constellation, draft.activeRowId, character, weapon, draft.artifacts, baseBuffs, setPicks, enemy, draft.level, draft.amplified, draft.additive, draft.transformative, draft.swirlElement, draft.elementOverride]);
 
+  // ---- Diff mode -----------------------------------------------------------
+  const [baseline, setBaseline] = useState<DamageBaseline | null>(null);
+
+  // Row ids are only unique *within* a character — `combat1-0-1-hit-dmg` exists
+  // on every character — so a baseline applied to a different one would match
+  // every row and print nonsense. `overlayBaseline` enforces that; this only
+  // mirrors it for the panel copy. The state is kept rather than cleared, so
+  // switching away and back restores the comparison.
+  const activeBaseline = baseline && baseline.characterId === character.id ? baseline : null;
+
+  const groupsWithDiff: DamageGroupVm[] = useMemo(
+    () => overlayBaseline(damageGroups, baseline, character.id),
+    [damageGroups, baseline, character.id],
+  );
+
+  /** Baseline damage for the hit currently loaded into the multipliers, so the
+   *  Expected panel can show "6,468 · +15.0% vs pinned" directly. */
+  const baselineForActiveRow =
+    activeBaseline && draft.activeRowId ? activeBaseline.rows.get(draft.activeRowId) : undefined;
+
   const pickRow = (vm: DamageRowVm) => {
     setDraft((d) => {
       const row = talentRows.find((r) => r.id === vm.id);
@@ -1018,81 +1090,10 @@ export default function SingleCalculator() {
   };
 
   // ---- URL state -----------------------------------------------------------
+  // The calculator no longer mirrors its state into the address bar: the URL
+  // stays exactly as the visitor opened it. Links that already carry state
+  // (from an older build) are still read once, below.
   const restored = useRef(false);
-  useEffect(() => {
-    if (!restored.current) return;
-    const p = new URLSearchParams();
-    const put = (k: string, v: string | number | null) => {
-      if (v === null || v === '') return;
-      p.set(k, String(v));
-    };
-    const d = defaultsFor(character);
-    if (character.id !== initial.id) put('c', character.id);
-    if (draft.level !== d.level) put('lv', draft.level);
-    if (draft.weaponId !== d.weaponId) put('w', draft.weaponId);
-    if (draft.weaponRefine !== d.weaponRefine) put('wr', draft.weaponRefine);
-    if (draft.weaponStacks) put('ws', draft.weaponStacks);
-    if (draft.enemyId !== d.enemyId) put('e', draft.enemyId);
-    if (draft.customEnemy) put('el', draft.enemyLevel);
-    const erm = Object.entries(draft.enemyResMap)
-      .map(([k, v]) => `${k}:${v}`)
-      .join(',');
-    if (erm) put('erm', erm);
-    if (draft.attackType !== d.attackType) put('at', draft.attackType);
-    if (draft.skillMult !== d.skillMult) put('sm', draft.skillMult);
-    if (draft.talentLevels.normal !== d.talentLevels.normal || draft.talentLevels.skill !== d.talentLevels.skill || draft.talentLevels.burst !== d.talentLevels.burst)
-      put('tl', `${draft.talentLevels.normal}.${draft.talentLevels.skill}.${draft.talentLevels.burst}`);
-    if (draft.activeRowId) put('row', draft.activeRowId);
-    if (draft.elementOverride) put('ce', draft.elementOverride);
-    if (draft.scalingOverride) put('cs', draft.scalingOverride);
-    if (draft.statOverride != null) put('st', draft.statOverride);
-    if (draft.baseDmgBonus) put('bd', draft.baseDmgBonus);
-    if (draft.flatBaseDmg) put('fb', draft.flatBaseDmg);
-    if (draft.dmgBonus) put('db', draft.dmgBonus);
-    if (draft.naDmgBonus) put('na', draft.naDmgBonus);
-    if (draft.caDmgBonus) put('ca', draft.caDmgBonus);
-    if (draft.skillDmgBonus) put('sk', draft.skillDmgBonus);
-    if (draft.burstDmgBonus) put('bu', draft.burstDmgBonus);
-    if (draft.dmgReduction) put('dr', draft.dmgReduction);
-    if (draft.critRate) put('cr', draft.critRate);
-    if (draft.critDMG) put('cd', draft.critDMG);
-    if (draft.critMode !== 'expected') put('cm', draft.critMode);
-    if (draft.em) put('em', draft.em);
-    if (draft.amplified !== 'none') put('amp', draft.amplified);
-    if (draft.additive !== 'none') put('ad', draft.additive);
-    if (draft.transformative !== 'none') put('tr', draft.transformative);
-    if (draft.transformative === 'swirl') put('se', draft.swirlElement);
-    if (draft.reactionBonus) put('rb', draft.reactionBonus);
-    if (draft.ampReactionBonus) put('arb', draft.ampReactionBonus);
-    if (draft.transformReactionBonus) put('trb', draft.transformReactionBonus);
-    if (draft.defShred) put('ds', draft.defShred);
-    if (draft.defIgnore) put('di', draft.defIgnore);
-    if (draft.resShred) put('rs', draft.resShred);
-    if (draft.artifacts.sandsMain.value > 0) put('sand', draft.artifacts.sandsMain.type);
-    if (draft.artifacts.gobletMain.value > 0) put('gob', draft.artifacts.gobletMain.type);
-    if (draft.artifacts.circletMain.value > 0) put('circ', draft.artifacts.circletMain.type);
-    const subsStr = (draft.artifacts.pieceSubs ?? [])
-      .map((piece) =>
-        (piece ?? [])
-          .filter(Boolean)
-          .map((sub) => `${sub!.type}~${sub!.value}`)
-          .join(','),
-      )
-      .join(';');
-    if (subsStr.replace(/[;]/g, '')) put('subs', subsStr);
-    const ps = [
-      draft.artifacts.sets?.flower ?? '',
-      draft.artifacts.sets?.plume ?? '',
-      draft.artifacts.sets?.sands ?? '',
-      draft.artifacts.sets?.goblet ?? '',
-      draft.artifacts.sets?.circlet ?? '',
-    ].join(',');
-    if (ps.replace(/,/g, '')) put('ps', ps);
-    if (draft.constellation) put('cn', draft.constellation);
-    if (draft.passiveOn.length) put('pv', draft.passiveOn.join('.'));
-    const qs = p.toString();
-    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
-  }, [draft, character, initial.id]);
 
   // Restore from URL once.
   useEffect(() => {
@@ -1499,9 +1500,41 @@ export default function SingleCalculator() {
               aria-label="Search characters"
             />
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <button type="button" onClick={() => setElementFilter('all')} className={chip(elementFilter === 'all')}>All</button>
+              <button
+                type="button"
+                onClick={() => setElementFilter('all')}
+                title="All"
+                aria-label="All elements"
+                className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+                  elementFilter === 'all' ? 'border-forest-600 bg-forest-600/10 text-forest-700' : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <circle cx="6" cy="6" r="2.4" />
+                  <circle cx="12" cy="6" r="2.4" />
+                  <circle cx="18" cy="6" r="2.4" />
+                  <circle cx="6" cy="12" r="2.4" />
+                  <circle cx="12" cy="12" r="2.4" />
+                  <circle cx="18" cy="12" r="2.4" />
+                  <circle cx="6" cy="18" r="2.4" />
+                  <circle cx="12" cy="18" r="2.4" />
+                  <circle cx="18" cy="18" r="2.4" />
+                </svg>
+              </button>
               {ELEMENTS.map((el) => (
-                <button key={el} type="button" onClick={() => setElementFilter(el)} className={chip(elementFilter === el)}>{ELEMENT_LABEL[el]}</button>
+                <button
+                  key={el}
+                  type="button"
+                  onClick={() => setElementFilter(el)}
+                  title={ELEMENT_LABEL[el]}
+                  aria-label={ELEMENT_LABEL[el]}
+                  aria-pressed={elementFilter === el}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${
+                    elementFilter === el ? 'border-forest-600 bg-forest-600/10' : 'border-[var(--line)] hover:border-forest-400'
+                  }`}
+                >
+                  <ElementIcon el={el} className="h-5 w-5" />
+                </button>
               ))}
             </div>
             <div className="mt-3 flex-1 overflow-y-auto pr-1">
@@ -1883,7 +1916,7 @@ export default function SingleCalculator() {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
           <div className="space-y-4">
           <div className="max-h-[46vh] overflow-y-auto pr-1">
-            <DamageTable groups={damageGroups} onPick={pickRow} />
+            <DamageTable groups={groupsWithDiff} onPick={pickRow} />
           </div>
           </div>
 
@@ -1895,6 +1928,27 @@ export default function SingleCalculator() {
               </div>
               <p className="mt-0.5 text-[11px] text-[var(--muted)]">non-crit {formatNumber(result.nonCrit)} · crit {formatNumber(result.critHit)}</p>
               {capped && <p className="mt-1 text-[11px] text-pyro">Capped at 20,000,000 (single-hit limit).</p>}
+              <div className="mt-2 flex items-center justify-between gap-2 border-t border-[var(--line)] pt-2">
+                <span className="text-[11px] text-[var(--muted)]">
+                  {activeBaseline === null ? (
+                    'Change one thing, pin it, and read the delta.'
+                  ) : baselineForActiveRow !== undefined ? (
+                    <>
+                      vs pinned <span className="tnum text-[var(--text)]">{formatNumber(baselineForActiveRow)}</span> ·{' '}
+                      <Delta from={baselineForActiveRow} to={expected} />
+                    </>
+                  ) : (
+                    'Baseline pinned — see the Diff column.'
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBaseline(activeBaseline ? null : snapshotBaseline(character.id, damageGroups))}
+                  className="shrink-0 rounded-lg border border-[var(--line)] px-2 py-1 text-[11px] font-semibold text-[var(--muted)] transition-colors hover:border-forest-500 hover:text-forest-600"
+                >
+                  {activeBaseline ? 'Clear baseline' : 'Pin baseline'}
+                </button>
+              </div>
             </div>
 
             {(reactionPreviews.amplified.length > 0 || reactionPreviews.transformative.length > 0) && (

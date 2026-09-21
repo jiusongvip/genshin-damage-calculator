@@ -66,14 +66,26 @@ const roles = [
   },
 ];
 
+// `element` drives the resonance logo; the element name moves into the alt text
+// so the Party column reads as an icon rather than a word.
+const ELEMENT_NAME: Record<string, string> = {
+  pyro: 'Pyro',
+  hydro: 'Hydro',
+  electro: 'Electro',
+  cryo: 'Cryo',
+  anemo: 'Anemo',
+  geo: 'Geo',
+  dendro: 'Dendro',
+};
+
 const resonances = [
-  { el: 'Pyro ×2', name: 'Fervent Flames', effect: '+25% ATK' },
-  { el: 'Hydro ×2', name: 'Soothing Water', effect: '+25% Max HP' },
-  { el: 'Dendro ×2', name: 'Sprawling Greenery', effect: '+50 EM (+30 after a reaction)' },
-  { el: 'Cryo ×2', name: 'Shattering Ice', effect: '+15% CRIT Rate vs Frozen / Cryo-affected' },
-  { el: 'Geo ×2', name: 'Enduring Rock', effect: '+15% Shield Strength; +15% DMG while shielded' },
-  { el: 'Electro ×2', name: 'High Voltage', effect: 'Electro-Charged generates Energy' },
-  { el: 'Anemo ×2', name: 'Impetuous Winds', effect: '−15% Stamina cost, +10% movement SPD' },
+  { element: 'pyro', name: 'Fervent Flames', effect: '+25% ATK' },
+  { element: 'hydro', name: 'Soothing Water', effect: '+25% Max HP' },
+  { element: 'dendro', name: 'Sprawling Greenery', effect: '+50 EM (+30 after a reaction)' },
+  { element: 'cryo', name: 'Shattering Ice', effect: '+15% CRIT Rate vs Frozen / Cryo-affected' },
+  { element: 'geo', name: 'Enduring Rock', effect: '+15% Shield Strength; +15% DMG while shielded' },
+  { element: 'electro', name: 'High Voltage', effect: 'Electro-Charged generates Energy' },
+  { element: 'anemo', name: 'Impetuous Winds', effect: '−15% Stamina cost, +10% movement SPD' },
 ];
 ---
 
@@ -178,7 +190,20 @@ const resonances = [
         <tbody>
           {resonances.map((r) => (
             <tr class="border-b border-[var(--line)] last:border-0">
-              <td class="px-5 py-3 font-medium text-[var(--text)]">{r.el}</td>
+              <td class="px-5 py-3">
+                <span class="flex items-center gap-2 font-medium text-[var(--text)]">
+                  <img
+                    src={`/images/element-${r.element}.webp`}
+                    alt={ELEMENT_NAME[r.element] ?? r.element}
+                    width="120"
+                    height="120"
+                    class="h-6 w-6 shrink-0 rounded-full bg-white object-contain p-px shadow-sm ring-1 ring-black/5"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span class="tnum">×2</span>
+                </span>
+              </td>
               <td class="px-5 py-3 text-[var(--text)]">{r.name}</td>
               <td class="px-5 py-3 text-[var(--muted)]">{r.effect}</td>
             </tr>

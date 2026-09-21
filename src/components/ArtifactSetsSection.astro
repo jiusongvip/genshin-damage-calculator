@@ -1,6 +1,13 @@
 ---
 // Artifact set library — targets "best artifact set for X", "emblem of severed
 // fate", "which artifact set" long-tail queries. Static content, fully crawlable.
+//
+// Card icons are resolved from the modelled set table by display name, so the
+// artwork always tracks /images/artifact-sets/{id}-flower.webp.
+import { ARTIFACT_SETS } from '../data/artifactSets';
+
+const SET_ID_BY_NAME = new Map(ARTIFACT_SETS.map((s) => [s.name, s.id]));
+
 const sets = [
   {
     name: 'Emblem of Severed Fate',
@@ -97,16 +104,33 @@ const sets = [
   </p>
 
   <div class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
-    {sets.map((s) => (
+    {sets.map((s) => {
+      const id = SET_ID_BY_NAME.get(s.name);
+      return (
       <div class="panel p-5">
-        <h3 class="font-semibold text-[var(--text)]">{s.name}</h3>
-        <p class="mt-1.5 text-sm text-forest-600/90">{s.bonus}</p>
+        <div class="flex items-center gap-3">
+          {id && (
+            <img
+              src={`/images/artifact-sets/${id}-flower.webp`}
+              alt=""
+              width="48"
+              height="48"
+              class="h-9 w-9 shrink-0 object-contain"
+              loading="lazy"
+              decoding="async"
+              aria-hidden="true"
+            />
+          )}
+          <h3 class="font-semibold text-[var(--text)]">{s.name}</h3>
+        </div>
+        <p class="mt-2 text-sm text-forest-600/90">{s.bonus}</p>
         <p class="mt-2 text-sm text-[var(--muted)]">
           <span class="font-medium text-[var(--text)]">Best for:</span> {s.bestFor}
         </p>
         <p class="mt-1 text-xs text-[var(--muted)]/80">{s.tip}</p>
       </div>
-    ))}
+      );
+    })}
   </div>
 
   <p class="mt-6 max-w-[65ch] text-sm text-[var(--muted)]">

@@ -30,6 +30,7 @@ const SECONDARY_LABEL: Record<SecondaryStatType, string> = {
   er: 'Energy Recharge',
   physical: 'Physical DMG',
   'dmg%': 'DMG Bonus',
+  'heal%': 'Healing Bonus',
 };
 
 /** "CRIT DMG 66.2%" / "Elemental Mastery 221" for a weapon's secondary stat. */

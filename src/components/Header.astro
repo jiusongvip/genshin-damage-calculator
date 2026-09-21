@@ -1,11 +1,19 @@
 ---
 import { RELEASED_CHARACTERS } from '../data/characters';
+import { sectionHref } from '../lib/section-links';
+
+// This header renders on every page, but `#calculator` / `#presets` / `#guides`
+// / `#faq` only exist on the homepage. Resolved bare, they point at
+// "<current path>#hash", which on a subpage matches nothing — the link looks
+// live and does nothing. `sectionHref` makes them root-absolute off the
+// homepage so they actually navigate back to the section.
+const pathname = Astro.url.pathname;
 
 const navItems = [
-  { label: 'Calculator', href: '#calculator' },
-  { label: 'Presets', href: '#presets' },
-  { label: 'Guides', href: '#guides' },
-  { label: 'FAQ', href: '#faq' },
+  { label: 'Calculator', href: sectionHref('#calculator', pathname) },
+  { label: 'Presets', href: sectionHref('#presets', pathname) },
+  { label: 'Guides', href: sectionHref('#guides', pathname) },
+  { label: 'FAQ', href: sectionHref('#faq', pathname) },
   { label: 'About', href: '/about/' },
 ];
 
