@@ -1,38 +1,11 @@
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import { gotoCalculator, siteHeader } from './helpers';
 
 /**
  * Both of these are silent failures: nothing errors, the layout just quietly
  * eats content. They were found by eye at 1280px, so they are pinned by
  * measurement.
  */
-
-/**
- * Not `header`: the Astro dev toolbar renders five `<header>` elements of its
- * own, so a bare `header` locator is a strict-mode violation. It does not
- * overlap anything clickable — `astro-dev-toolbar` is `display: contents` and
- * the back-to-top button hit-tests to itself — so the fix is to scope the
- * selector rather than to turn the toolbar off.
- */
-const siteHeader = (page: Page) => page.locator('#site-header');
-
-/**
- * The calculator is a React island and the dev server compiles modules on
- * demand, so under parallel load `load` can fire well before the island is
- * interactive. The scroll cue is set from a post-mount effect and is simply not
- * there yet, which is what made this file flake on a cold server. Astro drops
- * the `ssr` attribute on hydration, which is the cheapest reliable signal.
- */
-async function waitForCalculator(page: Page) {
-  await page.waitForFunction(
-    () => {
-      const island = document.querySelector('astro-island[component-url*="SingleCalculator"]');
-      return island !== null && !island.hasAttribute('ssr');
-    },
-    undefined,
-    { timeout: 30_000 },
-  );
-}
 
 test.describe('header layout', () => {
   test('the brand name is not truncated at 1280px', async ({ page, viewport }) => {
@@ -56,6 +29,9 @@ test.describe('header layout', () => {
   // the row's full 1040px and "Data snapshot v7.0" lost its rounded end. This
   // walks the whole range where badges can appear, because the shell jumps by
   // 400px at the xl boundary and the failure was width-specific.
+  //
+  // Note the margin at 2xl is zero, not comfortable: the row is exactly full at
+  // 1536px, so any growth in the title, a badge or the nav links fails here.
   for (const width of [1280, 1366, 1440, 1536, 1680, 1920]) {
     test(`the badge row is not clipped at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -79,8 +55,7 @@ test.describe('header layout', () => {
 
 test.describe('damage table', () => {
   test('signals that it scrolls instead of silently cutting a column off', async ({ page }) => {
-    await page.goto('/');
-    await waitForCalculator(page);
+    await gotoCalculator(page);
 
     const scroller = page.locator('#damage-table .overflow-x-auto');
     await expect(scroller).toBeVisible();

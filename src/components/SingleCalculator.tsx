@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
 import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
 import { weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
-import { NO_ARTIFACTS, DEFAULT_BUFFS, MAIN_STATS, resolvePreset, setPicksFromPieces } from '../data/presets';
+import { NO_ARTIFACTS, DEFAULT_BUFFS, setPicksFromPieces } from '../data/presets';
 import { addBuffs, computeDamage, formatNumber, formatPercent } from '../lib/damage';
 import type {
   AdditiveReaction,
@@ -16,7 +15,6 @@ import type {
   TransformativeReaction,
 } from '../lib/damage';
 import { ELEMENT_LABEL } from '../data/elements';
-import { signatureTalent } from '../data/talents';
 import type { TalentKey } from '../data/talents';
 import { talentRowsFor } from '../data/generated/talents';
 import type { TalentGroup } from '../data/generated/talents';
@@ -29,694 +27,40 @@ import { constellationBuffs, passiveBuffs, CONSTELLATION_EFFECTS, PASSIVE_EFFECT
 import DamageTable, { Delta, GROUP_LABEL, overlayBaseline, snapshotBaseline } from './DamageTable';
 import type { DamageRowVm, DamageGroupVm, DamageBaseline } from './DamageTable';
 import { ElementIcon } from './ElementIcon';
+import {
+  AMPLIFIED,
+  ELEMENT_BG,
+  ELEMENTS,
+  GROUP_TO_TALENT,
+  MAIN_OPTIONS,
+  PIECE_ROWS,
+  REACHABLE_REACTIONS,
+  SECONDARY_LABEL,
+  STAT_GLYPH,
+  SUB_OPTIONS,
+  TRANSFORMATIVE,
+} from './calculator/constants';
+import {
+  bucketOf,
+  clamp,
+  defaultsFor,
+  effectiveTalentLevels,
+  EMPTY_SETS,
+  formatMainValue,
+  formatRowText,
+  mainValueFor,
+  sanitize,
+  signatureMultiplierAt,
+} from './calculator/draft';
+import type { CritMode, Draft } from './calculator/draft';
+import { Glyph, IconSelect, zoneRefs } from './calculator/primitives';
+import { BaseZone } from './calculator/zones/BaseZone';
+import { BonusZone } from './calculator/zones/BonusZone';
+import { CritZone } from './calculator/zones/CritZone';
+import { DefZone } from './calculator/zones/DefZone';
+import { ReactionZone } from './calculator/zones/ReactionZone';
+import { ResZone } from './calculator/zones/ResZone';
 
-const ELEMENTS: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
-/** Enemy resistance rows — the seven elements plus Physical. */
-const ENEMY_ELEMENTS: ElementType[] = [...ELEMENTS, 'physical'];
-const SWIRLABLE: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo'];
-
-// Element-tinted tile backgrounds (the transparent portrait sits on top).
-const ELEMENT_BG: Record<string, string> = {
-  pyro: 'from-pyro/55 to-pyro/15',
-  hydro: 'from-hydro/55 to-hydro/15',
-  electro: 'from-electro/55 to-electro/15',
-  cryo: 'from-cryo/55 to-cryo/15',
-  anemo: 'from-anemo/55 to-anemo/15',
-  geo: 'from-geo/55 to-geo/15',
-  dendro: 'from-dendro/55 to-dendro/15',
-  physical: 'from-gray-400/45 to-gray-400/15',
-};
-const SCALING_LABEL: Record<string, string> = { atk: 'ATK', hp: 'Max HP', def: 'DEF', em: 'Elemental Mastery' };
-
-const AMPLIFIED: { value: AmplifiedReaction; label: string }[] = [
-  { value: 'none', label: 'None' },
-  { value: 'vaporize', label: 'Vaporize' },
-  { value: 'melt', label: 'Melt' },
-];
-const ADDITIVE: { value: AdditiveReaction; label: string }[] = [
-  { value: 'none', label: 'None' },
-  { value: 'aggravate', label: 'Aggravate (Electro on Quicken)' },
-  { value: 'spread', label: 'Spread (Dendro on Quicken)' },
-];
-const TRANSFORMATIVE: { value: TransformativeReaction; label: string }[] = [
-  { value: 'none', label: 'None' },
-  { value: 'overload', label: 'Overload' },
-  { value: 'electroCharged', label: 'Electro-Charged' },
-  { value: 'superconduct', label: 'Superconduct' },
-  { value: 'swirl', label: 'Swirl' },
-  { value: 'shatter', label: 'Shatter' },
-  { value: 'bloom', label: 'Bloom' },
-  { value: 'hyperbloom', label: 'Hyperbloom' },
-  { value: 'burgeon', label: 'Burgeon' },
-  { value: 'burning', label: 'Burning' },
-];
-const ATTACKS: { value: TalentKey; label: string }[] = [
-  { value: 'normal', label: 'Normal combo' },
-  { value: 'charged', label: 'Charged' },
-  { value: 'skill', label: 'Skill' },
-  { value: 'burst', label: 'Burst' },
-];
-
-type CritMode = 'expected' | 'crit' | 'nonCrit';
-
-/** Reactions a character of each element can trigger (for the Reactions panel). */
-const REACHABLE_REACTIONS: Record<ElementType, { amplified: AmplifiedReaction[]; transformative: TransformativeReaction[] }> = {
-  pyro: { amplified: ['vaporize', 'melt'], transformative: ['overload', 'burning', 'burgeon', 'shatter'] },
-  hydro: { amplified: ['vaporize'], transformative: ['electroCharged', 'bloom', 'hyperbloom', 'burgeon', 'shatter'] },
-  cryo: { amplified: ['melt'], transformative: ['superconduct', 'shatter'] },
-  electro: { amplified: [], transformative: ['overload', 'superconduct', 'electroCharged', 'hyperbloom'] },
-  anemo: { amplified: [], transformative: ['swirl'] },
-  geo: { amplified: [], transformative: [] },
-  dendro: { amplified: [], transformative: ['burning', 'bloom', 'hyperbloom', 'burgeon'] },
-  physical: { amplified: [], transformative: ['shatter'] },
-};
-
-/** Map a talent-table group onto the engine's attack-type key (plunge ≈ normal). */
-const GROUP_TO_TALENT: Record<TalentGroup, TalentKey> = {
-  normal: 'normal',
-  charged: 'charged',
-  plunge: 'normal',
-  skill: 'skill',
-  burst: 'burst',
-};
-
-/** Which of the three talent-level buckets a table group belongs to. */
-const bucketOf = (group: TalentGroup): 'normal' | 'skill' | 'burst' =>
-  group === 'skill' ? 'skill' : group === 'burst' ? 'burst' : 'normal';
-
-/**
- * Multiplier for an attack type at a given talent level, read from the per-hit
- * table so the headline result tracks the talent-level inputs. Mirrors how the
- * aggregates were built: Normal/Charged are the whole combo (sum), Skill/Burst
- * are the biggest single hit (max).
- */
-function signatureMultiplierAt(
-  charId: string,
-  attackType: TalentKey,
-  levels: { normal: number; skill: number; burst: number },
-): number {
-  const rows = (talentRowsFor(charId) ?? []).filter((r) => r.isDamage && r.group === attackType);
-  if (rows.length === 0) return 0;
-  const level = levels[bucketOf(attackType)];
-  const values = rows.map((r) => (r.values[level - 1] ?? 0) * Math.max(1, r.hits));
-  return attackType === 'skill' || attackType === 'burst' ? Math.max(...values) : values.reduce((a, b) => a + b, 0);
-}
-
-const EMPTY_SETS = { flower: '', plume: '', sands: '', goblet: '', circlet: '' };
-
-/** C3 / C5 raise one combat talent by 3 — which one is per character. */
-function constellationTalentAdd(charId: string, bucket: 'normal' | 'skill' | 'burst', cn: number): number {
-  const b = CONSTELLATION_TALENT_BONUS[charId] ?? {};
-  return (cn >= 3 && b[3] === bucket ? 3 : 0) + (cn >= 5 && b[5] === bucket ? 3 : 0);
-}
-
-function effectiveTalentLevels(
-  charId: string,
-  levels: { normal: number; skill: number; burst: number },
-  cn: number,
-): { normal: number; skill: number; burst: number } {
-  const bump = (k: 'normal' | 'skill' | 'burst') => Math.min(15, levels[k] + constellationTalentAdd(charId, k, cn));
-  return { normal: bump('normal'), skill: bump('skill'), burst: bump('burst') };
-}
-
-/** Format a non-damage row's value (seconds, energy, stacks). */
-function formatRowText(label: string, percent: boolean, value: number): string {
-  if (percent) return `${(value * 100).toFixed(1)}%`;
-  if (/(Duration|Interval|\bCD\b|CD$)/i.test(label)) return `${Number(value.toFixed(1))}s`;
-  return `${Number(value.toFixed(2))}`;
-}
-
-/** Everything the user can edit, in one object so URL save/restore is trivial. */
-interface Draft {
-  charId: string;
-  level: number;
-  weaponId: string;
-  /** Weapon refinement rank 1-5. */
-  weaponRefine: number;
-  /** Selected passive stack count (0..maxStacks). */
-  weaponStacks: number;
-  enemyId: string;
-  customEnemy: boolean;
-  enemyLevel: number;
-  /** Per-element resistance overrides on top of the selected enemy preset. */
-  enemyResMap: Partial<Record<ElementType, number>>;
-  attackType: TalentKey;
-  skillMult: number;
-  /** Active talent level (1-15) for the per-hit table. */
-  /** Per-talent levels (1-15). Charged/Plunge share the Normal level. */
-  talentLevels: { normal: number; skill: number; burst: number };
-  /** Row currently loaded from the damage table, if any. */
-  activeRowId: string | null;
-  /** Element / scaling overrides set by the picked row. */
-  elementOverride: ElementType | null;
-  scalingOverride: ScalingStat | null;
-  statOverride: number | null;
-  baseDmgBonus: number;
-  flatBaseDmg: number;
-  dmgBonus: number;
-  naDmgBonus: number;
-  caDmgBonus: number;
-  skillDmgBonus: number;
-  burstDmgBonus: number;
-  dmgReduction: number;
-  critRate: number;
-  critDMG: number;
-  critMode: CritMode;
-  em: number;
-  amplified: AmplifiedReaction;
-  additive: AdditiveReaction;
-  transformative: TransformativeReaction;
-  swirlElement: ElementType;
-  reactionBonus: number;
-  ampReactionBonus: number;
-  transformReactionBonus: number;
-  defShred: number;
-  defIgnore: number;
-  resShred: number;
-  /** Constellation level 0-6. */
-  constellation: number;
-  /** Enabled ascension-passive indices. */
-  passiveOn: number[];
-  /** Artifact set bonuses are derived from the pieces below. */
-  artifacts: ArtifactBuild;
-}
-
-function defaultsFor(c: (typeof CHARACTERS)[number]): Draft {
-  return {
-    charId: c.id,
-    level: 90,
-    weaponId: c.bestWeapon,
-    weaponRefine: 1,
-    weaponStacks: 0,
-    enemyId: ENEMIES[0].id,
-    customEnemy: false,
-    enemyLevel: ENEMIES[0].level,
-    enemyResMap: {},
-    attackType: signatureTalent(c.id)?.key ?? 'burst',
-    skillMult:
-      signatureMultiplierAt(c.id, signatureTalent(c.id)?.key ?? 'burst', { normal: 10, skill: 10, burst: 10 }) || c.skillMultiplier,
-    talentLevels: { normal: 10, skill: 10, burst: 10 },
-    activeRowId: null,
-    elementOverride: null,
-    scalingOverride: null,
-    statOverride: null,
-    baseDmgBonus: 0,
-    flatBaseDmg: 0,
-    dmgBonus: 0,
-    naDmgBonus: 0,
-    caDmgBonus: 0,
-    skillDmgBonus: 0,
-    burstDmgBonus: 0,
-    dmgReduction: 0,
-    critRate: 0,
-    critDMG: 0,
-    critMode: 'expected',
-    em: 0,
-    amplified: 'none',
-    additive: 'none',
-    transformative: 'none',
-    swirlElement: 'pyro',
-    reactionBonus: 0,
-    ampReactionBonus: 0,
-    transformReactionBonus: 0,
-    defShred: 0,
-    defIgnore: 0,
-    resShred: 0,
-    constellation: 0,
-    passiveOn: [],
-    artifacts: { ...resolvePreset(c) },
-  };
-}
-
-const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
-
-/** Clamp every numeric field to its allowed range (used when restoring a URL). */
-function sanitize(d: Draft): Draft {
-  return {
-    ...d,
-    level: Math.round(clamp(d.level, 1, 90)),
-    weaponRefine: Math.round(clamp(d.weaponRefine ?? 1, 1, 5)),
-    weaponStacks: Math.round(clamp(d.weaponStacks ?? 0, 0, 20)),
-    enemyLevel: Math.round(clamp(d.enemyLevel, 1, 100)),
-    enemyResMap: Object.fromEntries(
-      Object.entries(d.enemyResMap ?? {}).map(([k, v]) => [k, clamp(Number(v) || 0, -1, 1)]),
-    ) as Partial<Record<ElementType, number>>,
-    skillMult: clamp(d.skillMult, 0, 100),
-    talentLevels: {
-      normal: Math.round(clamp(d.talentLevels?.normal ?? 10, 1, 15)),
-      skill: Math.round(clamp(d.talentLevels?.skill ?? 10, 1, 15)),
-      burst: Math.round(clamp(d.talentLevels?.burst ?? 10, 1, 15)),
-    },
-    statOverride: d.statOverride == null ? null : clamp(d.statOverride, 0, 1_000_000),
-    baseDmgBonus: clamp(d.baseDmgBonus, -1, 10),
-    flatBaseDmg: clamp(d.flatBaseDmg, 0, 1_000_000),
-    dmgBonus: clamp(d.dmgBonus, 0, 20),
-    naDmgBonus: clamp(d.naDmgBonus, -1, 20),
-    caDmgBonus: clamp(d.caDmgBonus, -1, 20),
-    skillDmgBonus: clamp(d.skillDmgBonus, -1, 20),
-    burstDmgBonus: clamp(d.burstDmgBonus, -1, 20),
-    dmgReduction: clamp(d.dmgReduction, 0, 1),
-    critRate: clamp(d.critRate, 0, 1),
-    critDMG: clamp(d.critDMG, 0, 10),
-    em: clamp(d.em, 0, 3000),
-    reactionBonus: clamp(d.reactionBonus, 0, 10),
-    ampReactionBonus: clamp(d.ampReactionBonus, 0, 10),
-    transformReactionBonus: clamp(d.transformReactionBonus, 0, 10),
-    defShred: clamp(d.defShred, 0, 1),
-    defIgnore: clamp(d.defIgnore, 0, 1),
-    resShred: clamp(d.resShred, 0, 2),
-    constellation: Math.round(clamp(d.constellation ?? 0, 0, 6)),
-    passiveOn: (d.passiveOn ?? []).filter((n) => Number.isInteger(n) && n >= 0 && n <= 9),
-    artifacts: {
-      ...d.artifacts,
-      flowerHP: clamp(d.artifacts.flowerHP ?? 0, 0, 1_000_000),
-      plumeATK: clamp(d.artifacts.plumeATK ?? 0, 0, 1_000_000),
-      pieceSubs: Array.from({ length: 5 }, (_, i) =>
-        (d.artifacts.pieceSubs?.[i] ?? []).slice(0, 4).map((sub) =>
-          sub ? { type: sub.type, value: clamp(Number(sub.value) || 0, 0, 1_000_000) } : undefined,
-        ),
-      ),
-    },
-  };
-}
-
-/** Percent input: shows 12.3 for 0.123 and writes back the fraction. */
-function Pct({
-  value,
-  onChange,
-  label,
-  icon,
-  step = 1,
-  min = 0,
-  max = 2000,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  label: string;
-  icon?: ReactNode;
-  step?: number;
-  min?: number;
-  max?: number;
-}) {
-  return (
-    <label className="block">
-      <span className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
-        {icon}
-        {label}
-      </span>
-      <div className="mt-1 flex items-center gap-1">
-        <input
-          type="number"
-          inputMode="decimal"
-          step={step}
-          min={min}
-          max={max}
-          value={Number((value * 100).toFixed(2))}
-          onChange={(e) => {
-            const raw = parseFloat(e.target.value);
-            onChange(clamp(Number.isFinite(raw) ? raw : 0, min, max) / 100);
-          }}
-          className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-right text-[var(--text)]"
-        />
-        <span className="text-xs text-[var(--muted)]">%</span>
-      </div>
-    </label>
-  );
-}
-
-function Num({
-  value,
-  onChange,
-  label,
-  icon,
-  step = 1,
-  min = 0,
-  max = 1_000_000,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  label: string;
-  icon?: ReactNode;
-  step?: number;
-  min?: number;
-  max?: number;
-}) {
-  return (
-    <label className="block">
-      <span className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
-        {icon}
-        {label}
-      </span>
-      <input
-        type="number"
-        inputMode="decimal"
-        step={step}
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => {
-          const raw = parseFloat(e.target.value);
-          onChange(clamp(Number.isFinite(raw) ? raw : 0, min, max));
-        }}
-        className="mt-1 w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-right text-[var(--text)]"
-      />
-    </label>
-  );
-}
-
-/** Which element(s) each reaction actually deals, for the leading icon. */
-const REACTION_ELEMENT: Record<string, ElementType[]> = {
-  vaporize: ['hydro', 'pyro'],
-  melt: ['pyro', 'cryo'],
-  overload: ['pyro', 'electro'],
-  electroCharged: ['hydro', 'electro'],
-  superconduct: ['cryo', 'electro'],
-  swirl: ['anemo'],
-  shatter: ['physical'],
-  bloom: ['dendro', 'hydro'],
-  hyperbloom: ['dendro', 'electro'],
-  burgeon: ['pyro', 'dendro'],
-  burning: ['pyro', 'dendro'],
-  aggravate: ['electro'],
-  spread: ['dendro'],
-};
-
-const GLYPH: Record<string, string> = {
-  normal: 'M5 19L19 5M13 5h6v6',
-  charged: 'M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z',
-  skill: 'M12 3l7 7-7 7-7-7z',
-  burst: 'M13 2L4 14h6l-1 8 9-12h-6z',
-  expected: 'M4 19h16M5 15l5-5 4 4 6-6',
-  crit: 'M12 2l2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4z',
-  nonCrit: 'M5 12h14',
-  enemy: 'M12 3v3M12 18v3M3 12h3M18 12h3M12 8a4 4 0 100 8 4 4 0 000-8z',
-  atk: 'M12 3v18M7 8l5-5 5 5',
-  hp: 'M12 21s-7-4.4-7-10a4 4 0 017-2.5A4 4 0 0119 11c0 5.6-7 10-7 10z',
-  def: 'M12 3l8 3v6c0 5-3.5 7.6-8 9-4.5-1.4-8-4-8-9V6z',
-  em: 'M12 3l2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4z',
-  er: 'M13 2L4 14h6l-1 8 9-12h-6z',
-  critRate: 'M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z',
-  critDMG: 'M12 2l2.2 6.1L20.5 10l-6.3 1.9L12 18l-2.2-6.1L3.5 10l6.3-1.9z',
-  dmg: 'M4 20L20 4M14 4h6v6',
-  physical: 'M6 18L18 6M15 6h3v3',
-  none: '',
-};
-
-const SECONDARY_LABEL: Record<SecondaryStatType, string> = {
-  'atk%': 'ATK%',
-  'hp%': 'HP%',
-  'def%': 'DEF%',
-  flatATK: 'Flat ATK',
-  flatHP: 'Flat HP',
-  flatDEF: 'Flat DEF',
-  critRate: 'CRIT Rate',
-  critDMG: 'CRIT DMG',
-  em: 'Elemental Mastery',
-  er: 'Energy Recharge',
-  physical: 'Physical DMG',
-  'dmg%': 'DMG Bonus',
-  'heal%': 'Healing Bonus',
-};
-
-const STAT_GLYPH: Record<string, string> = {
-  'atk%': 'atk',
-  'hp%': 'hp',
-  'def%': 'def',
-  em: 'em',
-  er: 'er',
-  critRate: 'critRate',
-  critDMG: 'critDMG',
-  'dmg%': 'dmg',
-  physical: 'physical',
-};
-
-type MainSlot = 'sandsMain' | 'gobletMain' | 'circletMain';
-const MAIN_OPTIONS: { slot: MainSlot; label: string; options: SecondaryStatType[] }[] = [
-  { slot: 'sandsMain', label: 'Sands', options: ['atk%', 'hp%', 'def%', 'em', 'er'] },
-  { slot: 'gobletMain', label: 'Goblet', options: ['dmg%'] },
-  { slot: 'circletMain', label: 'Circlet', options: ['critRate', 'critDMG', 'atk%', 'hp%', 'def%', 'em'] },
-];
-
-/** The five artifact slots: flower / plume have a fixed main, the rest are selectable. */
-const PIECE_ROWS: { piece: 'flower' | 'plume' | 'sands' | 'goblet' | 'circlet'; label: string; mainSlot?: MainSlot; fixed?: string }[] = [
-  { piece: 'flower', label: 'Flower', fixed: 'HP +4,780' },
-  { piece: 'plume', label: 'Plume', fixed: 'ATK +311' },
-  { piece: 'sands', label: 'Sands', mainSlot: 'sandsMain' },
-  { piece: 'goblet', label: 'Goblet', mainSlot: 'gobletMain' },
-  { piece: 'circlet', label: 'Circlet', mainSlot: 'circletMain' },
-];
-
-function mainValueFor(type: SecondaryStatType): number {
-  switch (type) {
-    case 'atk%':
-      return MAIN_STATS.atkPercent;
-    case 'hp%':
-      return MAIN_STATS.hpPercent;
-    case 'def%':
-      return MAIN_STATS.defPercent;
-    case 'em':
-      return MAIN_STATS.em;
-    case 'er':
-      return MAIN_STATS.er;
-    case 'critRate':
-      return MAIN_STATS.critRate;
-    case 'critDMG':
-      return MAIN_STATS.critDMG;
-    case 'dmg%':
-      return MAIN_STATS.dmgBonus;
-    case 'physical':
-      return MAIN_STATS.physical;
-    default:
-      return 0;
-  }
-}
-
-/** Human label for a main stat value, e.g. "46.6%" or "187". */
-function formatMainValue(type: SecondaryStatType): string {
-  const v = mainValueFor(type);
-  return ['atk%', 'hp%', 'def%', 'critRate', 'critDMG', 'dmg%', 'physical', 'er'].includes(type)
-    ? `${(v * 100).toFixed(1)}%`
-    : `${Math.round(v)}`;
-}
-
-/** Sub-stat options that can roll on a 5★ artifact (labels only, no dmg%). */
-const SUB_OPTIONS: { type: SecondaryStatType; label: string; percent: boolean }[] = [
-  { type: 'critRate', label: 'CRIT Rate', percent: true },
-  { type: 'critDMG', label: 'CRIT DMG', percent: true },
-  { type: 'atk%', label: 'ATK%', percent: true },
-  { type: 'hp%', label: 'HP%', percent: true },
-  { type: 'def%', label: 'DEF%', percent: true },
-  { type: 'em', label: 'Elemental Mastery', percent: false },
-  { type: 'er', label: 'Energy Recharge', percent: true },
-  { type: 'flatATK', label: 'Flat ATK', percent: false },
-  { type: 'flatHP', label: 'Flat HP', percent: false },
-  { type: 'flatDEF', label: 'Flat DEF', percent: false },
-];
-
-function Glyph({ name, className = 'h-4 w-4' }: { name: string; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d={GLYPH[name] ?? ''} />
-    </svg>
-  );
-}
-
-function ElementPair({ els }: { els: ElementType[] }) {
-  return (
-    <>
-      {els.map((e) => (
-        <ElementIcon key={e} el={e} className="h-5 w-5" />
-      ))}
-    </>
-  );
-}
-
-interface IconOption<T extends string> {
-  value: T;
-  label: string;
-  icon?: ReactNode;
-}
-
-/**
- * Dropdown where every option (and the closed control) shows its icon, so the
- * user can pick by icon + colour instead of reading text. Keyboard-operable:
- * Tab reaches the trigger and the options, Enter/Space picks, Escape closes.
- */
-function IconSelect<T extends string>({
-  value,
-  onChange,
-  options,
-  className,
-}: {
-  value: T;
-  onChange: (v: T) => void;
-  options: IconOption<T>[];
-  className?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-  const current = options.find((o) => o.value === value);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDoc);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
-  return (
-    <div className={`relative ${className ?? 'mt-1'}`} ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className="flex w-full items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-2 py-2 text-left text-sm text-[var(--text)]"
-      >
-        {current?.icon && <span className="flex shrink-0 items-center gap-0.5">{current.icon}</span>}
-        <span className="min-w-0 flex-1 truncate">{current?.label ?? '—'}</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="shrink-0 text-[var(--muted)]" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
-      </button>
-      {open && (
-        <ul role="listbox" className="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-[10px] border border-[var(--line)] bg-[var(--surface)] p-1 shadow-xl">
-          {options.map((o) => (
-            <li key={o.value}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={o.value === value}
-                onClick={() => {
-                  onChange(o.value);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors ${
-                  o.value === value ? 'bg-forest-600/12 text-forest-700' : 'text-[var(--text)] hover:bg-[var(--soft)]'
-                }`}
-              >
-                {o.icon && <span className="flex shrink-0 items-center gap-0.5">{o.icon}</span>}
-                <span className="min-w-0 flex-1 truncate">{o.label}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-/**
- * One glyph per multiplier zone, so the six-zone chain is scannable by shape
- * instead of by reading six labels. Keyed by the zone id used for anchors.
- */
-const ZONE_ICONS: Record<string, ReactNode> = {
-  base: <path d="M12 20V10M18 20V4M6 20v-4" />,
-  bonus: (
-    <>
-      <path d="M19 5L5 19" />
-      <circle cx="6.5" cy="6.5" r="2.5" />
-      <circle cx="17.5" cy="17.5" r="2.5" />
-    </>
-  ),
-  crit: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="4" />
-    </>
-  ),
-  reaction: (
-    <>
-      <circle cx="9.5" cy="12" r="5" />
-      <circle cx="14.5" cy="12" r="5" />
-    </>
-  ),
-  def: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
-  res: (
-    <>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="M4 4l16 16" />
-    </>
-  ),
-};
-
-function Zone({
-  id,
-  index,
-  title,
-  value,
-  changed,
-  onReset,
-  onEnter,
-  children,
-}: {
-  id: string;
-  index: number;
-  title: string;
-  value: string;
-  changed?: boolean;
-  onReset?: () => void;
-  onEnter: (id: string) => void;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      id={id}
-      ref={(el) => {
-        if (el) zoneRefs.set(id, el);
-      }}
-      onMouseEnter={() => onEnter(id)}
-      className="panel scroll-mt-24 p-2"
-    >
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--text)]">
-          {ZONE_ICONS[id] && (
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-forest-500/12 text-forest-600">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                {ZONE_ICONS[id]}
-              </svg>
-            </span>
-          )}
-          <span className="tnum text-sm text-forest-500/70">{String(index).padStart(2, '0')}</span>
-          {title}
-          {changed && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-forest-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-forest-500" />edited
-            </span>
-          )}
-        </h3>
-        <div className="flex items-baseline gap-2">
-          <span className="tnum text-lg font-semibold text-forest-600">{value}</span>
-          {changed && onReset && (
-            <button type="button" onClick={onReset} className="text-[11px] text-[var(--muted)] underline underline-offset-2 hover:text-forest-600">
-              reset
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-const zoneRefs = new Map<string, HTMLElement>();
 
 export default function SingleCalculator() {
   const initial = CHARACTERS[0];
@@ -789,6 +133,26 @@ export default function SingleCalculator() {
   const passiveModelled = PASSIVE_EFFECTS[character.id] ?? {};
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
+
+  /** Merge a partial patch into the draft — what the zone components call. */
+  const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }));
+
+  /** Changing the attack type re-derives the signature multiplier and drops
+   *  whatever row was loaded from the per-hit table. */
+  const changeAttackType = (t: TalentKey) =>
+    setDraft((d) => ({
+      ...d,
+      attackType: t,
+      skillMult:
+        signatureMultiplierAt(character.id, t, effectiveTalentLevels(character.id, d.talentLevels, d.constellation)) ||
+        d.skillMult,
+      activeRowId: null,
+      elementOverride: null,
+      scalingOverride: null,
+    }));
+
+  /** Editing the multiplier by hand detaches it from the picked row. */
+  const changeSkillMult = (v: number) => setDraft((d) => ({ ...d, skillMult: v, activeRowId: null }));
   const setArtifact = (patch: Partial<ArtifactBuild>) =>
     setDraft((d) => ({ ...d, artifacts: { ...d.artifacts, ...patch } }));
 
@@ -1616,139 +980,86 @@ export default function SingleCalculator() {
 
           {tab === 'multipliers' && (
           <>
-          {/* 1 — Base */}
-          <Zone id="base" index={1} title="Base damage" value={formatNumber(baseDamage)} changed={draft.statOverride != null} onReset={() => set('statOverride', null)} onEnter={setHighlight}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-xs font-medium text-[var(--muted)]">{SCALING_LABEL[result.scaling]} (whiteboard, editable)</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min={Math.round(whiteboard.baseStat)}
-                  max={1_000_000}
-                  value={Math.round(draft.statOverride ?? whiteboard.baseStat)}
-                  onChange={(e) => set('statOverride', clamp(parseFloat(e.target.value) || 0, Math.round(whiteboard.baseStat), 1_000_000))}
-                  className="mt-1 w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-right text-[var(--text)]"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs font-medium text-[var(--muted)]">Skill type</span>
-                <IconSelect
-                  value={draft.attackType}
-                  onChange={(t) => {
-                    setDraft((d) => ({
-                      ...d,
-                      attackType: t,
-                      skillMult: signatureMultiplierAt(character.id, t, effectiveTalentLevels(character.id, d.talentLevels, d.constellation)) || d.skillMult,
-                      activeRowId: null,
-                      elementOverride: null,
-                      scalingOverride: null,
-                    }));
-                  }}
-                  options={ATTACKS.map((a) => ({ ...a, icon: <Glyph name={a.value} className="h-5 w-5" /> }))}
-                />
-              </label>
-              <Pct label="Skill multiplier" value={draft.skillMult} onChange={(v) => setDraft((d) => ({ ...d, skillMult: v, activeRowId: null }))} step={1} min={0} max={10000} />
-              <div className="grid grid-cols-2 gap-3">
-                <Pct label="Base DMG bonus" value={draft.baseDmgBonus} onChange={(v) => set('baseDmgBonus', v)} min={-100} max={1000} />
-                <Num label="Flat base DMG" value={draft.flatBaseDmg} onChange={(v) => set('flatBaseDmg', v)} step={10} min={0} max={1_000_000} />
-              </div>
-            </div>
-          </Zone>
+          <BaseZone
+            value={formatNumber(baseDamage)}
+            changed={draft.statOverride != null}
+            onReset={() => set('statOverride', null)}
+            onEnter={setHighlight}
+            scaling={result.scaling}
+            whiteboardStat={whiteboard.baseStat}
+            statOverride={draft.statOverride}
+            attackType={draft.attackType}
+            skillMult={draft.skillMult}
+            baseDmgBonus={draft.baseDmgBonus}
+            flatBaseDmg={draft.flatBaseDmg}
+            onPatch={patch}
+            onAttackType={changeAttackType}
+            onSkillMult={changeSkillMult}
+          />
 
-          {/* 2 — Bonus */}
-          <Zone id="bonus" index={2} title="DMG bonus" value={`×${dmgMult.toFixed(3)}`} changed={!!(draft.dmgBonus || draft.naDmgBonus || draft.caDmgBonus || draft.skillDmgBonus || draft.burstDmgBonus || draft.dmgReduction)} onReset={() => setDraft((d) => ({ ...d, dmgBonus: 0, naDmgBonus: 0, caDmgBonus: 0, skillDmgBonus: 0, burstDmgBonus: 0, dmgReduction: 0 }))} onEnter={setHighlight}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Pct label="Elemental / Physical DMG" value={draft.dmgBonus} onChange={(v) => set('dmgBonus', v)} min={0} max={2000} />
-              <Pct label="Target DMG reduction" value={draft.dmgReduction} onChange={(v) => set('dmgReduction', v)} min={0} max={100} />
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Pct label="Normal Attack DMG" value={draft.naDmgBonus} onChange={(v) => set('naDmgBonus', v)} min={-100} max={2000} />
-              <Pct label="Charged Attack DMG" value={draft.caDmgBonus} onChange={(v) => set('caDmgBonus', v)} min={-100} max={2000} />
-              <Pct label="Elemental Skill DMG" value={draft.skillDmgBonus} onChange={(v) => set('skillDmgBonus', v)} min={-100} max={2000} />
-              <Pct label="Elemental Burst DMG" value={draft.burstDmgBonus} onChange={(v) => set('burstDmgBonus', v)} min={-100} max={2000} />
-            </div>
-          </Zone>
+          <BonusZone
+            value={`×${dmgMult.toFixed(3)}`}
+            changed={!!(draft.dmgBonus || draft.naDmgBonus || draft.caDmgBonus || draft.skillDmgBonus || draft.burstDmgBonus || draft.dmgReduction)}
+            onReset={() => setDraft((d) => ({ ...d, dmgBonus: 0, naDmgBonus: 0, caDmgBonus: 0, skillDmgBonus: 0, burstDmgBonus: 0, dmgReduction: 0 }))}
+            onEnter={setHighlight}
+            dmgBonus={draft.dmgBonus}
+            dmgReduction={draft.dmgReduction}
+            naDmgBonus={draft.naDmgBonus}
+            caDmgBonus={draft.caDmgBonus}
+            skillDmgBonus={draft.skillDmgBonus}
+            burstDmgBonus={draft.burstDmgBonus}
+            onPatch={patch}
+          />
 
-          {/* 3 — Crit */}
-          <Zone id="crit" index={3} title="CRIT" value={`×${critMult.toFixed(3)}`} changed={!!(draft.critRate || draft.critDMG || draft.critMode !== 'expected')} onReset={() => setDraft((d) => ({ ...d, critRate: 0, critDMG: 0, critMode: 'expected' }))} onEnter={setHighlight}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Pct label="CRIT Rate bonus" value={draft.critRate} onChange={(v) => set('critRate', v)} min={0} max={100} />
-              <Pct label="CRIT DMG bonus" value={draft.critDMG} onChange={(v) => set('critDMG', v)} min={0} max={1000} />
-              <label className="block">
-                <span className="text-xs font-medium text-[var(--muted)]">Settlement</span>
-                <IconSelect
-                  value={draft.critMode}
-                  onChange={(v) => set('critMode', v as CritMode)}
-                  options={[
-                    { value: 'expected', label: 'Expected (average)', icon: <Glyph name="expected" className="h-5 w-5" /> },
-                    { value: 'crit', label: 'Always CRIT', icon: <Glyph name="crit" className="h-5 w-5" /> },
-                    { value: 'nonCrit', label: 'Never CRIT', icon: <Glyph name="nonCrit" className="h-5 w-5" /> },
-                  ]}
-                />
-              </label>
-            </div>
-            {result.critRateRaw > 1 && (
-              <p className="mt-2 text-xs text-pyro">CRIT Rate is overcapped — {((result.critRateRaw - 1) * 100).toFixed(1)}% of it is wasted past the 100% cap.</p>
-            )}
-          </Zone>
+          <CritZone
+            value={`×${critMult.toFixed(3)}`}
+            changed={!!(draft.critRate || draft.critDMG || draft.critMode !== 'expected')}
+            onReset={() => setDraft((d) => ({ ...d, critRate: 0, critDMG: 0, critMode: 'expected' }))}
+            onEnter={setHighlight}
+            critRate={draft.critRate}
+            critDMG={draft.critDMG}
+            critMode={draft.critMode}
+            critRateRaw={result.critRateRaw}
+            onPatch={patch}
+          />
 
-          {/* 4 — Reaction */}
-          <Zone id="reaction" index={4} title="Reaction" value={result.reactionMultiplier > 1 ? `×${result.reactionMultiplier.toFixed(3)}` : '—'} changed={!!(draft.amplified !== 'none' || draft.additive !== 'none' || draft.transformative !== 'none' || draft.em || draft.reactionBonus)} onReset={() => setDraft((d) => ({ ...d, amplified: 'none', additive: 'none', transformative: 'none', em: 0, reactionBonus: 0, ampReactionBonus: 0, transformReactionBonus: 0 }))} onEnter={setHighlight}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-xs font-medium text-[var(--muted)]">Amplifying — Vaporize / Melt (×1.5–2, multiplies the hit)</span>
-                <IconSelect value={draft.amplified} onChange={(v) => set('amplified', v)} options={AMPLIFIED.map((o) => ({ ...o, icon: REACTION_ELEMENT[o.value] ? <ElementPair els={REACTION_ELEMENT[o.value]} /> : undefined }))} />
-              </label>
-              <label className="block">
-                <span className="text-xs font-medium text-[var(--muted)]">Additive — Aggravate / Spread (flat bonus to the hit)</span>
-                <IconSelect value={draft.additive} onChange={(v) => set('additive', v)} options={ADDITIVE.map((o) => ({ ...o, icon: REACTION_ELEMENT[o.value] ? <ElementPair els={REACTION_ELEMENT[o.value]} /> : undefined }))} />
-              </label>
-              <label className="block">
-                <span className="text-xs font-medium text-[var(--muted)]">Transformative — Overload, Burning, Burgeon… (separate hit, no CRIT)</span>
-                <IconSelect value={draft.transformative} onChange={(v) => set('transformative', v)} options={TRANSFORMATIVE.map((o) => ({ ...o, icon: REACTION_ELEMENT[o.value] ? <ElementPair els={REACTION_ELEMENT[o.value]} /> : undefined }))} />
-              </label>
-              {draft.transformative === 'swirl' && (
-                <label className="block">
-                  <span className="text-xs font-medium text-[var(--muted)]">Swirl absorbed element</span>
-                  <IconSelect value={draft.swirlElement} onChange={(v) => set('swirlElement', v)} options={SWIRLABLE.map((el) => ({ value: el, label: ELEMENT_LABEL[el], icon: <ElementIcon el={el} className="h-5 w-5" /> }))} />
-                </label>
-              )}
-              <Num label={`Elemental Mastery bonus (base ${Math.round(ownEM)})`} value={draft.em} onChange={(v) => set('em', v)} step={10} min={0} max={3000} />
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Pct label="Reaction bonus" value={draft.reactionBonus} onChange={(v) => set('reactionBonus', v)} min={0} max={1000} />
-              <Pct label="Amplifying bonus" value={draft.ampReactionBonus} onChange={(v) => set('ampReactionBonus', v)} min={0} max={1000} />
-              <Pct label="Transformative bonus" value={draft.transformReactionBonus} onChange={(v) => set('transformReactionBonus', v)} min={0} max={1000} />
-            </div>
-          </Zone>
+          <ReactionZone
+            value={result.reactionMultiplier > 1 ? `×${result.reactionMultiplier.toFixed(3)}` : '—'}
+            changed={!!(draft.amplified !== 'none' || draft.additive !== 'none' || draft.transformative !== 'none' || draft.em || draft.reactionBonus)}
+            onReset={() => setDraft((d) => ({ ...d, amplified: 'none', additive: 'none', transformative: 'none', em: 0, reactionBonus: 0, ampReactionBonus: 0, transformReactionBonus: 0 }))}
+            onEnter={setHighlight}
+            amplified={draft.amplified}
+            additive={draft.additive}
+            transformative={draft.transformative}
+            swirlElement={draft.swirlElement}
+            em={draft.em}
+            ownEM={ownEM}
+            reactionBonus={draft.reactionBonus}
+            ampReactionBonus={draft.ampReactionBonus}
+            transformReactionBonus={draft.transformReactionBonus}
+            onPatch={patch}
+          />
 
-          {/* 5 — DEF */}
-          <Zone id="def" index={5} title="Enemy DEF" value={`×${result.defMultiplier.toFixed(3)}`} changed={!!(draft.defShred || draft.defIgnore)} onReset={() => setDraft((d) => ({ ...d, defShred: 0, defIgnore: 0 }))} onEnter={setHighlight}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Pct label="DEF reduction" value={draft.defShred} onChange={(v) => set('defShred', v)} min={0} max={100} />
-              <Pct label="DEF ignore" value={draft.defIgnore} onChange={(v) => set('defIgnore', v)} min={0} max={100} />
-            </div>
-          </Zone>
+          <DefZone
+            value={`×${result.defMultiplier.toFixed(3)}`}
+            changed={!!(draft.defShred || draft.defIgnore)}
+            onReset={() => setDraft((d) => ({ ...d, defShred: 0, defIgnore: 0 }))}
+            onEnter={setHighlight}
+            defShred={draft.defShred}
+            defIgnore={draft.defIgnore}
+            onPatch={patch}
+          />
 
-          {/* 6 — RES */}
-          <Zone id="res" index={6} title="Enemy RES" value={`×${result.resMultiplier.toFixed(3)}`} changed={!!(draft.resShred || Object.keys(draft.enemyResMap).length)} onReset={() => setDraft((d) => ({ ...d, resShred: 0, enemyResMap: {} }))} onEnter={setHighlight}>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {ENEMY_ELEMENTS.map((el) => (
-                <Pct
-                  key={el}
-                  label={`${ELEMENT_LABEL[el]} RES`}
-                  value={enemy.resistances[el] ?? enemy.resistances.default}
-                  onChange={(v) => setDraft((d) => ({ ...d, enemyResMap: { ...d.enemyResMap, [el]: v } }))}
-                  min={-100}
-                  max={100}
-                />
-              ))}
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Pct label="RES reduction" value={draft.resShred} onChange={(v) => set('resShred', v)} min={0} max={200} />
-            </div>
-          </Zone>
+          <ResZone
+            value={`×${result.resMultiplier.toFixed(3)}`}
+            changed={!!(draft.resShred || Object.keys(draft.enemyResMap).length)}
+            onReset={() => setDraft((d) => ({ ...d, resShred: 0, enemyResMap: {} }))}
+            onEnter={setHighlight}
+            resShred={draft.resShred}
+            enemyResMap={draft.enemyResMap}
+            resistances={enemy.resistances}
+            onPatch={patch}
+          />
           </>
           )}
 

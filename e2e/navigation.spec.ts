@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { scrollToBottom, settleScroll, siteHeader } from './helpers';
 
 /**
  * The homepage is ~21,700px tall on desktop and ~44,850px on mobile (24 and 53
@@ -7,45 +8,6 @@ import type { Page } from '@playwright/test';
  * the section anchors work perfectly, they just drop you tens of thousands of
  * pixels down with no way back. Each test below pins one of the escape routes.
  */
-
-/**
- * `html` carries `scroll-smooth`, so an anchor jump animates across tens of
- * thousands of pixels. Measuring before it settles reads a mid-flight position
- * — that is what made this file fail on its first run, not the page.
- */
-async function settleScroll(page: Page) {
-  await page.waitForFunction(
-    () => {
-      const w = window as Window & { __y?: number; __still?: number };
-      if (w.__y === window.scrollY) w.__still = (w.__still ?? 0) + 1;
-      else {
-        w.__still = 0;
-        w.__y = window.scrollY;
-      }
-      return (w.__still ?? 0) >= 4;
-    },
-    undefined,
-    { timeout: 30_000 },
-  );
-}
-
-/** Reach the bottom without animating through 45,000px first. */
-async function scrollToBottom(page: Page) {
-  await page.evaluate(() =>
-    window.scrollTo({
-      top: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
-      behavior: 'instant',
-    }),
-  );
-  await page.waitForTimeout(200);
-}
-
-/**
- * Not `header`: the Astro dev toolbar renders five `<header>` elements of its
- * own, so a bare `header` locator is a strict-mode violation rather than the
- * site header. `#site-header` is the one on the page that matters.
- */
-const siteHeader = (page: Page) => page.locator('#site-header');
 
 /** The desktop nav is `hidden lg:flex`, so a bare selector can match an
  *  invisible link and time out waiting to click it. */
