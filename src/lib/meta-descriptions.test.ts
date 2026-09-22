@@ -20,7 +20,10 @@ function descriptions(file: string): string[] {
 }
 
 describe('page meta descriptions', () => {
-  const pages = pageFiles(fileURLToPath(new URL('../pages', import.meta.url)));
+  const allPages = pageFiles(fileURLToPath(new URL('../pages', import.meta.url)));
+  // Dynamic-route templates ([id].astro etc.) carry no literal `const description`
+  // — their copy is data-driven and guarded per-record in character-pages.test.ts.
+  const pages = allPages.filter((f) => !/\[.+\]\./.test(f.split(/[\\/]/).pop() ?? ''));
 
   it('finds every page in the tree', () => {
     expect(pages.length).toBeGreaterThanOrEqual(10);

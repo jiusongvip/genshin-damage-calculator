@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SingleCalculator from '../components/SingleCalculator.tsx';
 import { RELEASED_CHARACTERS } from '../data/characters';
+import { hasPublishableData } from '../lib/character-pages';
 import { getWeapon } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, resolvePreset, resolveSetPicks } from '../data/presets';
@@ -14,6 +15,10 @@ import type { ElementType } from '../lib/damage';
 
 const siteURL = 'https://www.genshindamagecalculator.com';
 const version = '7.0';
+
+// Ids that actually have a /characters/<id>/ page — featured cards link there,
+// anything else falls back to the on-page calculator anchor.
+const characterPageIds = new Set(RELEASED_CHARACTERS.filter(hasPublishableData).map((c) => c.id));
 
 // Pre-compute each character’s preset damage so the numbers render in the
 // initial HTML (static fallback + crawlable content, no JS required).
@@ -176,10 +181,11 @@ const schema = [
           Every character in the roster has a reference panel. Start with one of these — official art, all seven elements, one calculator.
         </p>
       </div>
+      <a href="/characters/" class="text-sm text-forest-600 underline decoration-forest-500/50 underline-offset-4 transition-colors hover:text-forest-700">Browse all characters &rarr;</a>
     </div>
     <div class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
       {FEATURED_CHARACTERS.map((c) => (
-        <a href="#calculator" class="panel group overflow-hidden transition-colors hover:border-forest-500">
+        <a href={characterPageIds.has(c.id) ? `/characters/${c.id}/` : '#calculator'} class="panel group overflow-hidden transition-colors hover:border-forest-500">
           <div class="relative aspect-[2/1] overflow-hidden">
             <img
               src={`/images/official/${c.id}-450.webp`}

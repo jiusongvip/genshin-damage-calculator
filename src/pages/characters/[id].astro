@@ -1,0 +1,216 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { RELEASED_CHARACTERS } from '../../data/characters';
+import { buildCharacterPageData, hasPublishableData } from '../../lib/character-pages';
+import type { CharacterPageData } from '../../lib/character-pages';
+import { formatNumber } from '../../lib/damage';
+import { ELEMENT_LABEL } from '../../data/elements';
+
+export function getStaticPaths() {
+  return RELEASED_CHARACTERS.filter(hasPublishableData).map((c) => ({
+    params: { id: c.id },
+    props: buildCharacterPageData(c),
+  }));
+}
+
+const { character: c, groups, constellations, passives, weapons, calcHref, title, description, weaponName } =
+  Astro.props as CharacterPageData;
+const element = ELEMENT_LABEL[c.element] ?? c.element;
+
+const canonicalURL = `https://www.genshindamagecalculator.com/characters/${c.id}/`;
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://www.genshindamagecalculator.com' },
+      { '@type': 'ListItem', position: 2, name: 'Characters', item: 'https://www.genshindamagecalculator.com/characters/' },
+      { '@type': 'ListItem', position: 3, name: c.name, item: canonicalURL },
+    ],
+  },
+];
+---
+
+<BaseLayout title={title} description={description} canonicalURL={canonicalURL} schema={schema}>
+  <section class="page-shell section-pad">
+    <nav class="text-xs uppercase tracking-[0.16em] text-forest-600" aria-label="Breadcrumb">
+      <a href="/characters/" class="hover:underline">Characters</a>
+      <span class="mx-2 text-[var(--muted)]">/</span>
+      <span class="text-[var(--muted)]">{c.name}</span>
+    </nav>
+
+    <h1 class="mt-3 font-display text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">
+      {c.name} damage calculator
+    </h1>
+    <p class="mt-2 text-sm text-[var(--muted)]">
+      {element} · {c.weaponType} · {c.rarity}★
+    </p>
+    <p class="mt-5 max-w-[68ch] text-lg leading-relaxed text-[var(--muted)]">
+      Every damage number below is computed for a Level-90 {c.name} at talent level 10,
+      holding <span class="font-medium text-[var(--text)]">{weaponName}</span> over a
+      representative graduated artifact set — the calculator's default load state. Open the
+      calculator to change the build, add buffs, or pick a reaction.
+    </p>
+
+    <div class="mt-6 flex flex-wrap gap-3">
+      <a
+        href={calcHref}
+        class="rounded-full bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-forest-700"
+      >Open {c.name} in the calculator</a>
+    </div>
+  </section>
+
+  <section class="page-shell section-pad border-t border-[var(--line)]" data-testid="character-damage-table">
+    <h2 class="font-display text-2xl font-semibold text-[var(--text)]">Damage per hit</h2>
+    {
+      groups.map((g) => (
+        <div class="panel mt-5 overflow-hidden">
+          <div class="border-b border-[var(--line)] px-5 py-3">
+            <h3 class="text-xs font-semibold uppercase tracking-[0.14em] text-forest-600">{g.label}</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[520px] text-left text-sm">
+              <thead>
+                <tr class="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
+                  <th class="px-5 py-2.5 font-medium">Attack</th>
+                  <th class="px-3 py-2.5 text-right font-medium">Non-CRIT</th>
+                  <th class="px-3 py-2.5 text-right font-medium">CRIT</th>
+                  <th class="px-5 py-2.5 text-right font-medium">Average</th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.rows.map((r) => (
+                  <tr class="border-t border-[var(--line)]/60 first:border-t-0">
+                    <td class="px-5 py-2 text-[var(--text)]">{r.label}</td>
+                    {
+                      !r.text && <td class="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
+                    }
+                    {
+                      !r.text && <td class="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
+                    }
+                    {r.text && <td class="px-3 py-2" />}
+                    {r.text && <td class="px-3 py-2" />}
+                    <td class="px-5 py-2 text-right tnum font-semibold text-[var(--text)]">
+                      {r.text ? r.text : formatNumber(r.expected)}
+                    </td>
+                  </tr>
+                ))}
+                {
+                  g.total && (
+                    <tr class="border-t border-[var(--line)]">
+                      <td class="px-5 py-2 font-medium text-[var(--muted)]">Total DMG</td>
+                      <td class="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.nonCrit)}</td>
+                      <td class="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.crit)}</td>
+                      <td class="px-5 py-2 text-right tnum font-semibold text-[var(--muted)]">{formatNumber(g.total.expected)}</td>
+                    </tr>
+                  )
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))
+    }
+  </section>
+
+  {
+    weapons.length > 0 && (
+      <section class="page-shell section-pad border-t border-[var(--line)]">
+        <h2 class="font-display text-2xl font-semibold text-[var(--text)]">Weapon comparison</h2>
+        <p class="mt-2 max-w-[68ch] text-sm leading-relaxed text-[var(--muted)]">
+          Each {c.weaponType} equipped on a Lv90 {c.name} at talent 10 — base ATK, substat and any modelled
+          passive. Weapons whose passive is not modelled show only their raw stats; better a missing buff than a
+          wrong one.
+        </p>
+        <div class="panel mt-5 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[520px] text-left text-sm">
+              <thead>
+                <tr class="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
+                  <th class="px-5 py-2.5 font-medium">Weapon</th>
+                  <th class="px-3 py-2.5 text-right font-medium">Base ATK</th>
+                  <th class="px-3 py-2.5 font-medium">Substat</th>
+                  <th class="px-5 py-2.5 text-right font-medium">Average</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weapons.map((w) => (
+                  <tr class="border-t border-[var(--line)]/60 first:border-t-0">
+                    <td class="px-5 py-2 text-[var(--text)]">
+                      {w.weapon.name}
+                      <span class="ml-2 text-xs text-[var(--muted)]">{w.weapon.rarity}★</span>
+                      {w.equipped && <span class="ml-2 text-[10px] font-semibold uppercase tracking-wide text-forest-600">preset</span>}
+                    </td>
+                    <td class="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(w.weapon.baseATK)}</td>
+                    <td class="px-3 py-2 text-[var(--muted)]">
+                      {w.weapon.secondary.type}
+                      {!w.passiveModelled && <span class="ml-2 text-[10px] text-[var(--muted)]">passive not modelled</span>}
+                    </td>
+                    <td class="px-5 py-2 text-right tnum font-semibold text-[var(--text)]">{formatNumber(w.expected)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    (constellations.length > 0 || passives.length > 0) && (
+      <section class="page-shell section-pad border-t border-[var(--line)]">
+        <h2 class="font-display text-2xl font-semibold text-[var(--text)]">Constellations &amp; passives</h2>
+        <p class="mt-2 max-w-[68ch] text-sm leading-relaxed text-[var(--muted)]">
+          Only self-buffs that are unconditional and clearly numeric change the numbers above. Everything else is shown
+          as text but applies nothing.
+        </p>
+        {constellations.length > 0 && (
+          <ul class="mt-4 space-y-3">
+            {constellations.map((e) => (
+              <li class="panel p-4">
+                <p class="text-sm font-medium text-[var(--text)]">
+                  C{e.level} · {e.name}
+                  {
+                    e.modeled ? (
+                      <span class="ml-2 text-[10px] font-semibold uppercase tracking-wide text-forest-600">modelled</span>
+                    ) : (
+                      <span class="ml-2 text-[10px] text-[var(--muted)]">not modelled — text only</span>
+                    )
+                  }
+                </p>
+                <p class="mt-1 text-sm leading-relaxed text-[var(--muted)]">{e.description}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        {passives.length > 0 && (
+          <div class="mt-6">
+            <h3 class="text-sm font-semibold text-[var(--text)]">Ascension passives</h3>
+            <ul class="mt-3 space-y-3">
+              {passives.map((p) => (
+                <li class="panel p-4">
+                  <p class="text-sm font-medium text-[var(--text)]">
+                    {p.name}
+                    {
+                      p.modeled ? (
+                        <span class="ml-2 text-[10px] font-semibold uppercase tracking-wide text-forest-600">modelled</span>
+                      ) : (
+                        <span class="ml-2 text-[10px] text-[var(--muted)]">not modelled — text only</span>
+                      )
+                    }
+                  </p>
+                  <p class="mt-1 text-sm leading-relaxed text-[var(--muted)]">{p.description}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+    )
+  }
+
+  <section class="page-shell section-pad border-t border-[var(--line)]">
+    <a href="/characters/" class="text-sm text-forest-600 underline underline-offset-4">← Back to all characters</a>
+  </section>
+</BaseLayout>

@@ -1,0 +1,55 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { RELEASED_CHARACTERS } from '../../data/characters';
+import { hasPublishableData } from '../../lib/character-pages';
+import { ELEMENT_LABEL } from '../../data/elements';
+import type { ElementType } from '../../lib/damage';
+
+const title = 'Genshin Impact Character Damage Calculators — All Characters';
+const description =
+  'Pick a Genshin character for a full damage breakdown: per-hit talent numbers at Lv90, weapon comparisons and constellations, with every number pre-calculated.';
+
+const ELEMENT_ORDER: ElementType[] = ['pyro', 'hydro', 'electro', 'cryo', 'anemo', 'geo', 'dendro'];
+const roster = RELEASED_CHARACTERS.filter(hasPublishableData);
+const byElement = ELEMENT_ORDER.map((el) => ({
+  element: el,
+  label: ELEMENT_LABEL[el] ?? el,
+  characters: roster.filter((c) => c.element === el).sort((a, b) => a.name.localeCompare(b.name)),
+})).filter((g) => g.characters.length > 0);
+
+const canonicalURL = 'https://www.genshindamagecalculator.com/characters/';
+---
+
+<BaseLayout title={title} description={description} canonicalURL={canonicalURL}>
+  <section class="page-shell section-pad">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Characters</p>
+    <h1 class="mt-2 font-display text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">
+      Damage calculators for every character
+    </h1>
+    <p class="mt-5 max-w-[65ch] text-lg leading-relaxed text-[var(--muted)]">
+      {roster.length} character pages, each pre-computing per-hit talent damage at Level 90,
+      a weapon comparison, and the constellation breakdown — then opening straight into the
+      full calculator with the build already loaded.
+    </p>
+
+    {
+      byElement.map((group) => (
+        <div class="mt-10">
+          <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">{group.label}</h2>
+          <ul class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+            {group.characters.map((c) => (
+              <li>
+                <a
+                  href={`/characters/${c.id}/`}
+                  class="block rounded-lg border border-[var(--line)] px-3 py-2 text-sm text-[var(--text)] transition-colors hover:border-forest-500 hover:bg-[var(--soft)]"
+                >
+                  {c.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </section>
+</BaseLayout>

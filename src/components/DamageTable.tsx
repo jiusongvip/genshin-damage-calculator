@@ -1,41 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatNumber } from '../lib/damage';
-import type { ElementType } from '../lib/damage';
-import type { TalentGroup } from '../data/generated/talents';
+import type { DamageGroupVm, DamageRowVm } from '../lib/damage-groups';
 
-export interface DamageRowVm {
-  id: string;
-  label: string;
-  group: TalentGroup;
-  element: ElementType;
-  /** Multiplier used for this hit at the current talent level. */
-  value: number;
-  nonCrit: number;
-  crit: number;
-  expected: number;
-  /** Baseline expected damage for the same row (Diff mode), when available. */
-  diff?: number;
-  /** Display-only rows (CD, Duration, Energy) carry a text value. */
-  text?: string;
-  active: boolean;
-}
-
-export interface DamageGroupVm {
-  group: TalentGroup;
-  label: string;
-  rows: DamageRowVm[];
-  total: { nonCrit: number; crit: number; expected: number; diff?: number } | null;
-}
-
-const GROUP_LABEL: Record<TalentGroup, string> = {
-  normal: 'Normal Attack',
-  charged: 'Charged Attack',
-  plunge: 'Plunging Attack',
-  skill: 'Elemental Skill',
-  burst: 'Elemental Burst',
-};
-
-export { GROUP_LABEL };
+// The row/group view models and their labels live in the React-free
+// lib/damage-groups module (shared with the static character pages). Re-exported
+// here so existing importers keep pulling them from DamageTable.
+export type { DamageGroupVm, DamageRowVm } from '../lib/damage-groups';
+export { GROUP_LABEL } from '../lib/damage-groups';
 
 /**
  * A pinned baseline for Diff mode. It stores the *computed* numbers rather than

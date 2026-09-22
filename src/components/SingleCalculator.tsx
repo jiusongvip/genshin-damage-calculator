@@ -17,15 +17,15 @@ import type {
 import { ELEMENT_LABEL } from '../data/elements';
 import type { TalentKey } from '../data/talents';
 import { talentRowsFor } from '../data/generated/talents';
-import type { TalentGroup } from '../data/generated/talents';
 import { CONSTELLATION_TALENT_BONUS } from '../data/generated/constellationTalents';
 import { weaponPassiveFor } from '../data/generated/weaponPassives';
 import { weaponBuffAt, weaponPassiveMaxStacks, WEAPON_PASSIVE_EFFECTS } from '../data/weaponPassives';
 import { resolveSetBuffs } from '../data/artifactSets';
 import { constellationsFor, passivesFor } from '../data/generated/constellations';
 import { constellationBuffs, passiveBuffs, CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
-import { GROUP_LABEL, overlayBaseline, snapshotBaseline } from './DamageTable';
+import { overlayBaseline, snapshotBaseline } from './DamageTable';
 import type { DamageRowVm, DamageGroupVm, DamageBaseline } from './DamageTable';
+import { assembleDamageGroups } from '../lib/damage-groups';
 import { ElementIcon } from './ElementIcon';
 import {
   AMPLIFIED,
@@ -42,7 +42,6 @@ import {
   defaultsFor,
   effectiveTalentLevels,
   EMPTY_SETS,
-  formatRowText,
   mainValueFor,
   sanitize,
   signatureMultiplierAt,
@@ -354,78 +353,27 @@ export default function SingleCalculator() {
     draft.constellation > 0 && !consModelled[draft.constellation] && !bumpAtLevel(draft.constellation)
       ? `C${draft.constellation} not modelled — its text is shown, but it does not change the number.`
       : '';
-  const levelForGroup = (group: TalentGroup) => effLevels[bucketOf(group)];
-
-  const damageGroups: DamageGroupVm[] = useMemo(() => {
-    const ORDER: TalentGroup[] = ['normal', 'charged', 'plunge', 'skill', 'burst'];
-    const map = new Map<TalentGroup, DamageRowVm[]>();
-    for (const g of ORDER) map.set(g, []);
-
-    for (const row of talentRows) {
-      const value = row.values[levelForGroup(row.group) - 1] ?? 0;
-      const hits = Math.max(1, row.hits);
-      let vm: DamageRowVm;
-      if (!row.isDamage) {
-        vm = {
-          id: row.id,
-          label: row.label,
-          group: row.group,
-          element: row.element,
-          value,
-          nonCrit: 0,
-          crit: 0,
-          expected: 0,
-          text: formatRowText(row.label, row.percent, value),
-          active: false,
-        };
-      } else {
-        const r = computeDamage({
-          character,
-          weapon,
-          artifacts: draft.artifacts,
-          buffs: addBuffs(baseBuffs, resolveSetBuffs(setPicks, row.element, GROUP_TO_TALENT[row.group])),
-          enemy,
-          characterLevel: draft.level,
-          attackType: GROUP_TO_TALENT[row.group],
-          skillMultiplier: value * hits,
-          element: row.element,
-          scaling: row.scaling,
-          amplified: draft.amplified,
-          additive: draft.additive,
-          transformative: draft.transformative,
-          swirlElement: draft.transformative === 'swirl' ? draft.swirlElement : undefined,
-        });
-        vm = {
-          id: row.id,
-          label: hits > 1 ? `${row.label} ×${hits}` : row.label,
-          group: row.group,
-          element: row.element,
-          value: value * hits,
-          nonCrit: r.nonCrit,
-          crit: r.critHit,
-          expected: r.expected,
-          active: row.id === draft.activeRowId,
-        };
-      }
-      map.get(row.group)!.push(vm);
-    }
-
-    return ORDER.filter((g) => (map.get(g)!.length > 0)).map((g) => {
-      const rows = map.get(g)!;
-      const dmg = rows.filter((r) => r.text === undefined);
-      // Only the Normal Attack combo has a meaningful "Total DMG": a Skill or
-      // Burst can list alternative hits (e.g. Hu Tao's normal vs low-HP burst)
-      // that never all land together.
-      const total =
-        g === 'normal' && dmg.length > 0
-          ? dmg.reduce(
-              (a, r) => ({ nonCrit: a.nonCrit + r.nonCrit, crit: a.crit + r.crit, expected: a.expected + r.expected }),
-              { nonCrit: 0, crit: 0, expected: 0 },
-            )
-          : null;
-      return { group: g, label: GROUP_LABEL[g], rows, total };
-    });
-  }, [talentRows, draft.talentLevels, draft.constellation, draft.activeRowId, character, weapon, draft.artifacts, baseBuffs, setPicks, enemy, draft.level, draft.amplified, draft.additive, draft.transformative, draft.swirlElement, draft.elementOverride]);
+  const damageGroups: DamageGroupVm[] = useMemo(
+    () =>
+      assembleDamageGroups({
+        character,
+        weapon,
+        artifacts: draft.artifacts,
+        baseBuffs,
+        setPicks,
+        enemy,
+        level: draft.level,
+        effLevels,
+        amplified: draft.amplified,
+        additive: draft.additive,
+        transformative: draft.transformative,
+        swirlElement: draft.swirlElement,
+        activeRowId: draft.activeRowId,
+      }),
+    // effLevels/levelForGroup are derived from draft.talentLevels + draft.constellation;
+    // mirror the original dependency list so the memo invalidates exactly as before.
+    [talentRows, draft.talentLevels, draft.constellation, draft.activeRowId, character, weapon, draft.artifacts, baseBuffs, setPicks, enemy, draft.level, draft.amplified, draft.additive, draft.transformative, draft.swirlElement, draft.elementOverride],
+  );
 
   // ---- Diff mode -----------------------------------------------------------
   const [baseline, setBaseline] = useState<DamageBaseline | null>(null);
