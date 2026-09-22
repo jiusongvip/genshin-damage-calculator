@@ -222,7 +222,8 @@ describe('Baizhu — engine output under the site preset panel', () => {
 
 describe('Baizhu — constellation modelling gap', () => {
   it('KNOWN BUG — C2 and C6 do not feed the engine', () => {
-    // src/data/constellations.ts CONSTELLATION_EFFECTS covers only 5 characters.
+    // src/data/constellations.ts CONSTELLATION_EFFECTS now covers the carries
+    // whose numeric self-buffs are reliable; Baizhu is not one of them.
     // Baizhu C2 adds an extra Spiritvein hit and C6 adds +8% Max HP worth of
     // Spiritvein damage; neither is represented, so picking them changes nothing.
     const rows = talentRowsFor('baizhu')!;

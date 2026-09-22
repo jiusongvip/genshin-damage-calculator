@@ -218,3 +218,123 @@ describe('curated constellation / passive buffs', () => {
     expect(passiveBuffs('sucrose', [0]).em).toBeCloseTo(50, 6);
   });
 });
+
+/**
+ * Task 3 (brief #2) — each newly modelled carry is pinned by one real per-hit
+ * row at C0 and at the constellation level (or passive toggle) that moves it,
+ * on the character's signature weapon, no artifacts, level-90 enemy. Reaction
+ * stats (EM) are pinned through the reaction output they feed.
+ */
+const hit = (
+  id: string,
+  cn = 0,
+  passiveOn: number[] = [],
+  over: Partial<Parameters<typeof computeDamage>[0]> = {},
+) =>
+  base(id, char(id).bestWeapon, {
+    buffs: addBuffs(DEFAULT_BUFFS, constellationBuffs(id, cn), passiveBuffs(id, passiveOn)),
+    ...over,
+  });
+
+const NAHIDA_TRI_KARMA = 5.5728; // lv10 "Tri-Karma Purification DMG"
+const COLUMBINA_SKILL = 0.301; // lv10 "Skill DMG" (scales off Max HP)
+
+describe('carry constellations — one hit pinned at C0 and at the changing level', () => {
+  it('Nahida C2 shreds 30% DEF', () => {
+    expect(constellationBuffs('nahida', 2).defShred).toBeCloseTo(0.3, 6);
+    const at = (cn: number) => hit('nahida', cn, [], { skillMultiplier: NAHIDA_TRI_KARMA, attackType: 'skill' }).expected;
+    expect(Math.round(at(0))).toBe(2162);
+    expect(Math.round(at(2))).toBe(2543);
+  });
+
+  it('Nahida C4 grants 100 EM (one seeded target), visible in Aggravate', () => {
+    expect(constellationBuffs('nahida', 4).em).toBeCloseTo(100, 6);
+    const at = (cn: number) =>
+      hit('nahida', cn, [], { skillMultiplier: NAHIDA_TRI_KARMA, attackType: 'skill', additive: 'aggravate' }).expected;
+    expect(Math.round(at(3))).toBe(4532);
+    expect(Math.round(at(4))).toBe(4736);
+  });
+
+  it('Ayaka C4 shreds 30% DEF under Soumetsu', () => {
+    expect(constellationBuffs('ayaka', 4).defShred).toBeCloseTo(0.3, 6);
+    expect(Math.round(hit('ayaka', 0).expected)).toBe(2922);
+    expect(Math.round(hit('ayaka', 4).expected)).toBe(3437);
+  });
+
+  it('Neuvillette C2 grants 42% CRIT DMG on Equitable Judgment', () => {
+    expect(constellationBuffs('neuvillette', 2).critDMG).toBeCloseTo(0.42, 6);
+    expect(Math.round(hit('neuvillette', 0).expected)).toBe(18762);
+    expect(Math.round(hit('neuvillette', 2).expected)).toBe(19124);
+  });
+
+  it('Columbina C2 grants 40% Max HP onto her HP-scaled skill rows', () => {
+    expect(constellationBuffs('columbina', 2).hpPercent).toBeCloseTo(0.4, 6);
+    const at = (cn: number) =>
+      hit('columbina', cn, [], { skillMultiplier: COLUMBINA_SKILL, attackType: 'skill', scaling: 'hp' }).expected;
+    expect(Math.round(at(0))).toBe(2656);
+    expect(Math.round(at(2))).toBe(3719);
+  });
+
+  it('Prune C2 ramps to 40% ATK during the burst', () => {
+    expect(constellationBuffs('prune', 2).atkPercent).toBeCloseTo(0.4, 6);
+    expect(Math.round(hit('prune', 0).expected)).toBe(1581);
+    expect(Math.round(hit('prune', 2).expected)).toBe(2090);
+  });
+
+  it('Ifa C4 grants 100 EM after the Burst, visible in Swirl', () => {
+    expect(constellationBuffs('ifa', 4).em).toBeCloseTo(100, 6);
+    const swirl = (cn: number) => hit('ifa', cn, [], { transformative: 'swirl' }).transformative;
+    expect(Math.round(swirl(0))).toBe(2492);
+    expect(Math.round(swirl(4))).toBe(2938);
+  });
+
+  it('Mavuika C1 grants 40% ATK and C2 a further 200 Base ATK', () => {
+    expect(constellationBuffs('mavuika', 1).atkPercent).toBeCloseTo(0.4, 6);
+    expect(constellationBuffs('mavuika', 2).flatATK).toBeCloseTo(200, 6);
+    expect(Math.round(hit('mavuika', 0).expected)).toBe(4523);
+    expect(Math.round(hit('mavuika', 1).expected)).toBe(6332);
+    expect(Math.round(hit('mavuika', 2).expected)).toBe(7154);
+  });
+});
+
+describe('carry ascension passives — the toggle moves the pinned hit', () => {
+  it('Yoimiya: Tricks of the Trouble-Maker = +20% Pyro DMG', () => {
+    expect(passiveBuffs('yoimiya', [0]).dmgBonus).toBeCloseTo(0.2, 6);
+    expect(Math.round(hit('yoimiya').expected)).toBe(4091);
+    expect(Math.round(hit('yoimiya', 0, [0]).expected)).toBe(4909);
+  });
+
+  it('Ayaka: both passives feed their own buckets', () => {
+    expect(passiveBuffs('ayaka', [0]).naDmgBonus).toBeCloseTo(0.3, 6);
+    expect(passiveBuffs('ayaka', [1]).dmgBonus).toBeCloseTo(0.18, 6);
+    const normal = { attackType: 'normal' as const };
+    expect(Math.round(hit('ayaka', 0, [], normal).expected)).toBe(2922);
+    expect(Math.round(hit('ayaka', 0, [0], normal).expected)).toBe(3798);
+    expect(Math.round(hit('ayaka', 0, [1], normal).expected)).toBe(3447);
+  });
+
+  it('Arlecchino: The Balemoon Alone May Know = +40% Pyro DMG', () => {
+    expect(passiveBuffs('arlecchino', [2]).dmgBonus).toBeCloseTo(0.4, 6);
+    expect(Math.round(hit('arlecchino').expected)).toBe(4421);
+    expect(Math.round(hit('arlecchino', 0, [2]).expected)).toBe(6190);
+  });
+
+  it('Neuvillette: Heir to the Ancient Sea’s Authority = ×1.6 base DMG at 3 stacks', () => {
+    expect(passiveBuffs('neuvillette', [0]).baseDmgBonus).toBeCloseTo(0.6, 6);
+    expect(Math.round(hit('neuvillette').expected)).toBe(18762);
+    expect(Math.round(hit('neuvillette', 0, [0]).expected)).toBe(30019);
+  });
+
+  it('Mavuika: Gift of Flaming Flowers = +30% ATK', () => {
+    expect(passiveBuffs('mavuika', [0]).atkPercent).toBeCloseTo(0.3, 6);
+    expect(Math.round(hit('mavuika').expected)).toBe(4523);
+    expect(Math.round(hit('mavuika', 0, [0]).expected)).toBe(5879);
+  });
+
+  it('Ifa: Mutual Aid Agreement = +80 EM, visible in Swirl', () => {
+    expect(passiveBuffs('ifa', [1]).em).toBeCloseTo(80, 6);
+    const swirl = (p: number[]) => hit('ifa', 0, p, { transformative: 'swirl' }).transformative;
+    expect(Math.round(swirl([]))).toBe(2492);
+    expect(Math.round(swirl([1]))).toBe(2852);
+  });
+});

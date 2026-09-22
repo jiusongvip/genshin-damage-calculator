@@ -95,6 +95,29 @@ export const CONSTELLATION_EFFECTS: Record<string, Record<number, Partial<BuffSt
   skirk: {
     2: { atkPercent: 0.7 }, // Into the Abyss (conditional)
   },
+  nahida: {
+    2: { defShred: 0.3 }, // The Root of All Fullness — DEF down 8s after Quicken/Aggravate/Spread
+    4: { em: 100 }, // The Stem of Manifest Inference — 100/120/140/160 EM by seeded target count; the 1-target value is modelled
+  },
+  ayaka: {
+    4: { defShred: 0.3 }, // Ebb and Flow — Soumetsu hits lower DEF 30% for 6s
+  },
+  neuvillette: {
+    2: { critDMG: 0.42 }, // Juridical Exhortation — Equitable Judgment CRIT DMG at 3 Past Draconic Glories stacks
+  },
+  columbina: {
+    2: { hpPercent: 0.4 }, // Not in Lone Splendor — Lunar Brilliance Max HP on every Gravity Interference
+  },
+  prune: {
+    2: { atkPercent: 0.4 }, // Useful for Cleaning Messy Baggage — Hunt the Witch ramps to its 40% cap during the burst
+  },
+  ifa: {
+    4: { em: 100 }, // Decayed Vessel's Permutation — 15s after the Burst
+  },
+  mavuika: {
+    1: { atkPercent: 0.4 }, // The Night-Lord's Explication — 8s after gaining Fighting Spirit
+    2: { flatATK: 200 }, // The Ashen Price — Base ATK in the Nightsoul's Blessing state; the Ring DEF shred is form-gated and unmodelled
+  },
 };
 
 export const PASSIVE_EFFECTS: Record<string, Record<number, Partial<BuffState>>> = {
@@ -105,7 +128,24 @@ export const PASSIVE_EFFECTS: Record<string, Record<number, Partial<BuffState>>>
     1: { dmgBonus: 0.2 }, // Blades Amidst Raindrops — +20% Hydro DMG
   },
   neuvillette: {
+    0: { baseDmgBonus: 0.6 }, // Heir to the Ancient Sea's Authority — Equitable Judgment at 3 Past Draconic Glories stacks
     1: { dmgBonus: 0.3 }, // Discipline of the Supreme Arbitration — up to +30% Hydro DMG
+  },
+  yoimiya: {
+    0: { dmgBonus: 0.2 }, // Tricks of the Trouble-Maker — 10 Pyro DMG stacks during Niwabi Fire-Dance
+  },
+  ayaka: {
+    0: { naDmgBonus: 0.3, caDmgBonus: 0.3 }, // Amatsumi Kunitsumi Sanctification — 6s after Hyouka
+    1: { dmgBonus: 0.18 }, // Kanten Senmyou Blessing — Cryo DMG Bonus, near-permanent uptime
+  },
+  arlecchino: {
+    2: { dmgBonus: 0.4 }, // The Balemoon Alone May Know — Pyro DMG Bonus in combat
+  },
+  mavuika: {
+    0: { atkPercent: 0.3 }, // Gift of Flaming Flowers — after a party Nightsoul Burst
+  },
+  ifa: {
+    1: { em: 80 }, // Mutual Aid Agreement — after a party Nightsoul Burst
   },
   xiangling: {
     1: { atkPercent: 0.1 }, // Beware, It's Super Hot! — +10% ATK
