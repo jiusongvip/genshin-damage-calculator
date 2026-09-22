@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Google renders ~155-160 characters of a meta description and cuts the rest
 // mid-sentence. The homepage shipped at 244, so this guard keeps every page —
@@ -19,7 +20,7 @@ function descriptions(file: string): string[] {
 }
 
 describe('page meta descriptions', () => {
-  const pages = pageFiles(new URL('../pages', import.meta.url).pathname.replace(/^\//, ''));
+  const pages = pageFiles(fileURLToPath(new URL('../pages', import.meta.url)));
 
   it('finds every page in the tree', () => {
     expect(pages.length).toBeGreaterThanOrEqual(10);
