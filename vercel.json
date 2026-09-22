@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/how-damage-is-calculated",
+      "destination": "/guides/damage-formula/",
+      "permanent": true
+    },
+    {
+      "source": "/how-damage-is-calculated/",
+      "destination": "/guides/damage-formula/",
+      "permanent": true
+    }
+  ]
+}

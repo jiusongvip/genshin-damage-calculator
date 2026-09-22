@@ -12,7 +12,7 @@ describe('sectionHref — homepage section anchors from shared chrome', () => {
     expect(sectionHref('#guides', '/guides/builds/')).toBe('/#guides');
     expect(sectionHref('#calculator', '/guides/builds/')).toBe('/#calculator');
     expect(sectionHref('#presets', '/about/')).toBe('/#presets');
-    expect(sectionHref('#faq', '/how-damage-is-calculated/')).toBe('/#faq');
+    expect(sectionHref('#faq', '/team-building/')).toBe('/#faq');
     expect(sectionHref('#guide', '/404.html')).toBe('/#guide');
   });
 
