@@ -3,6 +3,7 @@ import { formatNumber } from '../../lib/damage';
 import DamageTable, { Delta } from '../DamageTable';
 import type { DamageBaseline, DamageGroupVm, DamageRowVm } from '../DamageTable';
 import type { Draft } from './draft';
+import { NO_TALENT_NOTE } from './constants';
 
 /** Reactions this character can reach, with their current values. */
 export interface ReactionPreviews {
@@ -14,6 +15,10 @@ export interface DamagePanelProps {
   /** Per-hit table, baseline already overlaid as the Diff column. */
   groups: DamageGroupVm[];
   onPickRow: (vm: DamageRowVm) => void;
+
+  /** False for characters with no per-hit talent table — the whole panel
+   *  becomes a notice rather than a table of placeholder-driven numbers. */
+  hasTalentData: boolean;
 
   result: DamageResult;
   expected: number;
@@ -43,6 +48,7 @@ export interface DamagePanelProps {
 export function DamagePanel({
   groups,
   onPickRow,
+  hasTalentData,
   result,
   expected,
   capped,
@@ -59,6 +65,16 @@ export function DamagePanel({
   highlight,
   onJumpToZone,
 }: DamagePanelProps) {
+  if (!hasTalentData) {
+    return (
+      <div className="panel p-4">
+        <p data-testid="no-talent-note" className="text-[13px] leading-relaxed text-[var(--muted)]">
+          {NO_TALENT_NOTE} There is no per-hit talent table for this character, so every damage row would be
+          guesswork. Choose another character to see its hits.
+        </p>
+      </div>
+    );
+  }
   const chain: { id: string; label: string; value: number; display: string }[] = [
     { id: 'base', label: 'Base', value: 0, display: formatNumber(baseDamage) },
     { id: 'bonus', label: 'Bonus', value: dmgMult, display: `×${dmgMult.toFixed(3)}` },

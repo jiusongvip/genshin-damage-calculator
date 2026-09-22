@@ -45,6 +45,7 @@ const gdb = require('genshin-db');
 
 import {
   HIT_COUNT_OVERRIDE,
+  TALENT_NAME_OVERRIDE,
   isDamageLabel,
   isPercentFormat,
   groupFor,
@@ -119,6 +120,11 @@ function sumValues(params, parameters) {
 
 // ---------------------------------------------------------------------------
 // Build the table.
+//
+// Talent-table names come from TALENT_NAME_OVERRIDE (scripts/lib/talent-rules)
+// so the generator and the verifier resolve the Traveler's kits identically.
+// Manekin/Manekina (6.1 Miliastra Wonderland test chars) have no talent table
+// in any dataset and stay ungenerated — the UI shows a "no talent data" notice.
 // ---------------------------------------------------------------------------
 const table = {};
 const report = { characters: 0, rows: 0, missing: [] };
@@ -126,7 +132,7 @@ const report = { characters: 0, rows: 0, missing: [] };
 for (const char of ROSTER) {
   let talents;
   try {
-    talents = gdb.talents(char.name);
+    talents = gdb.talents(TALENT_NAME_OVERRIDE[char.id] ?? char.name);
   } catch {
     talents = null;
   }

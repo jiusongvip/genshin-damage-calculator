@@ -4,7 +4,7 @@ import { ELEMENT_LABEL } from '../../data/elements';
 import { ENEMIES } from '../../data/enemies';
 import { ElementIcon } from '../ElementIcon';
 import { Glyph, IconSelect, WeaponIcon } from './primitives';
-import { ELEMENT_BG } from './constants';
+import { ELEMENT_BG, NO_TALENT_NOTE } from './constants';
 import { clamp } from './draft';
 import type { Draft } from './draft';
 
@@ -39,6 +39,9 @@ export interface ScenarioBarProps {
   expected: number;
   nonCrit: number;
   critHit: number;
+  /** False when the character has no per-hit talent table — the headline reads a
+   *  notice instead of the placeholder-multiplier number. */
+  hasTalentData: boolean;
 
   onOpenPicker: () => void;
   onLevel: (level: number) => void;
@@ -72,6 +75,7 @@ export function ScenarioBar({
   expected,
   nonCrit,
   critHit,
+  hasTalentData,
   onOpenPicker,
   onLevel,
   onConstellation,
@@ -220,20 +224,28 @@ export function ScenarioBar({
           </div>
         </div>
 
-        {/* Result */}
-        <div className="flex shrink-0 items-center justify-between gap-3 rounded-xl border border-forest-500/25 bg-forest-500/8 px-4 py-2.5 lg:w-[190px] lg:flex-col lg:items-end lg:justify-center">
-          <div className="text-right">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">Expected</span>
-            <span className="damage-number tnum text-3xl leading-none">{formatNumber(expected)}</span>
+        {/* Result — the number is only trustworthy when a talent table backs it */}
+        {hasTalentData ? (
+          <div className="flex shrink-0 items-center justify-between gap-3 rounded-xl border border-forest-500/25 bg-forest-500/8 px-4 py-2.5 lg:w-[190px] lg:flex-col lg:items-end lg:justify-center">
+            <div className="text-right">
+              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">Expected</span>
+              <span className="damage-number tnum text-3xl leading-none">{formatNumber(expected)}</span>
+            </div>
+            <span className="text-[11px] leading-tight text-[var(--muted)] lg:text-right">
+              {formatNumber(nonCrit)}
+              <span className="hidden lg:inline"> non-crit</span>
+              <br />
+              {formatNumber(critHit)}
+              <span className="hidden lg:inline"> crit</span>
+            </span>
           </div>
-          <span className="text-[11px] leading-tight text-[var(--muted)] lg:text-right">
-            {formatNumber(nonCrit)}
-            <span className="hidden lg:inline"> non-crit</span>
-            <br />
-            {formatNumber(critHit)}
-            <span className="hidden lg:inline"> crit</span>
-          </span>
-        </div>
+        ) : (
+          <div className="flex shrink-0 items-center rounded-xl border border-[var(--line)] px-4 py-2.5 lg:w-[190px]">
+            <span data-testid="no-talent-note" className="text-[11px] leading-tight text-[var(--muted)]">
+              {NO_TALENT_NOTE}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -16,6 +16,25 @@
 // ============================================================================
 
 // ---------------------------------------------------------------------------
+// Talent-table lookup names.
+//
+// genshin-db keys the Traveler's kits by element ("Traveler (Anemo)" …), not
+// by the sibling names the site uses. Both siblings share every talent number
+// in game, and characters.ts models them on the Anemo stat line, so both map
+// to that one table. The generator and the verifier must resolve names through
+// this same map or check:data reports a false gap.
+// ---------------------------------------------------------------------------
+export const TALENT_NAME_OVERRIDE = {
+  aether: 'Traveler (Anemo)',
+  lumine: 'Traveler (Anemo)',
+};
+
+/** Characters with no talent table in genshin-db at all — the Miliastra
+ *  Wonderland test roster (v6.1). Nothing to generate; the UI shows a
+ *  "no talent data" notice instead of a number. */
+export const NO_TALENT_DATA = ['manekin', 'manekina'];
+
+// ---------------------------------------------------------------------------
 // Row classification.
 //
 // NEVER_DAMAGE lists the wording that marks a row as something other than a

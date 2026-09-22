@@ -32,6 +32,7 @@ import {
   ELEMENT_BG,
   ELEMENTS,
   GROUP_TO_TALENT,
+  NO_TALENT_NOTE,
   REACHABLE_REACTIONS,
   TRANSFORMATIVE,
 } from './calculator/constants';
@@ -335,6 +336,9 @@ export default function SingleCalculator() {
 
   // ---- Per-hit damage table ------------------------------------------------
   const talentRows = useMemo(() => talentRowsFor(character.id) ?? [], [character.id]);
+  // Without per-hit rows every figure would fall back to the placeholder
+  // multiplier in characters.ts — a confident number tracing to no talent.
+  const hasTalentData = talentRows.length > 0;
 
   const effLevels = effectiveTalentLevels(character.id, draft.talentLevels, draft.constellation);
   const consTalent = CONSTELLATION_TALENT_BONUS[character.id] ?? {};
@@ -619,6 +623,7 @@ export default function SingleCalculator() {
         expected={expected}
         nonCrit={result.nonCrit}
         critHit={result.critHit}
+        hasTalentData={hasTalentData}
         onOpenPicker={() => setPickerOpen(true)}
         onLevel={(v) => set('level', v)}
         onConstellation={changeConstellation}
@@ -770,13 +775,19 @@ export default function SingleCalculator() {
       {/* ============ Compact sticky result (mobile) ============ */}
       <div className="sticky top-2 z-40 mt-4 lg:hidden">
         <div className="calc-bar rounded-2xl px-4 py-2.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">Damage</span>
-            <span className="damage-number tnum text-2xl">{formatNumber(expected)}</span>
-            <span className="tnum text-[11px] text-[var(--muted)]">
-              {formatNumber(result.nonCrit)} / {formatNumber(result.critHit)}
+          {hasTalentData ? (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">Damage</span>
+              <span className="damage-number tnum text-2xl">{formatNumber(expected)}</span>
+              <span className="tnum text-[11px] text-[var(--muted)]">
+                {formatNumber(result.nonCrit)} / {formatNumber(result.critHit)}
+              </span>
+            </div>
+          ) : (
+            <span data-testid="no-talent-note" className="text-[11px] leading-tight text-[var(--muted)]">
+              {NO_TALENT_NOTE}
             </span>
-          </div>
+          )}
         </div>
       </div>
 
@@ -896,6 +907,7 @@ export default function SingleCalculator() {
           <DamagePanel
             groups={groupsWithDiff}
             onPickRow={pickRow}
+            hasTalentData={hasTalentData}
             result={result}
             expected={expected}
             capped={capped}
@@ -920,7 +932,9 @@ export default function SingleCalculator() {
       </div>
 
       <p role="status" aria-live="polite" className="sr-only">
-        {character.name} expected damage {formatNumber(expected)}.
+        {hasTalentData
+          ? `${character.name} expected damage ${formatNumber(expected)}.`
+          : `${character.name} has no talent data — pick another character.`}
       </p>
     </div>
   );

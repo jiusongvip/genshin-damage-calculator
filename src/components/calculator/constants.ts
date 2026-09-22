@@ -182,8 +182,7 @@ export const PIECE_ROWS: {
 ];
 
 /** Sub-stat options that can roll on a 5★ artifact (labels only, no dmg%). */
-export const SUB_OPTIONS: { type: SecondaryStatType; label: string; percent: boolean }[] = [
-  { type: 'critRate', label: 'CRIT Rate', percent: true },
+export const SUB_OPTIONS: { type: SecondaryStatType; label: string; percent: boolean }[] = [  { type: 'critRate', label: 'CRIT Rate', percent: true },
   { type: 'critDMG', label: 'CRIT DMG', percent: true },
   { type: 'atk%', label: 'ATK%', percent: true },
   { type: 'hp%', label: 'HP%', percent: true },
@@ -194,3 +193,11 @@ export const SUB_OPTIONS: { type: SecondaryStatType; label: string; percent: boo
   { type: 'flatHP', label: 'Flat HP', percent: false },
   { type: 'flatDEF', label: 'Flat DEF', percent: false },
 ];
+
+/**
+ * Shown wherever a number would otherwise sit for a character with no per-hit
+ * talent table (the Miliastra test characters). The headline would otherwise
+ * fall back to the placeholder multiplier in characters.ts and print a
+ * confident number that traces to no talent. Muted register, not a warning.
+ */
+export const NO_TALENT_NOTE = 'No talent data for this character — pick another to see damage.';

@@ -27,6 +27,8 @@ const gdb = require('genshin-db');
 
 import {
   HIT_COUNT_OVERRIDE,
+  NO_TALENT_DATA,
+  TALENT_NAME_OVERRIDE,
   groupFor,
   isDamageLabel,
   isPercentFormat,
@@ -117,7 +119,7 @@ function level10(attributes, index) {
 function deriveTalents(id, name, weaponType) {
   let t;
   try {
-    t = gdb.talents(name);
+    t = gdb.talents(TALENT_NAME_OVERRIDE[id] ?? name);
   } catch {
     return null;
   }
@@ -164,6 +166,7 @@ const EPS_TAL = 0.002; // talent multipliers (stored to 3 dp)
 
 const mismatches = [];
 const detail = [];
+const undocumented = [];
 
 for (const c of ROSTER) {
   const db = gdb.characters(c.name);
@@ -200,7 +203,11 @@ for (const c of ROSTER) {
   const derived = deriveTalents(c.id, c.name, c.weaponType);
   const ours = TALENTS[c.id];
   if (!derived) {
-    mismatches.push({ id: c.id, field: 'talents', ours: ours ? 'present' : 'MISSING', theirs: 'NOT FOUND' });
+    // Documented dataset gap (Miliastra test chars): no table exists to
+    // generate from, and the UI replaces their numbers with a notice.
+    // Listed, not failed — a permanent red gate hides real drift.
+    if (NO_TALENT_DATA.includes(c.id)) undocumented.push(c.id);
+    else mismatches.push({ id: c.id, field: 'talents', ours: ours ? 'present' : 'MISSING', theirs: 'NOT FOUND' });
   } else if (!ours) {
     mismatches.push({ id: c.id, field: 'talents', ours: 'MISSING', theirs: 'present' });
   } else {
@@ -263,6 +270,7 @@ if (detail.length) {
 
 line('='.repeat(78));
 line(`BASELINE MISMATCHES — ${mismatches.length} across ${ROSTER.length} characters`);
+if (undocumented.length) line(`documented dataset gaps (no genshin-db talent table): ${undocumented.join(', ')}`);
 line('='.repeat(78));
 
 const byField = {};

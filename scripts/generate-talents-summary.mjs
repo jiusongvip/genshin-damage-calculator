@@ -77,13 +77,24 @@ const ORDER = charactersSrc
   .filter(Boolean)
   .map((m) => m[1]);
 
+// Locate the line that closes the TALENTS object: a bare `}` or `};` on its
+// own line. An `indexOf('\n};')` search overshoots when the map closes with a
+// semicolon-less `}` (which is what this script itself used to emit) and eats
+// the hand-written policy block that follows.
+const MAP_CLOSE_RE = /\n\};?[ \t]*\r?\n/;
+function mapClose(src, from) {
+  const m = MAP_CLOSE_RE.exec(src.slice(from));
+  if (!m) throw new Error('could not locate the TALENTS block in src/data/talents.ts');
+  return { end: from + m.index, after: from + m.index + m[0].length };
+}
+
 const talentsSrc = readFileSync(FILE, 'utf8');
 const blockStart = talentsSrc.indexOf('export const TALENTS: Record<string, CharacterTalents> = {');
-const blockEnd = talentsSrc.indexOf('\n};', blockStart);
-if (blockStart < 0 || blockEnd < 0) throw new Error('could not locate the TALENTS block in src/data/talents.ts');
+if (blockStart < 0) throw new Error('could not locate the TALENTS block in src/data/talents.ts');
+const blockClose = mapClose(talentsSrc, blockStart);
 
 const existing = {};
-for (const m of talentsSrc.slice(blockStart, blockEnd).matchAll(/'([a-z0-9-]+)': \{ ([^}]+) \}/g)) {
+for (const m of talentsSrc.slice(blockStart, blockClose.end).matchAll(/'([a-z0-9-]+)': \{ ([^}]+) \}/g)) {
   const o = {};
   for (const p of m[2].matchAll(/(\w+): (?:(\d+(?:\.\d+)?)|"([^"]*)")/g)) {
     o[p[1]] = p[3] !== undefined ? p[3] : Number(p[2]);
@@ -170,13 +181,13 @@ const withNewBanner =
 
 // Re-locate the block in the new string (offsets shifted).
 const nbStart = withNewBanner.indexOf('export const TALENTS: Record<string, CharacterTalents> = {');
-const nbEnd = withNewBanner.indexOf('\n};', nbStart);
-if (nbStart < 0 || nbEnd < 0) throw new Error('TALENTS block not found after banner swap');
+if (nbStart < 0) throw new Error('TALENTS block not found after banner swap');
+const nbClose = mapClose(withNewBanner, nbStart);
 
 const newSrc =
   withNewBanner.slice(0, nbStart) +
-  `export const TALENTS: Record<string, CharacterTalents> = {\n${lines.join('\n')}\n}` +
-  withNewBanner.slice(nbEnd + 3);
+  `export const TALENTS: Record<string, CharacterTalents> = {\n${lines.join('\n')}\n};\n` +
+  withNewBanner.slice(nbClose.after);
 
 console.log(`entries: ${Object.keys(out).length} (derived ${Object.keys(out).length - kept.length}, kept ${kept.length})`);
 if (kept.length) console.log(`KEPT without per-hit data: ${kept.join(', ')}`);

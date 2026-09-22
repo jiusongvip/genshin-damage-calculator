@@ -757,3 +757,49 @@ describe('site-wide — enemy table', () => {
     }
   });
 });
+
+/**
+ * Brief #2 Task 1. Aether and Lumine used to print a confident headline above
+ * an empty table: genshin-db stores the Traveler's kits under element-split
+ * names ("Traveler (Anemo)"), so `talents('Aether')` found nothing and every
+ * figure fell back to the placeholder in characters.ts. The generators now
+ * resolve through the shared TALENT_NAME_OVERRIDE. The Miliastra pair
+ * (Manekin / Manekina, v6.1 test characters) has no talent table anywhere —
+ * for those the UI shows a "no talent data" notice instead of a number.
+ */
+describe('Traveler roster entries — real data at last', () => {
+  it('aether and lumine resolve through the shared Traveler (Anemo) override', () => {
+    const rows = talentRowsFor('aether');
+    expect(rows?.length).toBeGreaterThan(0);
+    // In game the siblings share every talent number; the site models both on
+    // the Anemo kit (characters.ts note), so both map to the same table.
+    expect(talentRowsFor('lumine')).toEqual(rows);
+    const tornado = rows!.find((r) => r.label === 'Tornado DMG')!;
+    expect(tornado.element).toBe('anemo');
+    expect(tornado.values[9]).toBeCloseTo(1.4544, 6);
+  });
+
+  it('the physical melee combo is tagged physical, the Anemo kit Anemo', () => {
+    const rows = talentRowsFor('aether')!;
+    for (const r of rows.filter((r) => r.group === 'normal')) expect(r.element).toBe('physical');
+    for (const r of rows.filter((r) => r.group === 'skill' || r.group === 'burst')) expect(r.element).toBe('anemo');
+  });
+
+  it('the summary table is derived from the rows, not the placeholder', () => {
+    const rows = talentRowsFor('aether')!;
+    const combo = rows
+      .filter((r) => r.isDamage && r.group === 'normal')
+      .reduce((s, r) => s + r.values[9] * r.hits, 0);
+    expect(combo).toBeCloseTo(TALENTS['aether'].normal, 3);
+    expect(TALENTS['aether'].normal).toBeCloseTo(5.336, 3);
+  });
+});
+
+describe('the no-talent guard — exactly the Miliastra pair stays empty', () => {
+  it('talentRowsFor is empty for precisely these ids, so the UI list cannot drift', () => {
+    const missing = CHARACTERS.filter((c) => !c.unreleased && !(talentRowsFor(c.id)?.length ?? false)).map(
+      (c) => c.id,
+    );
+    expect(missing).toEqual(['manekin', 'manekina']);
+  });
+});

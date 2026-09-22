@@ -16,6 +16,9 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,
+    // Sandboxes and locked-down CI often ship a preinstalled Chromium that
+    // Playwright cannot discover; point it here instead of editing the config.
+    launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined },
   },
   projects: [
     // The two widths the layout actually broke at: 1280 is the narrowest

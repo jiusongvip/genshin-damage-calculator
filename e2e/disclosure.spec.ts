@@ -51,4 +51,39 @@ test.describe('modelling-gap disclosure', () => {
     await expect(list.getByText('not modelled — text only')).toHaveCount(4);
     await expect(list.getByText('modelled', { exact: true })).toHaveCount(2);
   });
+
+  /**
+   * Brief #2 Task 1. The Miliastra pair are the only roster characters with
+   * no per-hit talent table — genshin-db has none for them — so every figure
+   * used to fall back to the placeholder multiplier in characters.ts and print
+   * a confident number above an empty table. The notice replaces it in all
+   * three places a number would sit; aether/lumine now have the real Traveler
+   * (Anemo) table, so they read as supported.
+   */
+  test('a character with no talent data shows a notice, never a number', async ({ page }) => {
+    await gotoState(page, 'c=manekin');
+    await expect(page.locator('.damage-number')).toHaveCount(0);
+    await expect(page.getByTestId('no-talent-note').first()).toContainText('No talent data');
+
+    await openTab(page, 'Multipliers');
+    await expect(page.locator('.damage-number')).toHaveCount(0);
+  });
+
+  test('a supported character keeps its headline and its per-hit table', async ({ page }) => {
+    await gotoState(page, 'c=hu-tao');
+    await expect(page.locator('.damage-number').first()).toBeVisible();
+    const rows = page.locator('#damage-table tbody tr');
+    expect(await rows.count()).toBeGreaterThan(10);
+    await expect(rows.filter({ hasText: /1-Hit DMG/ }).first()).toBeVisible();
+  });
+
+  test('the Traveler prints the table its headline traces to', async ({ page }) => {
+    await gotoState(page, 'c=aether');
+    await expect(page.locator('.damage-number').first()).toBeVisible();
+    await expect(page.getByTestId('no-talent-note')).toHaveCount(0);
+    const rows = page.locator('#damage-table tbody tr');
+    expect(await rows.count()).toBeGreaterThan(10);
+    // The Gust Surge burst hit — real data, not the characters.ts placeholder.
+    await expect(rows.filter({ hasText: 'Tornado DMG' }).first()).toBeVisible();
+  });
 });

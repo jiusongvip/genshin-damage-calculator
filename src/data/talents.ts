@@ -143,7 +143,7 @@ export const TALENTS: Record<string, CharacterTalents> = {
   'jahoda': { normal: 2.596, charged: 3.099, skill: 3.816, skillLabel: "Filled Treasure Flask DMG", burst: 3.73, burstLabel: "Skill DMG" },
   'manekin': { normal: 4.273, charged: 1.04, skill: 2.419, skillLabel: "Skill DMG", burst: 5.832, burstLabel: "Restricted Area Summon DMG" },
   'manekina': { normal: 4.273, charged: 1.04, skill: 2.419, skillLabel: "Skill DMG", burst: 5.832, burstLabel: "Restricted Area Summon DMG" },
-}
+};
 
 export function talentsFor(id: string): CharacterTalents | undefined {
   return TALENTS[id];
