@@ -9,6 +9,8 @@ import { talentRowsFor } from '../data/generated/talents';
 import { TALENTS, signatureTalent } from '../data/talents';
 import { baseStatsAt } from '../data/levelStats';
 import { CONSTELLATION_EFFECTS, PASSIVE_EFFECTS, constellationBuffs } from '../data/constellations';
+import { WEAPON_PASSIVE_EFFECTS, weaponBuffAt } from '../data/weaponPassives';
+import { weaponPassiveFor } from '../data/generated/weaponPassives';
 import { effectiveTalentLevels, signatureMultiplierAt } from '../components/calculator/draft';
 
 /**
@@ -801,5 +803,49 @@ describe('the no-talent guard — exactly the Miliastra pair stays empty', () =>
       (c) => c.id,
     );
     expect(missing).toEqual(['manekin', 'manekina']);
+  });
+});
+
+// A passive description is "conditional" when it gates the buff behind an event
+// (hits, skills, stacks, shields...). The house rule says such an entry must
+// either model only the unconditional core or say in `note` what it assumes —
+// so "conditional description && no note" is always a modelling bug.
+const CONDITIONAL_RE = /\b(when|after|once|until|while|if|upon|hit(s|ting)?\b|defeats?|trigger\w*|stacks?\b|chance|shield)\b/i;
+
+describe('weapon passive modelling — WEAPON_PASSIVE_EFFECTS integrity', () => {
+  it('every modelled weapon id exists in WEAPONS and has generated passive data', () => {
+    for (const id of Object.keys(WEAPON_PASSIVE_EFFECTS)) {
+      expect(getWeapon(id), id).toBeTruthy();
+      expect(weaponPassiveFor(id), id).toBeTruthy();
+    }
+  });
+
+  it('every valueIndex is in range for every refinement of its weapon', () => {
+    for (const [id, effect] of Object.entries(WEAPON_PASSIVE_EFFECTS)) {
+      for (const [r, ref] of weaponPassiveFor(id)!.refinements.entries()) {
+        for (const line of effect.lines) {
+          expect(line.valueIndex, `${id} r${r + 1}`).toBeLessThan(ref.values.length);
+        }
+      }
+    }
+  });
+
+  it('every conditional game effect discloses its assumption in note', () => {
+    const silent: string[] = [];
+    for (const [id, effect] of Object.entries(WEAPON_PASSIVE_EFFECTS)) {
+      const desc = weaponPassiveFor(id)!.refinements[0].description;
+      if (CONDITIONAL_RE.test(desc) && !effect.note) silent.push(id);
+    }
+    expect(silent).toEqual([]);
+  });
+
+  it('weaponBuffAt yields finite, non-negative contributions at max refine and stacks', () => {
+    for (const [id, effect] of Object.entries(WEAPON_PASSIVE_EFFECTS)) {
+      const buff = weaponBuffAt(id, 5, effect.maxStacks);
+      for (const [stat, value] of Object.entries(buff)) {
+        expect(Number.isFinite(value), `${id}.${stat}`).toBe(true);
+        expect(value, `${id}.${stat}`).toBeGreaterThanOrEqual(0);
+      }
+    }
   });
 });
