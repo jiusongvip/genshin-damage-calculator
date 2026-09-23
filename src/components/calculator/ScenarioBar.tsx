@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
-import type { CharacterData, EnemyData, WeaponData } from '../../lib/damage';
+import type { CharacterData, ElementType, EnemyData, WeaponData } from '../../lib/damage';
 import { formatNumber } from '../../lib/damage';
 import { ELEMENT_LABEL } from '../../data/elements';
 import { ENEMIES } from '../../data/enemies';
 import type { Scenario } from '../../lib/scenarios';
 import { ElementIcon } from '../ElementIcon';
 import { Glyph, IconSelect, NumberField, WeaponIcon } from './primitives';
-import { ELEMENT_BG, NO_TALENT_NOTE } from './constants';
+import { ELEMENT_DOT, ELEMENT_BG, NO_TALENT_NOTE } from './constants';
 import type { Draft } from './draft';
 
 /** The three talent buckets the bar edits — narrower than `TalentGroup`,
@@ -103,6 +103,8 @@ export interface ScenarioBarProps {
   expected: number;
   nonCrit: number;
   critHit: number;
+  /** What the headline is actually dealing — the override when one is active. */
+  activeElement: ElementType;
   /** False when the character has no per-hit talent table — the headline reads a
    *  notice instead of the placeholder-multiplier number. */
   hasTalentData: boolean;
@@ -150,6 +152,7 @@ export function ScenarioBar({
   expected,
   nonCrit,
   critHit,
+  activeElement,
   hasTalentData,
   onOpenPicker,
   onLevel,
@@ -311,15 +314,20 @@ export function ScenarioBar({
         {hasTalentData ? (
           <div className="flex shrink-0 items-center justify-between gap-3 rounded-xl border border-forest-500/25 bg-forest-500/8 px-4 py-2.5 lg:w-[190px] lg:flex-col lg:items-end lg:justify-center">
             <div className="text-right">
-              <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">Expected</span>
-              <span className="damage-number tnum text-3xl leading-none">{formatNumber(expected)}</span>
+              <span className="flex items-center justify-end gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-forest-600">
+                <span
+                  data-testid="headline-element-dot"
+                  className={`element-dot !h-2 !w-2 ${ELEMENT_DOT[activeElement] ?? ELEMENT_DOT.physical}`}
+                  aria-hidden="true"
+                />
+                Expected
+              </span>
+              <span className="damage-number tnum text-4xl leading-none">{formatNumber(expected)}</span>
             </div>
-            <span className="text-[11px] leading-tight text-[var(--muted)] lg:text-right">
-              {formatNumber(nonCrit)}
-              <span className="hidden lg:inline"> non-crit</span>
+            <span className="text-right text-[11px] leading-tight text-[var(--muted)]">
+              <span className="tnum">{formatNumber(nonCrit)}</span> non-crit
               <br />
-              {formatNumber(critHit)}
-              <span className="hidden lg:inline"> crit</span>
+              <span className="tnum">{formatNumber(critHit)}</span> crit
             </span>
           </div>
         ) : (

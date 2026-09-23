@@ -30,6 +30,18 @@ export const ELEMENT_BG: Record<string, string> = {
   physical: 'from-gray-400/45 to-gray-400/15',
 };
 
+/** Data-viz dots only — never a text colour. */
+export const ELEMENT_DOT: Record<string, string> = {
+  pyro: 'bg-pyro',
+  hydro: 'bg-hydro',
+  electro: 'bg-electro',
+  cryo: 'bg-cryo',
+  anemo: 'bg-anemo',
+  geo: 'bg-geo',
+  dendro: 'bg-dendro',
+  physical: 'bg-gray-400',
+};
+
 export const SCALING_LABEL: Record<string, string> = { atk: 'ATK', hp: 'Max HP', def: 'DEF', em: 'Elemental Mastery' };
 
 export const AMPLIFIED: { value: AmplifiedReaction; label: string }[] = [

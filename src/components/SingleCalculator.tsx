@@ -440,6 +440,7 @@ export default function SingleCalculator() {
         nonCrit={result.nonCrit}
         critHit={result.critHit}
         hasTalentData={hasTalentData}
+        activeElement={activeElement}
         onOpenPicker={() => setPickerOpen(true)}
         onLevel={(v) => set('level', v)}
         onConstellation={changeConstellation}
