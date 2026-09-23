@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { field, gotoCalculator, openTab, readExpected } from './helpers';
+import { gotoCalculator, openTab, readExpected, setField } from './helpers';
 
 /**
  * Saved scenarios let a reader park one build and diff it against another
@@ -12,7 +12,7 @@ test.describe('saved scenarios', () => {
     await gotoCalculator(page);
     await openTab(page, 'Multipliers');
 
-    await field(page, 'Elemental / Physical DMG').fill('150');
+    await setField(page, 'Elemental / Physical DMG', '150');
     const saved = await readExpected(page);
 
     await page.getByLabel('Scenario name').fill('My build');
@@ -20,7 +20,7 @@ test.describe('saved scenarios', () => {
     const row = page.getByTestId('scenario-row').first();
     await expect(row).toContainText('My build');
 
-    await field(page, 'Elemental / Physical DMG').fill('0');
+    await setField(page, 'Elemental / Physical DMG', '0');
     await expect.poll(() => readExpected(page)).not.toBe(saved);
 
     await row.getByRole('button', { name: 'Load' }).click();
@@ -31,12 +31,12 @@ test.describe('saved scenarios', () => {
     await gotoCalculator(page);
     await openTab(page, 'Multipliers');
 
-    await field(page, 'Elemental / Physical DMG').fill('150');
+    await setField(page, 'Elemental / Physical DMG', '150');
     await page.getByLabel('Scenario name').fill('base');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
 
     // Move away from the saved state so the diff is non-zero.
-    await field(page, 'Elemental / Physical DMG').fill('300');
+    await setField(page, 'Elemental / Physical DMG', '300');
 
     await openTab(page, 'Damage');
     const table = page.locator('#damage-table');

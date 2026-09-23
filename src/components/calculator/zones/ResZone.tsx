@@ -18,7 +18,7 @@ export interface ResZoneProps extends ZoneChrome {
 export function ResZone({ value, changed, onReset, onEnter, resShred, enemyResMap, resistances, onPatch }: ResZoneProps) {
   return (
     <Zone id="res" index={6} title="Enemy RES" value={value} changed={changed} onReset={onReset} onEnter={onEnter}>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         {ENEMY_ELEMENTS.map((el) => (
           <Pct
             key={el}

@@ -22,14 +22,13 @@ const enemySelect = (page: Page) => page.getByRole('button', { name: /· Lv\d+/ 
 const openListbox = (page: Page) => page.getByRole('listbox');
 
 /**
- * Replace a numeric field's value in one keystroke. `fill()` clears the field
- * first, and an empty level input falls back to 90 — so React re-renders with
- * 90 and can clobber the value `fill()` just wrote. Selecting first and then
- * typing never produces that empty intermediate state.
+ * Replace a numeric field's value. The field keeps the edited string until it
+ * commits on blur or Enter, so a `fill()` followed by Enter is the whole
+ * interaction — no half-typed intermediate value ever reaches the draft.
  */
 async function retype(input: Locator, value: string) {
-  await input.selectText();
-  await input.pressSequentially(value);
+  await input.fill(value);
+  await input.press('Enter');
   await expect(input).toHaveValue(value);
 }
 
@@ -67,11 +66,11 @@ test.describe('scenario bar', () => {
     await gotoCalculator(page);
 
     // A preset carries its own level, so there is nothing to type.
-    await expect(page.getByLabel('Enemy level')).toHaveCount(0);
+    await expect(page.getByLabel('Enemy level', { exact: true })).toHaveCount(0);
 
     await enemySelect(page).click();
     await openListbox(page).getByRole('option', { name: 'Custom…' }).click();
 
-    await expect(page.getByLabel('Enemy level')).toBeVisible();
+    await expect(page.getByLabel('Enemy level', { exact: true })).toBeVisible();
   });
 });

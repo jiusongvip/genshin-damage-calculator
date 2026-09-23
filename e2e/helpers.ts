@@ -83,6 +83,17 @@ export async function readExpected(page: Page): Promise<number> {
 export const field = (page: Page, label: string) =>
   page.locator('label').filter({ hasText: label }).locator('input').first();
 
+/**
+ * Type into a `NumberField` and commit the edit. While focused the field keeps
+ * the local string and feeds nothing to the draft — a commit happens on blur or
+ * Enter — so `fill()` alone moves no numbers.
+ */
+export async function setField(page: Page, label: string, value: string) {
+  const input = field(page, label);
+  await input.fill(value);
+  await input.press('Enter');
+}
+
 /** Switch the calculator's tab strip. */
 export async function openTab(page: Page, name: 'Character' | 'Equipment' | 'Multipliers' | 'Damage') {
   await page.getByRole('button', { name, exact: true }).click();

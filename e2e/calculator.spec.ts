@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { field, gotoCalculator, openTab, readExpected } from './helpers';
+import { field, gotoCalculator, openTab, readExpected, setField } from './helpers';
 
 /**
  * The calculator is the product; until now nothing in the suite touched it.
@@ -52,7 +52,7 @@ test.describe('calculator', () => {
     const before = await readExpected(page);
 
     // Zone 2 is a straight multiplier on the hit, so +100% must raise the total.
-    await field(page, 'Elemental / Physical DMG').fill('100');
+    await setField(page, 'Elemental / Physical DMG', '100');
     await expect.poll(() => readExpected(page)).toBeGreaterThan(before);
 
     // The zone shows an "edited" marker and offers a reset while it is off-default.

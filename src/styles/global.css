@@ -213,9 +213,9 @@ input[type="range"]:focus-visible {
   box-shadow: 0 0 0 3px rgb(69 106 75 / 0.35);
 }
 
-/* Select & number input (light) */
+/* Select & text input (light). Number inputs are excluded on purpose: every
+   one of them is a `NumberField`, which styles itself at content width. */
 select,
-input[type="number"],
 input[type="text"] {
   background: var(--surface-2);
   border: 1px solid var(--line);
@@ -224,7 +224,6 @@ input[type="text"] {
 }
 
 select:focus-visible,
-input[type="number"]:focus-visible,
 input[type="text"]:focus-visible {
   outline: 2px solid #456A4B;
   outline-offset: 1px;

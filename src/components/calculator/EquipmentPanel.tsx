@@ -8,7 +8,7 @@ import type { PartyState } from '../../data/partyBuffs';
 import { ElementIcon } from '../ElementIcon';
 import type { WeaponPassiveData } from '../../data/generated/weaponPassives';
 import type { WeaponPassiveEffect } from '../../data/weaponPassives';
-import { Glyph, IconSelect, Num, Pct } from './primitives';
+import { Glyph, IconSelect, Num, NumberField, Pct } from './primitives';
 import { ELEMENTS, MAIN_OPTIONS, PIECE_ROWS, SECONDARY_LABEL, STAT_GLYPH, SUB_OPTIONS } from './constants';
 import type { PieceKey } from './constants';
 import { ELEMENT_LABEL } from '../../data/elements';
@@ -234,13 +234,15 @@ export function EquipmentPanel({
                             </option>
                           ))}
                         </select>
-                        <input
-                          type="number"
-                          inputMode="decimal"
+                        <NumberField
+                          label={`${row.label} sub-stat ${slot + 1}`}
+                          hideLabel
+                          stepper={false}
                           disabled={!sub}
-                          value={sub ? (opt?.percent ? Number((sub.value * 100).toFixed(2)) : sub.value) : ''}
-                          onChange={(e) => onPieceSubValue(pieceIdx, slot, parseFloat(e.target.value) || 0, !!opt?.percent)}
-                          className="h-8 w-14 shrink-0 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-1 text-right text-[11px] text-[var(--text)] disabled:opacity-40"
+                          className="shrink-0"
+                          inputClassName="w-[4.5ch] text-right text-[11px]"
+                          value={sub ? (opt?.percent ? Number((sub.value * 100).toFixed(2)) : sub.value) : 0}
+                          onChange={(v) => onPieceSubValue(pieceIdx, slot, v, !!opt?.percent)}
                         />
                       </div>
                     );

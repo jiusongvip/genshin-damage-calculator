@@ -5,9 +5,8 @@ import { ELEMENT_LABEL } from '../../data/elements';
 import { ENEMIES } from '../../data/enemies';
 import type { Scenario } from '../../lib/scenarios';
 import { ElementIcon } from '../ElementIcon';
-import { Glyph, IconSelect, WeaponIcon } from './primitives';
+import { Glyph, IconSelect, NumberField, WeaponIcon } from './primitives';
 import { ELEMENT_BG, NO_TALENT_NOTE } from './constants';
-import { clamp } from './draft';
 import type { Draft } from './draft';
 
 /** The three talent buckets the bar edits — narrower than `TalentGroup`,
@@ -147,17 +146,7 @@ export function ScenarioBar({
 
         {/* Controls — a grid that fills the width instead of wrapping with gaps */}
         <div className="grid flex-1 grid-cols-2 content-start gap-2.5 sm:grid-cols-4">
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium text-[var(--muted)]">Level</span>
-            <input
-              type="number"
-              min={1}
-              max={90}
-              value={level}
-              onChange={(e) => onLevel(Math.min(90, Math.max(1, parseInt(e.target.value, 10) || 90)))}
-              className="h-9 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2.5 text-right text-sm text-[var(--text)]"
-            />
-          </label>
+          <NumberField label="Level" value={level} onChange={onLevel} min={1} max={90} integer />
 
           <label className="flex flex-col gap-1">
             <span className="text-[11px] font-medium text-[var(--muted)]">Constellation</span>
@@ -188,16 +177,17 @@ export function ScenarioBar({
             </span>
             <div className="grid grid-cols-3 gap-1.5">
               {TALENT_INPUTS.map(([g, label]) => (
-                <input
+                <NumberField
                   key={g}
-                  type="number"
+                  label={label}
+                  hideLabel
+                  integer
                   min={1}
                   max={15}
                   value={talentLevels[g]}
-                  onChange={(e) => onTalentLevel(g, parseInt(e.target.value, 10) || 1)}
+                  onChange={(v) => onTalentLevel(g, v)}
                   title={label}
-                  aria-label={label}
-                  className="h-9 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-1 text-center text-sm text-[var(--text)]"
+                  inputClassName="w-[3ch] text-center text-sm"
                 />
               ))}
             </div>
@@ -235,14 +225,15 @@ export function ScenarioBar({
                 ]}
               />
               {customEnemy && (
-                <input
-                  type="number"
+                <NumberField
+                  label="Enemy level"
+                  hideLabel
+                  integer
                   min={1}
                   max={100}
                   value={enemyLevel}
-                  onChange={(e) => onEnemyLevel(clamp(parseInt(e.target.value, 10) || 90, 1, 100))}
-                  aria-label="Enemy level"
-                  className="h-9 w-16 shrink-0 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 text-right text-sm text-[var(--text)]"
+                  onChange={onEnemyLevel}
+                  className="shrink-0"
                 />
               )}
             </div>

@@ -25,7 +25,7 @@ export function CritZone({
 }: CritZoneProps) {
   return (
     <Zone id="crit" index={3} title="CRIT" value={value} changed={changed} onReset={onReset} onEnter={onEnter}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Pct label="CRIT Rate bonus" value={critRate} onChange={(v) => onPatch({ critRate: v })} min={0} max={100} />
         <Pct label="CRIT DMG bonus" value={critDMG} onChange={(v) => onPatch({ critDMG: v })} min={0} max={1000} />
         <label className="block">

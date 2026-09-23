@@ -92,7 +92,7 @@ export function ReactionZone({
           max={3000}
         />
       </div>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Pct label="Reaction bonus" value={reactionBonus} onChange={(v) => onPatch({ reactionBonus: v })} min={0} max={1000} />
         <Pct label="Amplifying bonus" value={ampReactionBonus} onChange={(v) => onPatch({ ampReactionBonus: v })} min={0} max={1000} />
         <Pct label="Transformative bonus" value={transformReactionBonus} onChange={(v) => onPatch({ transformReactionBonus: v })} min={0} max={1000} />

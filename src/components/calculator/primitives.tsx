@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ElementIcon } from '../ElementIcon';
 import { GLYPH } from './constants';
-import { clamp } from './draft';
 import type { ElementType } from '../../lib/damage';
 
 /**
@@ -11,6 +10,167 @@ import type { ElementType } from '../../lib/damage';
  * damage chain. Nothing here knows about damage maths — they take a value and
  * an onChange.
  */
+
+/** '%' fields store the fraction and show the percent; everything is 1:1. */
+export function toDisplayValue(stored: number, unit?: '%' | '×' | 's'): number {
+  return Number((unit === '%' ? stored * 100 : stored).toFixed(6));
+}
+
+export function toStoredValue(display: number, unit?: '%' | '×' | 's'): number {
+  return unit === '%' ? display / 100 : display;
+}
+
+/**
+ * Parse an edited display string into a clamped display value. `null` means
+ * "unparsable — keep showing the last committed value", which is what makes
+ * clearing the box no longer reset the field mid-edit.
+ */
+export function clampDisplayValue(
+  text: string,
+  min: number,
+  max: number,
+  integer = false,
+): number | null {
+  const raw = parseFloat(text);
+  if (!Number.isFinite(raw)) return null;
+  const d = integer ? Math.trunc(raw) : raw;
+  return Math.min(max, Math.max(min, d));
+}
+
+export interface NumberFieldProps {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: '%' | '×' | 's';
+  icon?: ReactNode;
+  stepper?: boolean;
+  hideLabel?: boolean;
+  /** Truncate to an integer before clamping, like the level fields always did. */
+  integer?: boolean;
+  disabled?: boolean;
+  title?: string;
+  className?: string;
+  inputClassName?: string;
+}
+
+/**
+ * The one numeric input. Edits stay local until blur or Enter, so the box can
+ * be cleared or mid-typing without the clamped prop snapping back underneath
+ * the caret. −/+ buttons, wheel-free, arrow keys step (Shift × 10).
+ */
+export function NumberField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  unit,
+  icon,
+  stepper = true,
+  hideLabel = false,
+  integer = false,
+  disabled = false,
+  title,
+  className = '',
+  inputClassName = 'w-[6ch] text-left text-sm',
+}: NumberFieldProps) {
+  const [text, setText] = useState<string | null>(null);
+  const lo = min ?? Number.NEGATIVE_INFINITY;
+  const hi = max ?? Number.POSITIVE_INFINITY;
+  const display = toDisplayValue(value, unit);
+  const shown = text ?? String(display);
+
+  const commit = (t: string) => {
+    setText(null);
+    const d = clampDisplayValue(t, lo, hi, integer);
+    if (d !== null) onChange(toStoredValue(d, unit));
+  };
+  const bump = (delta: number) => {
+    const base = clampDisplayValue(text ?? '', lo, hi, integer) ?? display;
+    const next = Number(Math.min(hi, Math.max(lo, base + delta)).toFixed(6));
+    onChange(toStoredValue(next, unit));
+    setText(null);
+  };
+
+  const btn =
+    'flex h-7 w-5 shrink-0 items-center justify-center rounded-md text-sm leading-none text-[var(--muted)] transition-colors hover:bg-[var(--soft)] hover:text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-forest-500 disabled:pointer-events-none disabled:opacity-40';
+
+  return (
+    <label className={`block ${className}`}>
+      <span
+        className={
+          hideLabel
+            ? 'sr-only'
+            : 'flex items-center gap-1 text-xs font-medium text-[var(--muted)]'
+        }
+      >
+        {icon}
+        {label}
+      </span>
+      <span
+        title={title}
+        className={`mt-1 inline-flex select-none items-center gap-0.5 rounded-[10px] border border-transparent bg-[var(--surface-2)] py-0.5 pr-0.5 transition-colors hover:border-[var(--line)] focus-within:border-forest-500 focus-within:ring-2 focus-within:ring-forest-500/25 ${
+          disabled ? 'opacity-40' : ''
+        }`}
+      >
+        {stepper && (
+          <button
+            type="button"
+            aria-label={`Decrease ${label}`}
+            disabled={disabled || display <= lo}
+            onClick={() => bump(-step)}
+            className={btn}
+          >
+            −
+          </button>
+        )}
+        <input
+          type="number"
+          inputMode="decimal"
+          min={min}
+          max={max}
+          step={step}
+          value={shown}
+          disabled={disabled}
+          aria-label={hideLabel ? label : undefined}
+          onChange={(e) => {
+            // Chrome reports "" (badInput) while "0." is still incomplete;
+            // leaving the local text alone keeps the typed characters visible.
+            if (e.target.value === '' && e.target.validity.badInput) return;
+            setText(e.target.value);
+          }}
+          onBlur={(e) => commit(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit(e.currentTarget.value);
+            } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+              e.preventDefault();
+              bump((e.key === 'ArrowUp' ? step : -step) * (e.shiftKey ? 10 : 1));
+            }
+          }}
+          className={`tnum h-8 min-w-0 border-0 bg-transparent px-1 text-[var(--text)] [appearance:textfield] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${inputClassName}`}
+        />
+        {unit && <span className="pr-0.5 text-xs text-[var(--muted)]">{unit}</span>}
+        {stepper && (
+          <button
+            type="button"
+            aria-label={`Increase ${label}`}
+            disabled={disabled || display >= hi}
+            onClick={() => bump(step)}
+            className={btn}
+          >
+            +
+          </button>
+        )}
+      </span>
+    </label>
+  );
+}
 
 /** Percent input: shows 12.3 for 0.123 and writes back the fraction. */
 export function Pct({
@@ -31,28 +191,16 @@ export function Pct({
   max?: number;
 }) {
   return (
-    <label className="block">
-      <span className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
-        {icon}
-        {label}
-      </span>
-      <div className="mt-1 flex items-center gap-1">
-        <input
-          type="number"
-          inputMode="decimal"
-          step={step}
-          min={min}
-          max={max}
-          value={Number((value * 100).toFixed(2))}
-          onChange={(e) => {
-            const raw = parseFloat(e.target.value);
-            onChange(clamp(Number.isFinite(raw) ? raw : 0, min, max) / 100);
-          }}
-          className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-right text-[var(--text)]"
-        />
-        <span className="text-xs text-[var(--muted)]">%</span>
-      </div>
-    </label>
+    <NumberField
+      label={label}
+      icon={icon}
+      unit="%"
+      value={value}
+      onChange={onChange}
+      step={step}
+      min={min}
+      max={max}
+    />
   );
 }
 
@@ -74,25 +222,15 @@ export function Num({
   max?: number;
 }) {
   return (
-    <label className="block">
-      <span className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
-        {icon}
-        {label}
-      </span>
-      <input
-        type="number"
-        inputMode="decimal"
-        step={step}
-        min={min}
-        max={max}
-        value={value}
-        onChange={(e) => {
-          const raw = parseFloat(e.target.value);
-          onChange(clamp(Number.isFinite(raw) ? raw : 0, min, max));
-        }}
-        className="mt-1 w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-right text-[var(--text)]"
-      />
-    </label>
+    <NumberField
+      label={label}
+      icon={icon}
+      value={value}
+      onChange={onChange}
+      step={step}
+      min={min}
+      max={max}
+    />
   );
 }
 

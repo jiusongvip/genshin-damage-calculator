@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { field, gotoCalculator, openTab, readExpected, waitForCalculator } from './helpers';
+import { gotoCalculator, openTab, readExpected, setField, waitForCalculator } from './helpers';
 
 /**
  * Shareable state is the product's promise: the homepage and FAQ both tell
@@ -13,8 +13,8 @@ test.describe('URL state', () => {
     await gotoCalculator(page);
     await openTab(page, 'Multipliers');
 
-    await field(page, 'Elemental / Physical DMG').fill('150');
-    await field(page, 'CRIT Rate bonus').fill('50');
+    await setField(page, 'Elemental / Physical DMG', '150');
+    await setField(page, 'CRIT Rate bonus', '50');
 
     // The two edits land in the query string (as fractions, not percents).
     await expect.poll(() => new URL(page.url()).searchParams.get('db')).toBe('1.5');
@@ -33,8 +33,8 @@ test.describe('URL state', () => {
   test('a default panel writes no query string', async ({ page }) => {
     await gotoCalculator(page);
     await openTab(page, 'Multipliers');
-    await field(page, 'Elemental / Physical DMG').fill('150');
-    await field(page, 'Elemental / Physical DMG').fill('0');
+    await setField(page, 'Elemental / Physical DMG', '150');
+    await setField(page, 'Elemental / Physical DMG', '0');
     await expect.poll(() => new URL(page.url()).search).toBe('');
   });
 });
