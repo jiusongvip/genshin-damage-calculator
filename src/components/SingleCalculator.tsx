@@ -5,14 +5,10 @@ import { ENEMIES } from '../data/enemies';
 import { NO_ARTIFACTS, DEFAULT_BUFFS, setPicksFromPieces } from '../data/presets';
 import { addBuffs, computeDamage, formatNumber } from '../lib/damage';
 import type {
-  AdditiveReaction,
-  AmplifiedReaction,
   ArtifactBuild,
   BuffState,
   ElementType,
-  ScalingStat,
   SecondaryStatType,
-  TransformativeReaction,
 } from '../lib/damage';
 import { ELEMENT_LABEL } from '../data/elements';
 import type { TalentKey } from '../data/talents';
@@ -40,13 +36,13 @@ import {
   bucketOf,
   clamp,
   defaultsFor,
+  draftFromQuery,
+  draftToQuery,
   effectiveTalentLevels,
   EMPTY_SETS,
-  mainValueFor,
-  sanitize,
   signatureMultiplierAt,
 } from './calculator/draft';
-import type { CritMode, Draft } from './calculator/draft';
+import type { Draft } from './calculator/draft';
 import { zoneRefs } from './calculator/primitives';
 import { DamagePanel } from './calculator/DamagePanel';
 import { EquipmentPanel } from './calculator/EquipmentPanel';
@@ -430,108 +426,32 @@ export default function SingleCalculator() {
   };
 
   // ---- URL state -----------------------------------------------------------
-  // The calculator no longer mirrors its state into the address bar: the URL
-  // stays exactly as the visitor opened it. Links that already carry state
-  // (from an older build) are still read once, below.
+  // The calculator mirrors its editable state into the address bar so a shared
+  // link reproduces the exact panel (draftToQuery / draftFromQuery in draft.ts).
   const restored = useRef(false);
+  const skipFirstWrite = useRef(true);
 
-  // Restore from URL once.
+  // Restore from URL once, on mount. The character's own defaults are the base,
+  // so a bare `?c=<id>` still loads that character's weapon, attack type and preset.
   useEffect(() => {
     if (restored.current) return;
     restored.current = true;
-    const p = new URLSearchParams(window.location.search);
-    const num = (k: string, fallback: number) => {
-      const v = parseFloat(p.get(k) ?? '');
-      return Number.isFinite(v) ? v : fallback;
-    };
-    const c = CHARACTERS.find((x) => x.id === p.get('c'));
-    const base = defaultsFor(c ?? initial);
-    // Restored attack type / talent levels, so the headline multiplier matches
-    // the talent levels in the link rather than the level-10 default.
-    const restoredAttack = (p.get('at') as TalentKey) ?? base.attackType;
-    const tlParts = (p.get('tl') ?? '').split('.').map((x) => parseInt(x, 10));
-    const restoredLevels = {
-      normal: Number.isFinite(tlParts[0]) ? clamp(tlParts[0], 1, 15) : base.talentLevels.normal,
-      skill: Number.isFinite(tlParts[1]) ? clamp(tlParts[1], 1, 15) : base.talentLevels.skill,
-      burst: Number.isFinite(tlParts[2]) ? clamp(tlParts[2], 1, 15) : base.talentLevels.burst,
-    };
-    setDraft(sanitize({
-      ...base,
-      charId: (c ?? initial).id,
-      level: num('lv', base.level),
-      weaponId: p.get('w') ?? base.weaponId,
-      weaponRefine: num('wr', base.weaponRefine),
-      weaponStacks: num('ws', base.weaponStacks),
-      enemyId: p.get('e') ?? base.enemyId,
-      customEnemy: p.has('el') || p.has('erm'),
-      enemyLevel: num('el', base.enemyLevel),
-      enemyResMap: Object.fromEntries(
-        (p.get('erm') ?? '')
-          .split(',')
-          .map((pair) => pair.split(':'))
-          .filter((kv) => kv.length === 2 && kv[1] !== '')
-          .map(([k, v]) => [k, clamp(parseFloat(v) || 0, -1, 1)]),
-      ) as Partial<Record<ElementType, number>>,
-      attackType: restoredAttack,
-      skillMult: p.has('sm') ? num('sm', base.skillMult) : signatureMultiplierAt((c ?? initial).id, restoredAttack, restoredLevels) || base.skillMult,
-      talentLevels: restoredLevels,
-      activeRowId: p.get('row') ?? null,
-      elementOverride: (p.get('ce') as ElementType) ?? null,
-      scalingOverride: (p.get('cs') as ScalingStat) ?? null,
-      statOverride: p.has('st') ? num('st', 0) : null,
-      baseDmgBonus: num('bd', 0),
-      flatBaseDmg: num('fb', 0),
-      dmgBonus: num('db', 0),
-      naDmgBonus: num('na', 0),
-      caDmgBonus: num('ca', 0),
-      skillDmgBonus: num('sk', 0),
-      burstDmgBonus: num('bu', 0),
-      dmgReduction: num('dr', 0),
-      critRate: num('cr', 0),
-      critDMG: num('cd', 0),
-      critMode: (p.get('cm') as CritMode) ?? 'expected',
-      em: num('em', 0),
-      amplified: (p.get('amp') as AmplifiedReaction) ?? 'none',
-      additive: (p.get('ad') as AdditiveReaction) ?? 'none',
-      transformative: (p.get('tr') as TransformativeReaction) ?? 'none',
-      swirlElement: (p.get('se') as ElementType) ?? 'pyro',
-      reactionBonus: num('rb', 0),
-      ampReactionBonus: num('arb', 0),
-      transformReactionBonus: num('trb', 0),
-      defShred: num('ds', 0),
-      defIgnore: num('di', 0),
-      resShred: num('rs', 0),
-      constellation: num('cn', 0),
-      passiveOn: (p.get('pv') ?? '')
-        .split('.')
-        .map((x) => parseInt(x, 10))
-        .filter((n) => Number.isInteger(n) && n >= 0),
-      artifacts: {
-        sandsMain: p.has('sand') ? { type: p.get('sand') as SecondaryStatType, value: mainValueFor(p.get('sand') as SecondaryStatType) } : { ...base.artifacts.sandsMain },
-        gobletMain: p.has('gob') ? { type: p.get('gob') as SecondaryStatType, value: mainValueFor(p.get('gob') as SecondaryStatType) } : { ...base.artifacts.gobletMain },
-        circletMain: p.has('circ') ? { type: p.get('circ') as SecondaryStatType, value: mainValueFor(p.get('circ') as SecondaryStatType) } : { ...base.artifacts.circletMain },
-        flowerHP: base.artifacts.flowerHP ?? 0,
-        plumeATK: base.artifacts.plumeATK ?? 0,
-        sets: p.has('ps')
-          ? (() => {
-              const parts = (p.get('ps') ?? '').split(',');
-              return { flower: parts[0] ?? '', plume: parts[1] ?? '', sands: parts[2] ?? '', goblet: parts[3] ?? '', circlet: parts[4] ?? '' };
-            })()
-          : { ...(base.artifacts.sets ?? EMPTY_SETS) },
-        pieceSubs: p.has('subs')
-          ? (p.get('subs') ?? '').split(';').map((piece) =>
-              piece
-                .split(',')
-                .filter(Boolean)
-                .map((entry) => {
-                  const [type, value] = entry.split('~');
-                  return { type: type as SecondaryStatType, value: clamp(parseFloat(value) || 0, 0, 1_000_000) };
-                }),
-            )
-          : (base.artifacts.pieceSubs ?? []),
-      },
-    }));
+    const params = new URLSearchParams(window.location.search);
+    const target = CHARACTERS.find((c) => c.id === params.get('c')) ?? initial;
+    setDraft(draftFromQuery(params, defaultsFor(target)));
   }, [initial]);
+
+  // Write back on every edit. The first pass is skipped so we don't wipe the
+  // incoming link before the restore above has committed its state.
+  useEffect(() => {
+    if (!restored.current) return;
+    if (skipFirstWrite.current) {
+      skipFirstWrite.current = false;
+      return;
+    }
+    const qs = draftToQuery(draft, defaultsFor(character));
+    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+  }, [draft, character]);
 
   // Picker dialog wiring.
   useEffect(() => {

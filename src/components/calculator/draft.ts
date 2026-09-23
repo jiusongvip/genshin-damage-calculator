@@ -257,3 +257,196 @@ export function formatMainValue(type: SecondaryStatType): string {
     ? `${(v * 100).toFixed(1)}%`
     : `${Math.round(v)}`;
 }
+
+// ---------------------------------------------------------------------------
+// URL (de)serialisation
+//
+// The calculator's whole editable state lives in the address bar so a share
+// link reproduces the exact panel. Both directions are pure so the e2e reload
+// test, the local-save feature, and the round-trip test share one source of
+// truth. A field is only written when it differs from the character's default,
+// which keeps a fresh link short.
+// ---------------------------------------------------------------------------
+
+const encSubs = (subs: Draft['artifacts']['pieceSubs']): string =>
+  (subs ?? [])
+    .map((piece) => (piece ?? []).filter(Boolean).map((s) => `${s!.type}~${s!.value}`).join(','))
+    .join(';');
+
+const encSets = (sets: Draft['artifacts']['sets']): string =>
+  [sets?.flower ?? '', sets?.plume ?? '', sets?.sands ?? '', sets?.goblet ?? '', sets?.circlet ?? ''].join(',');
+
+const encResMap = (map: Partial<Record<ElementType, number>>): string =>
+  Object.entries(map ?? {})
+    .filter(([, v]) => v != null)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(',');
+
+/** The multiplier the reader derives when `sm` is absent — writer and reader must agree. */
+function derivedSkillMult(charId: string, attackType: TalentKey, levels: Draft['talentLevels'], fallback: number): number {
+  return signatureMultiplierAt(charId, attackType, levels) || fallback;
+}
+
+/** Serialise a draft to a query string (no leading `?`), omitting default values. */
+export function draftToQuery(draft: Draft, defaults: Draft): string {
+  const p = new URLSearchParams();
+  const put = (k: string, v: string | number | null | undefined) => {
+    if (v === null || v === undefined || v === '') return;
+    p.set(k, String(v));
+  };
+  // A numeric field is written only when it departs from the default (± float noise).
+  const num = (k: string, v: number, d: number) => {
+    if (Math.abs(v - d) > 1e-9) put(k, Number(v.toFixed(6)));
+  };
+
+  put('c', draft.charId === defaults.charId ? null : draft.charId);
+  num('lv', draft.level, defaults.level);
+  put('w', draft.weaponId === defaults.weaponId ? null : draft.weaponId);
+  num('wr', draft.weaponRefine, defaults.weaponRefine);
+  num('ws', draft.weaponStacks, defaults.weaponStacks);
+  put('e', draft.enemyId === defaults.enemyId ? null : draft.enemyId);
+  if (draft.customEnemy) put('el', draft.enemyLevel);
+  if (draft.enemyResMap && Object.keys(draft.enemyResMap).length) put('erm', encResMap(draft.enemyResMap));
+  put('at', draft.attackType === defaults.attackType ? null : draft.attackType);
+  const derived = derivedSkillMult(draft.charId, draft.attackType, draft.talentLevels, defaults.skillMult);
+  num('sm', draft.skillMult, derived);
+  const tl = draft.talentLevels;
+  const dtl = defaults.talentLevels;
+  if (tl.normal !== dtl.normal || tl.skill !== dtl.skill || tl.burst !== dtl.burst)
+    put('tl', `${tl.normal}.${tl.skill}.${tl.burst}`);
+  put('row', draft.activeRowId);
+  put('ce', draft.elementOverride);
+  put('cs', draft.scalingOverride);
+  if (draft.statOverride != null) put('st', draft.statOverride);
+  num('bd', draft.baseDmgBonus, defaults.baseDmgBonus);
+  num('fb', draft.flatBaseDmg, defaults.flatBaseDmg);
+  num('db', draft.dmgBonus, defaults.dmgBonus);
+  num('na', draft.naDmgBonus, defaults.naDmgBonus);
+  num('ca', draft.caDmgBonus, defaults.caDmgBonus);
+  num('sk', draft.skillDmgBonus, defaults.skillDmgBonus);
+  num('bu', draft.burstDmgBonus, defaults.burstDmgBonus);
+  num('dr', draft.dmgReduction, defaults.dmgReduction);
+  num('cr', draft.critRate, defaults.critRate);
+  num('cd', draft.critDMG, defaults.critDMG);
+  put('cm', draft.critMode === 'expected' ? null : draft.critMode);
+  num('em', draft.em, defaults.em);
+  put('amp', draft.amplified === 'none' ? null : draft.amplified);
+  put('ad', draft.additive === 'none' ? null : draft.additive);
+  put('tr', draft.transformative === 'none' ? null : draft.transformative);
+  put('se', draft.swirlElement === defaults.swirlElement ? null : draft.swirlElement);
+  num('rb', draft.reactionBonus, defaults.reactionBonus);
+  num('arb', draft.ampReactionBonus, defaults.ampReactionBonus);
+  num('trb', draft.transformReactionBonus, defaults.transformReactionBonus);
+  num('ds', draft.defShred, defaults.defShred);
+  num('di', draft.defIgnore, defaults.defIgnore);
+  num('rs', draft.resShred, defaults.resShred);
+  num('cn', draft.constellation, defaults.constellation);
+  if (draft.passiveOn.length) put('pv', draft.passiveOn.join('.'));
+  put('sand', draft.artifacts.sandsMain.type === defaults.artifacts.sandsMain.type ? null : draft.artifacts.sandsMain.type);
+  put('gob', draft.artifacts.gobletMain.type === defaults.artifacts.gobletMain.type ? null : draft.artifacts.gobletMain.type);
+  put('circ', draft.artifacts.circletMain.type === defaults.artifacts.circletMain.type ? null : draft.artifacts.circletMain.type);
+  const ps = encSets(draft.artifacts.sets);
+  if (ps !== encSets(defaults.artifacts.sets)) p.set('ps', ps);
+  const subs = encSubs(draft.artifacts.pieceSubs);
+  if (subs !== encSubs(defaults.artifacts.pieceSubs)) p.set('subs', subs);
+  return p.toString();
+}
+
+/** Rebuild a sanitized draft from a query string, filling gaps from the character defaults. */
+export function draftFromQuery(params: URLSearchParams, defaults: Draft): Draft {
+  const num = (k: string, fallback: number) => {
+    const v = parseFloat(params.get(k) ?? '');
+    return Number.isFinite(v) ? v : fallback;
+  };
+  const charId = params.get('c') ?? defaults.charId;
+  const restoredAttack = (params.get('at') as TalentKey) ?? defaults.attackType;
+  const tlParts = (params.get('tl') ?? '').split('.').map((x) => parseInt(x, 10));
+  const restoredLevels = {
+    normal: Number.isFinite(tlParts[0]) ? clamp(tlParts[0], 1, 15) : defaults.talentLevels.normal,
+    skill: Number.isFinite(tlParts[1]) ? clamp(tlParts[1], 1, 15) : defaults.talentLevels.skill,
+    burst: Number.isFinite(tlParts[2]) ? clamp(tlParts[2], 1, 15) : defaults.talentLevels.burst,
+  };
+  return sanitize({
+    ...defaults,
+    charId,
+    level: num('lv', defaults.level),
+    weaponId: params.get('w') ?? defaults.weaponId,
+    weaponRefine: num('wr', defaults.weaponRefine),
+    weaponStacks: num('ws', defaults.weaponStacks),
+    enemyId: params.get('e') ?? defaults.enemyId,
+    customEnemy: params.has('el'),
+    enemyLevel: num('el', defaults.enemyLevel),
+    enemyResMap: Object.fromEntries(
+      (params.get('erm') ?? '')
+        .split(',')
+        .map((pair) => pair.split(':'))
+        .filter((kv) => kv.length === 2 && kv[1] !== '')
+        .map(([k, v]) => [k, clamp(parseFloat(v) || 0, -1, 1)]),
+    ) as Partial<Record<ElementType, number>>,
+    attackType: restoredAttack,
+    skillMult: params.has('sm')
+      ? num('sm', defaults.skillMult)
+      : derivedSkillMult(charId, restoredAttack, restoredLevels, defaults.skillMult),
+    talentLevels: restoredLevels,
+    activeRowId: params.get('row') ?? null,
+    elementOverride: (params.get('ce') as ElementType) ?? null,
+    scalingOverride: (params.get('cs') as ScalingStat) ?? null,
+    statOverride: params.has('st') ? num('st', 0) : null,
+    baseDmgBonus: num('bd', defaults.baseDmgBonus),
+    flatBaseDmg: num('fb', defaults.flatBaseDmg),
+    dmgBonus: num('db', defaults.dmgBonus),
+    naDmgBonus: num('na', defaults.naDmgBonus),
+    caDmgBonus: num('ca', defaults.caDmgBonus),
+    skillDmgBonus: num('sk', defaults.skillDmgBonus),
+    burstDmgBonus: num('bu', defaults.burstDmgBonus),
+    dmgReduction: num('dr', defaults.dmgReduction),
+    critRate: num('cr', defaults.critRate),
+    critDMG: num('cd', defaults.critDMG),
+    critMode: (params.get('cm') as CritMode) ?? defaults.critMode,
+    em: num('em', defaults.em),
+    amplified: (params.get('amp') as AmplifiedReaction) ?? defaults.amplified,
+    additive: (params.get('ad') as AdditiveReaction) ?? defaults.additive,
+    transformative: (params.get('tr') as TransformativeReaction) ?? defaults.transformative,
+    swirlElement: (params.get('se') as ElementType) ?? defaults.swirlElement,
+    reactionBonus: num('rb', defaults.reactionBonus),
+    ampReactionBonus: num('arb', defaults.ampReactionBonus),
+    transformReactionBonus: num('trb', defaults.transformReactionBonus),
+    defShred: num('ds', defaults.defShred),
+    defIgnore: num('di', defaults.defIgnore),
+    resShred: num('rs', defaults.resShred),
+    constellation: num('cn', defaults.constellation),
+    passiveOn: (params.get('pv') ?? '')
+      .split('.')
+      .map((x) => parseInt(x, 10))
+      .filter((n) => Number.isInteger(n) && n >= 0),
+    artifacts: {
+      ...defaults.artifacts,
+      sandsMain: params.has('sand')
+        ? { type: params.get('sand') as SecondaryStatType, value: mainValueFor(params.get('sand') as SecondaryStatType) }
+        : { ...defaults.artifacts.sandsMain },
+      gobletMain: params.has('gob')
+        ? { type: params.get('gob') as SecondaryStatType, value: mainValueFor(params.get('gob') as SecondaryStatType) }
+        : { ...defaults.artifacts.gobletMain },
+      circletMain: params.has('circ')
+        ? { type: params.get('circ') as SecondaryStatType, value: mainValueFor(params.get('circ') as SecondaryStatType) }
+        : { ...defaults.artifacts.circletMain },
+      sets: params.has('ps')
+        ? (() => {
+            const parts = (params.get('ps') ?? '').split(',');
+            return { flower: parts[0] ?? '', plume: parts[1] ?? '', sands: parts[2] ?? '', goblet: parts[3] ?? '', circlet: parts[4] ?? '' };
+          })()
+        : { ...(defaults.artifacts.sets ?? EMPTY_SETS) },
+      pieceSubs: params.has('subs')
+        ? (params.get('subs') ?? '').split(';').map((piece) =>
+            piece
+              .split(',')
+              .filter(Boolean)
+              .map((entry) => {
+                const [type, value] = entry.split('~');
+                return { type: type as SecondaryStatType, value: clamp(parseFloat(value) || 0, 0, 1_000_000) };
+              }),
+          )
+        : (defaults.artifacts.pieceSubs ?? []),
+    },
+  });
+}
