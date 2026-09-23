@@ -458,7 +458,11 @@ export default function SingleCalculator() {
       />
       {/* ============ Tabs + build tools ============ */}
       <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-1.5">
+        <div
+          role="tablist"
+          aria-label="Calculator sections"
+          className="flex flex-wrap justify-center gap-1 rounded-full bg-[var(--surface-2)] p-1"
+        >
           {(
             [
               ['character', 'Character'],
@@ -470,9 +474,13 @@ export default function SingleCalculator() {
             <button
               key={id}
               type="button"
+              role="tab"
+              aria-selected={tab === id}
               onClick={() => setTab(id)}
-              className={`rounded-full px-3.5 py-1 text-sm font-medium transition-colors ${
-                tab === id ? 'bg-forest-600 text-white' : 'border border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)]'
+              className={`rounded-full px-3.5 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-forest-500 ${
+                tab === id
+                  ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]'
               }`}
             >
               {label}

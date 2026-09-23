@@ -96,6 +96,10 @@ export async function setField(page: Page, label: string, value: string) {
 
 /** Switch the calculator's tab strip. */
 export async function openTab(page: Page, name: 'Character' | 'Equipment' | 'Multipliers' | 'Damage') {
-  await page.getByRole('button', { name, exact: true }).click();
-  await expect(page.getByRole('button', { name, exact: true })).toHaveClass(/bg-forest-600/);
+  // The segmented control's buttons carry role="tab", so they are found by tab.
+  const tab = page.getByRole('tab', { name, exact: true });
+  await tab.click();
+  // The tab really took focus of the panel — asserted via the segmented
+  // control's aria-selected (it replaced the old bg-forest-600 class check).
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
 }
