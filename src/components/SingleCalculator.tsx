@@ -62,6 +62,15 @@ import { DefZone } from './calculator/zones/DefZone';
 import { ReactionZone } from './calculator/zones/ReactionZone';
 import { ResZone } from './calculator/zones/ResZone';
 
+const TABS = [
+  ['character', 'Character'],
+  ['equipment', 'Equipment'],
+  ['multipliers', 'Multipliers'],
+  ['damage', 'Damage'],
+] as const;
+
+type TabId = (typeof TABS)[number][0];
+
 
 export default function SingleCalculator() {
   const initial = CHARACTERS[0];
@@ -71,7 +80,8 @@ export default function SingleCalculator() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerDialog = useRef<HTMLDialogElement | null>(null);
   const [highlight, setHighlight] = useState<string | null>(null);
-  const [tab, setTab] = useState<'character' | 'equipment' | 'multipliers' | 'damage'>('damage');
+  const [tab, setTab] = useState<TabId>('damage');
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   // Resolve the draft into the concrete build (character / weapon / enemy /
   // zone-floor stats / pre-set base buffs). Shared with the "Compare against a
@@ -462,20 +472,36 @@ export default function SingleCalculator() {
           role="tablist"
           aria-label="Calculator sections"
           className="flex flex-wrap justify-center gap-1 rounded-full bg-[var(--surface-2)] p-1"
+          onKeyDown={(e) => {
+            const at = TABS.findIndex(([id]) => id === tab);
+            const next =
+              e.key === 'ArrowRight' || e.key === 'ArrowDown'
+                ? (at + 1) % TABS.length
+                : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+                  ? (at - 1 + TABS.length) % TABS.length
+                  : e.key === 'Home'
+                    ? 0
+                    : e.key === 'End'
+                      ? TABS.length - 1
+                      : -1;
+            if (next < 0) return;
+            e.preventDefault();
+            setTab(TABS[next][0]);
+            tabRefs.current[next]?.focus();
+          }}
         >
-          {(
-            [
-              ['character', 'Character'],
-              ['equipment', 'Equipment'],
-              ['multipliers', 'Multipliers'],
-              ['damage', 'Damage'],
-            ] as const
-          ).map(([id, label]) => (
+          {TABS.map(([id, label], i) => (
             <button
               key={id}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
               type="button"
               role="tab"
+              id={`calc-tab-${id}`}
               aria-selected={tab === id}
+              aria-controls="calc-panel"
+              tabIndex={tab === id ? 0 : -1}
               onClick={() => setTab(id)}
               className={`rounded-full px-3.5 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-forest-500 ${
                 tab === id
@@ -491,7 +517,12 @@ export default function SingleCalculator() {
 
 
       {/* ============ Tab content — scrolls inside the fixed shell ============ */}
-      <div className="mt-3 min-h-0 flex-1 lg:overflow-y-auto lg:pr-1">
+      <div
+        id="calc-panel"
+        role="tabpanel"
+        aria-labelledby={`calc-tab-${tab}`}
+        className="mt-3 min-h-0 flex-1 lg:overflow-y-auto lg:pr-1"
+      >
 
       {/* ============ Constellations & passives (Character tab) ============ */}
       {tab === 'character' && (
