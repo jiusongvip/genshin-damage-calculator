@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
-import { weaponsForType } from '../data/weapons';
-import { ENEMIES } from '../data/enemies';
-import { NO_ARTIFACTS, DEFAULT_BUFFS, setPicksFromPieces } from '../data/presets';
+import { NO_ARTIFACTS } from '../data/presets';
 import { addBuffs, computeDamage, formatNumber } from '../lib/damage';
 import type {
   ArtifactBuild,
@@ -15,15 +13,22 @@ import type { TalentKey } from '../data/talents';
 import { talentRowsFor } from '../data/generated/talents';
 import { CONSTELLATION_TALENT_BONUS } from '../data/generated/constellationTalents';
 import { weaponPassiveFor } from '../data/generated/weaponPassives';
-import { weaponBuffAt, weaponPassiveMaxStacks, WEAPON_PASSIVE_EFFECTS } from '../data/weaponPassives';
+import { weaponPassiveMaxStacks, WEAPON_PASSIVE_EFFECTS } from '../data/weaponPassives';
 import { resolveSetBuffs } from '../data/artifactSets';
 import { resolvePartyBuffs } from '../data/partyBuffs';
 import type { PartyState } from '../data/partyBuffs';
 import { constellationsFor, passivesFor } from '../data/generated/constellations';
-import { constellationBuffs, passiveBuffs, CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
+import { CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
 import { overlayBaseline, snapshotBaseline } from './DamageTable';
 import type { DamageRowVm, DamageGroupVm, DamageBaseline } from './DamageTable';
-import { assembleDamageGroups } from '../lib/damage-groups';
+import { draftToGroups, resolveBuild } from '../lib/draft-build';
+import {
+  addScenario,
+  loadScenarios,
+  removeScenario,
+  storageAvailable,
+} from '../lib/scenarios';
+import type { Scenario } from '../lib/scenarios';
 import { ElementIcon } from './ElementIcon';
 import {
   AMPLIFIED,
@@ -68,54 +73,11 @@ export default function SingleCalculator() {
   const [highlight, setHighlight] = useState<string | null>(null);
   const [tab, setTab] = useState<'character' | 'equipment' | 'multipliers' | 'damage'>('damage');
 
-  const character = CHARACTERS.find((c) => c.id === draft.charId) ?? initial;
-  const weaponOptions = weaponsForType(character.weaponType);
-  const weapon = weaponOptions.find((w) => w.id === draft.weaponId) ?? weaponOptions[0];
-  const baseEnemy = ENEMIES.find((e) => e.id === draft.enemyId) ?? ENEMIES[0];
-  const enemy = useMemo(
-    () => ({
-      ...baseEnemy,
-      level: draft.customEnemy ? draft.enemyLevel : baseEnemy.level,
-      resistances: { ...baseEnemy.resistances, ...draft.enemyResMap },
-    }),
-    [baseEnemy, draft.customEnemy, draft.enemyLevel, draft.enemyResMap],
-  );
-
-  // Baseline (character + weapon + the artifacts you entered, no buffs) — the
-  // defaults the six zones start from.
-  const whiteboard = useMemo(
-    () =>
-      computeDamage({
-        character,
-        weapon,
-        artifacts: draft.artifacts,
-        buffs: DEFAULT_BUFFS,
-        enemy,
-        characterLevel: draft.level,
-        amplified: 'none',
-        transformative: 'none',
-      }),
-    [character, weapon, enemy, draft.level, draft.artifacts],
-  );
-
-  // The character's own stats (character + weapon + ascension), before any
-  // artifacts or zone bonuses — a fixed floor the user can only add to.
-  const own = useMemo(
-    () =>
-      computeDamage({
-        character,
-        weapon,
-        artifacts: NO_ARTIFACTS,
-        buffs: DEFAULT_BUFFS,
-        enemy,
-        characterLevel: draft.level,
-        amplified: 'none',
-        transformative: 'none',
-      }),
-    [character, weapon, enemy, draft.level],
-  );
-  const ownEM = own.em;
-  const scaling = character.scaling ?? 'atk';
+  // Resolve the draft into the concrete build (character / weapon / enemy /
+  // zone-floor stats / pre-set base buffs). Shared with the "Compare against a
+  // saved scenario" flow so a stored panel diffs identically to a live one.
+  const build = useMemo(() => resolveBuild(draft), [draft]);
+  const { character, weaponOptions, weapon, enemy, whiteboard, ownEM, baseBuffs, setPicks } = build;
 
   const weaponPassive = weaponPassiveFor(draft.weaponId);
   const weaponEffect = WEAPON_PASSIVE_EFFECTS[draft.weaponId];
@@ -216,62 +178,10 @@ export default function SingleCalculator() {
     setDraft(defaultsFor(c));
   };
 
-  // Fold the six zones into the engine's BuffState. Standalone totals
-  // (crit / EM / the scaling stat) are turned into deltas against the
-  // whiteboard so a manual override means "set the total to this".
-  // Kept weapon-independent so the weapon ranking can swap in each passive.
-  const nonWeaponBuffs: BuffState = useMemo(() => {
-    const patches: Partial<BuffState>[] = [
-      constellationBuffs(character.id, draft.constellation),
-      passiveBuffs(character.id, draft.passiveOn),
-      { dmgBonus: draft.dmgBonus, dmgReduction: draft.dmgReduction },
-      {
-        naDmgBonus: draft.naDmgBonus,
-        caDmgBonus: draft.caDmgBonus,
-        skillDmgBonus: draft.skillDmgBonus,
-        burstDmgBonus: draft.burstDmgBonus,
-      },
-      { baseDmgBonus: draft.baseDmgBonus, flatBaseDmg: draft.flatBaseDmg },
-      // CRIT and EM are bonuses added on top of the character's own stats,
-      // so the base can never be typed below its real value.
-      { critRate: draft.critRate, critDMG: draft.critDMG, em: draft.em },
-      {
-        atkPercent: draft.atkPercent,
-        flatATK: draft.flatATK,
-        hpPercent: draft.hpPercent,
-        flatHP: draft.flatHP,
-        defPercent: draft.defPercent,
-        flatDEF: draft.flatDEF,
-        er: draft.er,
-      },
-      {
-        reactionBonus: draft.reactionBonus,
-        ampReactionBonus: draft.ampReactionBonus,
-        transformReactionBonus: draft.transformReactionBonus,
-      },
-      { defShred: draft.defShred, defIgnore: draft.defIgnore, resShred: draft.resShred },
-    ];
-    if (draft.statOverride != null && scaling !== 'em') {
-      const delta = draft.statOverride - whiteboard.baseStat;
-      if (scaling === 'hp') patches.push({ flatHP: delta });
-      else if (scaling === 'def') patches.push({ flatDEF: delta });
-      else patches.push({ flatATK: delta });
-    }
-    return addBuffs(DEFAULT_BUFFS, ...patches);
-  }, [draft, scaling, whiteboard.baseStat, character.id]);
-
-  const baseBuffs: BuffState = useMemo(
-    () => addBuffs(nonWeaponBuffs, weaponBuffAt(draft.weaponId, draft.weaponRefine, draft.weaponStacks)),
-    [nonWeaponBuffs, draft.weaponId, draft.weaponRefine, draft.weaponStacks],
-  );
-
   // The element and attack type the zones currently describe — used to filter
-  // element- and attack-type-specific artifact set bonuses.
+  // element- and attack-type-specific artifact set and party bonuses.
   const activeElement: ElementType = draft.elementOverride ?? character.element;
   const activeAttack: TalentKey = draft.attackType;
-
-  // Set bonuses come from how many pieces wear each set (4pc + off, or 2pc + 2pc + off).
-  const setPicks = useMemo(() => setPicksFromPieces(draft.artifacts.sets ?? {}), [draft.artifacts.sets]);
 
   const buffs: BuffState = useMemo(
     () =>
@@ -354,7 +264,6 @@ export default function SingleCalculator() {
   // multiplier in characters.ts — a confident number tracing to no talent.
   const hasTalentData = talentRows.length > 0;
 
-  const effLevels = effectiveTalentLevels(character.id, draft.talentLevels, draft.constellation);
   const consTalent = CONSTELLATION_TALENT_BONUS[character.id] ?? {};
   const talentBonusNote = [
     draft.constellation >= 3 && consTalent[3] ? `C3 → ${consTalent[3]} talent +3` : '',
@@ -368,31 +277,56 @@ export default function SingleCalculator() {
     draft.constellation > 0 && !consModelled[draft.constellation] && !bumpAtLevel(draft.constellation)
       ? `C${draft.constellation} not modelled — its text is shown, but it does not change the number.`
       : '';
-  const damageGroups: DamageGroupVm[] = useMemo(
-    () =>
-      assembleDamageGroups({
-        character,
-        weapon,
-        artifacts: draft.artifacts,
-        baseBuffs,
-        setPicks,
-        party: draft.party,
-        enemy,
-        level: draft.level,
-        effLevels,
-        amplified: draft.amplified,
-        additive: draft.additive,
-        transformative: draft.transformative,
-        swirlElement: draft.swirlElement,
-        activeRowId: draft.activeRowId,
-      }),
-    // effLevels/levelForGroup are derived from draft.talentLevels + draft.constellation;
-    // mirror the original dependency list so the memo invalidates exactly as before.
-    [talentRows, draft.talentLevels, draft.constellation, draft.activeRowId, character, weapon, draft.artifacts, baseBuffs, setPicks, draft.party, enemy, draft.level, draft.amplified, draft.additive, draft.transformative, draft.swirlElement, draft.elementOverride],
-  );
+  const damageGroups: DamageGroupVm[] = useMemo(() => draftToGroups(draft, build), [draft, build]);
 
   // ---- Diff mode -----------------------------------------------------------
   const [baseline, setBaseline] = useState<DamageBaseline | null>(null);
+
+  // ---- Saved scenarios (localStorage) --------------------------------------
+  // Start with the row visible and collapse it only once storage proves itself
+  // unavailable. The server render has no storage to probe, so it must match the
+  // first client paint — revealing *after* mount would grow the island and shove
+  // the marketing anchor targets down mid-scroll.
+  const [scenarios, setScenarios] = useState<Scenario[] | null>([]);
+  const [comparingId, setComparingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setScenarios(storageAvailable() ? loadScenarios() : null);
+  }, []);
+
+  const saveScenario = (name: string) =>
+    setScenarios(addScenario(name, character.id, draftToQuery(draft, defaultsFor(character))));
+
+  const scenarioDraft = (s: Scenario): Draft => {
+    const c = CHARACTERS.find((x) => x.id === s.charId) ?? character;
+    return draftFromQuery(new URLSearchParams(s.query), defaultsFor(c));
+  };
+
+  const loadScenario = (id: string) => {
+    const s = scenarios?.find((x) => x.id === id);
+    if (s) setDraft(scenarioDraft(s));
+  };
+
+  // Diff against a saved scenario without leaving the current one: rebuild the
+  // stored draft's rows and pin them as the baseline. Row ids are per-character,
+  // so the overlay only lights up when the saved scenario shares this character.
+  const compareScenario = (id: string) => {
+    const s = scenarios?.find((x) => x.id === id);
+    if (!s) return;
+    const saved = scenarioDraft(s);
+    setBaseline(snapshotBaseline(saved.charId, draftToGroups(saved)));
+    setComparingId(id);
+  };
+
+  const clearCompare = () => {
+    setBaseline(null);
+    setComparingId(null);
+  };
+
+  const deleteScenario = (id: string) => {
+    setScenarios(removeScenario(id));
+    if (comparingId === id) clearCompare();
+  };
 
   // Row ids are only unique *within* a character — `combat1-0-1-hit-dmg` exists
   // on every character — so a baseline applied to a different one would match
@@ -519,6 +453,13 @@ export default function SingleCalculator() {
         onWeapon={(v) => set('weaponId', v)}
         onEnemy={changeEnemy}
         onEnemyLevel={(v) => set('enemyLevel', v)}
+        scenarios={scenarios}
+        comparingId={comparingId}
+        onSave={saveScenario}
+        onLoad={loadScenario}
+        onCompare={compareScenario}
+        onClearCompare={clearCompare}
+        onDelete={deleteScenario}
       />
       {/* ============ Tabs + build tools ============ */}
       <div className="mt-3 flex shrink-0 flex-wrap items-center justify-between gap-2">
@@ -816,7 +757,10 @@ export default function SingleCalculator() {
             critMult={critMult}
             baseline={baseline}
             baselineForActiveRow={baselineForActiveRow}
-            onToggleBaseline={() => setBaseline(activeBaseline ? null : snapshotBaseline(character.id, damageGroups))}
+            onToggleBaseline={() => {
+              setBaseline(activeBaseline ? null : snapshotBaseline(character.id, damageGroups));
+              setComparingId(null);
+            }}
             reactionPreviews={reactionPreviews}
             amplified={draft.amplified}
             transformative={draft.transformative}

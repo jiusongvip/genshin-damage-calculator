@@ -1,0 +1,145 @@
+// ============================================================================
+// Draft → resolved build.
+//
+// The single source of truth that turns an editable Draft into the concrete
+// character / weapon / enemy and the pre-set buff state (baseBuffs) the engine
+// needs. Both the interactive calculator and the localStorage "Compare against
+// a saved scenario" flow call this, so a saved panel diffs against exactly what
+// the live panel would show. Artifact-set and party buffs are element-scoped,
+// so they are resolved per row elsewhere and are intentionally NOT folded here.
+//
+// React-free: nothing here touches the DOM or hooks.
+// ============================================================================
+
+import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
+import { weaponsForType } from '../data/weapons';
+import { ENEMIES } from '../data/enemies';
+import { DEFAULT_BUFFS, NO_ARTIFACTS, setPicksFromPieces } from '../data/presets';
+import { weaponBuffAt } from '../data/weaponPassives';
+import { constellationBuffs, passiveBuffs } from '../data/constellations';
+import { addBuffs, computeDamage } from './damage';
+import type { BuffState, CharacterData, DamageResult, EnemyData, ScalingStat, WeaponData } from './damage';
+import type { SetPick } from '../data/artifactSets';
+import { assembleDamageGroups } from './damage-groups';
+import type { DamageGroupVm } from './damage-groups';
+import type { Draft } from '../components/calculator/draft';
+import { effectiveTalentLevels } from '../components/calculator/draft';
+
+export interface DraftBuild {
+  character: CharacterData;
+  weaponOptions: WeaponData[];
+  weapon: WeaponData;
+  enemy: EnemyData;
+  /** Character + weapon + the user's artifacts, no zone bonuses — the zone floor. */
+  whiteboard: DamageResult;
+  /** Character + weapon + ascension only — the "own stats" floor. */
+  ownEM: number;
+  scaling: ScalingStat;
+  /** Everything except element-scoped (set / party) bonuses and the weapon's own passive. */
+  baseBuffs: BuffState;
+  setPicks: SetPick[];
+  effLevels: { normal: number; skill: number; burst: number };
+}
+
+/** Resolve a draft into the concrete build the damage engine consumes. */
+export function resolveBuild(draft: Draft): DraftBuild {
+  const character = CHARACTERS.find((c) => c.id === draft.charId) ?? CHARACTERS[0];
+  const weaponOptions = weaponsForType(character.weaponType);
+  const weapon = weaponOptions.find((w) => w.id === draft.weaponId) ?? weaponOptions[0];
+  const baseEnemy = ENEMIES.find((e) => e.id === draft.enemyId) ?? ENEMIES[0];
+  const enemy: EnemyData = {
+    ...baseEnemy,
+    level: draft.customEnemy ? draft.enemyLevel : baseEnemy.level,
+    resistances: { ...baseEnemy.resistances, ...draft.enemyResMap },
+  };
+  const scaling = (character.scaling ?? 'atk') as ScalingStat;
+
+  const whiteboard = computeDamage({
+    character,
+    weapon,
+    artifacts: draft.artifacts,
+    buffs: DEFAULT_BUFFS,
+    enemy,
+    characterLevel: draft.level,
+    amplified: 'none',
+    transformative: 'none',
+  });
+
+  const own = computeDamage({
+    character,
+    weapon,
+    artifacts: NO_ARTIFACTS,
+    buffs: DEFAULT_BUFFS,
+    enemy,
+    characterLevel: draft.level,
+    amplified: 'none',
+    transformative: 'none',
+  });
+
+  const patches: Partial<BuffState>[] = [
+    constellationBuffs(character.id, draft.constellation),
+    passiveBuffs(character.id, draft.passiveOn),
+    { dmgBonus: draft.dmgBonus, dmgReduction: draft.dmgReduction },
+    {
+      naDmgBonus: draft.naDmgBonus,
+      caDmgBonus: draft.caDmgBonus,
+      skillDmgBonus: draft.skillDmgBonus,
+      burstDmgBonus: draft.burstDmgBonus,
+    },
+    { baseDmgBonus: draft.baseDmgBonus, flatBaseDmg: draft.flatBaseDmg },
+    // CRIT and EM are bonuses added on top of the character's own stats, so the
+    // base can never be typed below its real value.
+    { critRate: draft.critRate, critDMG: draft.critDMG, em: draft.em },
+    {
+      atkPercent: draft.atkPercent,
+      flatATK: draft.flatATK,
+      hpPercent: draft.hpPercent,
+      flatHP: draft.flatHP,
+      defPercent: draft.defPercent,
+      flatDEF: draft.flatDEF,
+      er: draft.er,
+    },
+    {
+      reactionBonus: draft.reactionBonus,
+      ampReactionBonus: draft.ampReactionBonus,
+      transformReactionBonus: draft.transformReactionBonus,
+    },
+    { defShred: draft.defShred, defIgnore: draft.defIgnore, resShred: draft.resShred },
+  ];
+  if (draft.statOverride != null && scaling !== 'em') {
+    const delta = draft.statOverride - whiteboard.baseStat;
+    if (scaling === 'hp') patches.push({ flatHP: delta });
+    else if (scaling === 'def') patches.push({ flatDEF: delta });
+    else patches.push({ flatATK: delta });
+  }
+  const nonWeaponBuffs = addBuffs(DEFAULT_BUFFS, ...patches);
+  const baseBuffs = addBuffs(nonWeaponBuffs, weaponBuffAt(draft.weaponId, draft.weaponRefine, draft.weaponStacks));
+  const setPicks = setPicksFromPieces(draft.artifacts.sets ?? {});
+  const effLevels = effectiveTalentLevels(character.id, draft.talentLevels, draft.constellation);
+
+  return { character, weaponOptions, weapon, enemy, whiteboard, ownEM: own.em, scaling, baseBuffs, setPicks, effLevels };
+}
+
+/**
+ * A draft's full per-hit damage table — the same rows the Damage tab shows.
+ * Reused by "Compare against a saved scenario" so a stored panel produces an
+ * identical baseline to what it would render live, without mounting it.
+ */
+export function draftToGroups(draft: Draft, build: DraftBuild = resolveBuild(draft)): DamageGroupVm[] {
+  return assembleDamageGroups({
+    character: build.character,
+    weapon: build.weapon,
+    artifacts: draft.artifacts,
+    baseBuffs: build.baseBuffs,
+    setPicks: build.setPicks,
+    party: draft.party,
+    enemy: build.enemy,
+    level: draft.level,
+    effLevels: build.effLevels,
+    amplified: draft.amplified,
+    additive: draft.additive,
+    transformative: draft.transformative,
+    swirlElement: draft.swirlElement,
+    activeRowId: draft.activeRowId,
+  });
+}

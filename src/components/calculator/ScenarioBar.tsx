@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import type { CharacterData, EnemyData, WeaponData } from '../../lib/damage';
 import { formatNumber } from '../../lib/damage';
 import { ELEMENT_LABEL } from '../../data/elements';
 import { ENEMIES } from '../../data/enemies';
+import type { Scenario } from '../../lib/scenarios';
 import { ElementIcon } from '../ElementIcon';
 import { Glyph, IconSelect, WeaponIcon } from './primitives';
 import { ELEMENT_BG, NO_TALENT_NOTE } from './constants';
@@ -50,6 +52,17 @@ export interface ScenarioBarProps {
   onWeapon: (id: string) => void;
   onEnemy: (id: string) => void;
   onEnemyLevel: (level: number) => void;
+
+  /** Saved scenarios from localStorage. Null when storage is unavailable — the
+   *  whole save row is then hidden. */
+  scenarios: Scenario[] | null;
+  /** id currently driving the Diff baseline, if any. */
+  comparingId?: string | null;
+  onSave: (name: string) => void;
+  onLoad: (id: string) => void;
+  onCompare: (id: string) => void;
+  onClearCompare: () => void;
+  onDelete: (id: string) => void;
 }
 
 /**
@@ -83,7 +96,19 @@ export function ScenarioBar({
   onWeapon,
   onEnemy,
   onEnemyLevel,
+  scenarios,
+  comparingId,
+  onSave,
+  onLoad,
+  onCompare,
+  onClearCompare,
+  onDelete,
 }: ScenarioBarProps) {
+  const [name, setName] = useState('');
+  const save = () => {
+    onSave(name);
+    setName('');
+  };
   return (
     <div className="panel shrink-0 p-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
@@ -247,6 +272,78 @@ export function ScenarioBar({
           </div>
         )}
       </div>
+
+      {scenarios && (
+        <div data-testid="scenario-bar" className="mt-3 border-t border-[var(--line)] pt-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') save();
+              }}
+              placeholder="Name this scenario…"
+              aria-label="Scenario name"
+              className="h-8 w-44 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2.5 text-sm text-[var(--text)]"
+            />
+            <button
+              type="button"
+              onClick={save}
+              className="h-8 shrink-0 rounded-lg border border-forest-600/40 bg-forest-600/10 px-3 text-sm font-semibold text-forest-700 transition-colors hover:bg-forest-600/18"
+            >
+              Save
+            </button>
+
+            {comparingId && (
+              <button
+                type="button"
+                onClick={onClearCompare}
+                className="h-8 shrink-0 rounded-lg border border-[var(--line)] px-3 text-sm text-[var(--muted)] hover:text-[var(--text)]"
+              >
+                Clear compare
+              </button>
+            )}
+
+            {scenarios.length > 0 && (
+              <ul className="flex w-full flex-col gap-1">
+                {scenarios.map((s) => (
+                  <li
+                    key={s.id}
+                    data-testid="scenario-row"
+                    className="flex flex-wrap items-center gap-2 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium text-[var(--text)]">{s.name}</span>
+                    <span className="text-[11px] text-[var(--muted)]">
+                      {new Date(s.savedAt).toLocaleDateString()}
+                    </span>
+                    <button type="button" onClick={() => onLoad(s.id)} className="rounded-md px-2 py-0.5 text-forest-700 hover:bg-forest-600/10">
+                      Load
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onCompare(s.id)}
+                      className={`rounded-md px-2 py-0.5 hover:bg-forest-600/10 ${
+                        comparingId === s.id ? 'font-semibold text-forest-700' : 'text-[var(--text)]'
+                      }`}
+                    >
+                      {comparingId === s.id ? 'Comparing' : 'Compare'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(s.id)}
+                      aria-label={`Delete ${s.name}`}
+                      className="rounded-md px-1.5 py-0.5 text-[var(--muted)] hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
