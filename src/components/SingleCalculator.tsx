@@ -17,6 +17,8 @@ import { CONSTELLATION_TALENT_BONUS } from '../data/generated/constellationTalen
 import { weaponPassiveFor } from '../data/generated/weaponPassives';
 import { weaponBuffAt, weaponPassiveMaxStacks, WEAPON_PASSIVE_EFFECTS } from '../data/weaponPassives';
 import { resolveSetBuffs } from '../data/artifactSets';
+import { resolvePartyBuffs } from '../data/partyBuffs';
+import type { PartyState } from '../data/partyBuffs';
 import { constellationsFor, passivesFor } from '../data/generated/constellations';
 import { constellationBuffs, passiveBuffs, CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
 import { overlayBaseline, snapshotBaseline } from './DamageTable';
@@ -131,6 +133,9 @@ export default function SingleCalculator() {
   /** Merge a partial patch into the draft — what the zone components call. */
   const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }));
 
+  /** Merge a partial patch into the declared party-buff state. */
+  const setParty = (p: Partial<PartyState>) => setDraft((d) => ({ ...d, party: { ...d.party, ...p } }));
+
   /** Changing the attack type re-derives the signature multiplier and drops
    *  whatever row was loaded from the per-hit table. */
   const changeAttackType = (t: TalentKey) =>
@@ -231,6 +236,15 @@ export default function SingleCalculator() {
       // so the base can never be typed below its real value.
       { critRate: draft.critRate, critDMG: draft.critDMG, em: draft.em },
       {
+        atkPercent: draft.atkPercent,
+        flatATK: draft.flatATK,
+        hpPercent: draft.hpPercent,
+        flatHP: draft.flatHP,
+        defPercent: draft.defPercent,
+        flatDEF: draft.flatDEF,
+        er: draft.er,
+      },
+      {
         reactionBonus: draft.reactionBonus,
         ampReactionBonus: draft.ampReactionBonus,
         transformReactionBonus: draft.transformReactionBonus,
@@ -260,8 +274,13 @@ export default function SingleCalculator() {
   const setPicks = useMemo(() => setPicksFromPieces(draft.artifacts.sets ?? {}), [draft.artifacts.sets]);
 
   const buffs: BuffState = useMemo(
-    () => addBuffs(baseBuffs, resolveSetBuffs(setPicks, activeElement, activeAttack)),
-    [baseBuffs, setPicks, activeElement, activeAttack],
+    () =>
+      addBuffs(
+        baseBuffs,
+        resolveSetBuffs(setPicks, activeElement, activeAttack),
+        resolvePartyBuffs(draft.party, activeElement),
+      ),
+    [baseBuffs, setPicks, activeElement, activeAttack, draft.party],
   );
 
   // Reactions this character can trigger, with their current values, so the
@@ -357,6 +376,7 @@ export default function SingleCalculator() {
         artifacts: draft.artifacts,
         baseBuffs,
         setPicks,
+        party: draft.party,
         enemy,
         level: draft.level,
         effLevels,
@@ -368,7 +388,7 @@ export default function SingleCalculator() {
       }),
     // effLevels/levelForGroup are derived from draft.talentLevels + draft.constellation;
     // mirror the original dependency list so the memo invalidates exactly as before.
-    [talentRows, draft.talentLevels, draft.constellation, draft.activeRowId, character, weapon, draft.artifacts, baseBuffs, setPicks, enemy, draft.level, draft.amplified, draft.additive, draft.transformative, draft.swirlElement, draft.elementOverride],
+    [talentRows, draft.talentLevels, draft.constellation, draft.activeRowId, character, weapon, draft.artifacts, baseBuffs, setPicks, draft.party, enemy, draft.level, draft.amplified, draft.additive, draft.transformative, draft.swirlElement, draft.elementOverride],
   );
 
   // ---- Diff mode -----------------------------------------------------------
@@ -768,6 +788,18 @@ export default function SingleCalculator() {
             onPieceSubValue={setPieceSubValue}
             result={result}
             chip={chip}
+            party={draft.party}
+            onParty={setParty}
+            manual={{
+              atkPercent: draft.atkPercent,
+              flatATK: draft.flatATK,
+              hpPercent: draft.hpPercent,
+              flatHP: draft.flatHP,
+              defPercent: draft.defPercent,
+              flatDEF: draft.flatDEF,
+              er: draft.er,
+            }}
+            onManual={(p) => patch(p as Partial<Draft>)}
           />
           )}
 

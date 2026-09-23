@@ -132,6 +132,42 @@ describe('draft ↔ URL query', () => {
     expect(qs.has('cr')).toBe(false);
   });
 
+  it('round-trips party buffs and manual stat buffs', () => {
+    const base = defaultsFor(huTao);
+    const d = mk({
+      atkPercent: 0.25,
+      flatATK: 300,
+      hpPercent: 0.25,
+      flatHP: 500,
+      defPercent: 0.15,
+      flatDEF: 100,
+      er: 0.2,
+      party: {
+        ...base.party,
+        bennett: 1,
+        bennettBase: 900,
+        bennettLevel: 13,
+        kazuha: 1,
+        kazuhaEM: 1000,
+        viridescent: 1,
+        partyElement: 'hydro',
+        zhongli: 1,
+        noblesse: 1,
+        pyroResonance: 1,
+        hydroResonance: 0,
+      },
+    });
+    const back = roundTrip(d);
+    expect(back).toEqual(d);
+    expect(back.party.partyElement).toBe('hydro');
+    expect(back.party.bennettLevel).toBe(13);
+  });
+
+  it('writes an empty query when every party buff is off (zero-input unchanged)', () => {
+    const base = defaultsFor(huTao);
+    expect(draftToQuery(base, base)).toBe('');
+  });
+
   it('reads keys the old build understood (forward/back compatible)', () => {
     // An external link written by the pre-refactor serializer must still load.
     const legacy = new URLSearchParams('c=hu-tao&lv=90&db=0.466&cr=0.55&cd=1.2&tl=10.10.10');

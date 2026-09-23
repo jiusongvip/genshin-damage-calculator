@@ -1,13 +1,29 @@
+import type { ReactNode } from 'react';
 import type { ArtifactBuild, DamageResult, SecondaryStatType } from '../../lib/damage';
 import { formatNumber, formatPercent } from '../../lib/damage';
 import { NO_ARTIFACTS } from '../../data/presets';
 import { ARTIFACT_SETS } from '../../data/artifactSets';
+import { bennettAtkBonusRatio } from '../../data/partyBuffs';
+import type { PartyState } from '../../data/partyBuffs';
+import { ElementIcon } from '../ElementIcon';
 import type { WeaponPassiveData } from '../../data/generated/weaponPassives';
 import type { WeaponPassiveEffect } from '../../data/weaponPassives';
-import { Glyph, IconSelect } from './primitives';
-import { MAIN_OPTIONS, PIECE_ROWS, SECONDARY_LABEL, STAT_GLYPH, SUB_OPTIONS } from './constants';
+import { Glyph, IconSelect, Num, Pct } from './primitives';
+import { ELEMENTS, MAIN_OPTIONS, PIECE_ROWS, SECONDARY_LABEL, STAT_GLYPH, SUB_OPTIONS } from './constants';
 import type { PieceKey } from './constants';
+import { ELEMENT_LABEL } from '../../data/elements';
 import { formatMainValue, mainValueFor } from './draft';
+
+/** The hand-typed stat bonuses from M3 §1a — a subset of the draft's top-level fields. */
+export interface ManualStatBuffs {
+  atkPercent: number;
+  flatATK: number;
+  hpPercent: number;
+  flatHP: number;
+  defPercent: number;
+  flatDEF: number;
+  er: number;
+}
 
 export interface EquipmentPanelProps {
   /** Static data for the equipped weapon's passive, if it has one. */
@@ -34,6 +50,13 @@ export interface EquipmentPanelProps {
   result: Pick<DamageResult, 'totalATK' | 'critRate' | 'critDMG' | 'em'>;
   /** Shared pill-button class helper. */
   chip: (active: boolean) => string;
+
+  /** Declared teammate buffs (M3 §1b). */
+  party: PartyState;
+  onParty: (patch: Partial<PartyState>) => void;
+  /** Hand-typed stat bonuses (M3 §1a). */
+  manual: ManualStatBuffs;
+  onManual: (patch: Partial<ManualStatBuffs>) => void;
 }
 
 /**
@@ -58,6 +81,10 @@ export function EquipmentPanel({
   onPieceSubValue,
   result,
   chip,
+  party,
+  onParty,
+  manual,
+  onManual,
 }: EquipmentPanelProps) {
   return (
     <>
@@ -231,6 +258,137 @@ export function EquipmentPanel({
           <strong className="text-[var(--text)]">{Math.round(result.em)}</strong>
         </p>
       </section>
+
+      {/* ============ Party buffs (M3) + manual stat buffs ============ */}
+      <section className="panel p-4">
+        <h3 className="text-base font-semibold text-[var(--text)]">
+          Party buffs{' '}
+          <span className="text-xs font-normal text-[var(--muted)]">— declare who is in your team; we never guess</span>
+        </h3>
+
+        <div className="mt-3 space-y-3">
+          <BuffSwitch
+            on={!!party.bennett}
+            onChange={(v) => onParty({ bennett: v ? 1 : 0 })}
+            title="Bennett — Fantastic Voyage"
+            desc="Flat ATK = Bennett's base ATK × his burst's ATK Bonus Ratio (read from his talent table)."
+          >
+            <div className="grid grid-cols-2 gap-2">
+              <Num label="Bennett base ATK" value={party.bennettBase} onChange={(v) => onParty({ bennettBase: v })} max={3000} />
+              <Num label="Burst level" value={party.bennettLevel} onChange={(v) => onParty({ bennettLevel: v })} min={1} max={15} step={1} />
+            </div>
+            <p className="mt-1 text-[11px] text-forest-600">
+              +{formatNumber(party.bennettBase * bennettAtkBonusRatio(party.bennettLevel))} ATK
+            </p>
+          </BuffSwitch>
+
+          <div className="flex items-center gap-2">
+            <IconSelect
+              value={party.partyElement}
+              onChange={(v) => onParty({ partyElement: v })}
+              options={ELEMENTS.map((el) => ({
+                value: el,
+                label: `${ELEMENT_LABEL[el]} (swirled)`,
+                icon: <ElementIcon el={el} className="h-5 w-5" />,
+              }))}
+              className="mt-0 w-full"
+            />
+          </div>
+
+          <BuffSwitch
+            on={!!party.kazuha}
+            onChange={(v) => onParty({ kazuha: v ? 1 : 0 })}
+            title="Kazuha — Poetics of Fuu (A4)"
+            desc={`Elemental DMG +${((party.kazuhaEM * 0.0004) * 100).toFixed(2)}% to the swirled element, from ${Math.round(party.kazuhaEM)} EM.`}
+          >
+            <Num label="Kazuha EM" value={party.kazuhaEM} onChange={(v) => onParty({ kazuhaEM: v })} max={2000} />
+          </BuffSwitch>
+
+          <BuffSwitch
+            on={!!party.viridescent}
+            onChange={(v) => onParty({ viridescent: v ? 1 : 0 })}
+            title="Viridescent Venerer 4pc"
+            desc="Enemy RES −40% to the swirled element (see the picker above)."
+          />
+
+          <BuffSwitch
+            on={!!party.zhongli}
+            onChange={(v) => onParty({ zhongli: v ? 1 : 0 })}
+            title="Zhongli — Dominus Legion"
+            desc="Enemy RES −20% to all elements and Physical."
+          />
+
+          <BuffSwitch
+            on={!!party.noblesse}
+            onChange={(v) => onParty({ noblesse: v ? 1 : 0 })}
+            title="Noblesse Oblige 4pc"
+            desc="ATK +20% (a teammate wearing it)."
+          />
+
+          <BuffSwitch
+            on={!!party.pyroResonance}
+            onChange={(v) => onParty({ pyroResonance: v ? 1 : 0 })}
+            title="Elemental Resonance — Blazing Ember"
+            desc="ATK +25%."
+          />
+
+          <BuffSwitch
+            on={!!party.hydroResonance}
+            onChange={(v) => onParty({ hydroResonance: v ? 1 : 0 })}
+            title="Elemental Resonance — Bountiful Chips"
+            desc="HP +25%."
+          />
+        </div>
+
+        {/* Manual stat inputs (M3 §1a) — anything not covered by a switch. */}
+        <div className="mt-4 border-t border-[var(--line)] pt-3">
+          <h4 className="text-sm font-semibold text-[var(--text)]">Manual stat buffs</h4>
+          <p className="mt-0.5 text-[11px] text-[var(--muted)]">Add flat or percent stats directly.</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <Pct label="ATK%" value={manual.atkPercent} onChange={(v) => onManual({ atkPercent: v })} min={-100} max={2000} />
+            <Num label="Flat ATK" value={manual.flatATK} onChange={(v) => onManual({ flatATK: v })} max={100000} />
+            <Pct label="Energy Recharge" value={manual.er} onChange={(v) => onManual({ er: v })} min={-100} max={2000} />
+            <Pct label="HP%" value={manual.hpPercent} onChange={(v) => onManual({ hpPercent: v })} min={-100} max={2000} />
+            <Num label="Flat HP" value={manual.flatHP} onChange={(v) => onManual({ flatHP: v })} max={100000} />
+            <Pct label="DEF%" value={manual.defPercent} onChange={(v) => onManual({ defPercent: v })} min={-100} max={2000} />
+            <Num label="Flat DEF" value={manual.flatDEF} onChange={(v) => onManual({ flatDEF: v })} max={100000} />
+          </div>
+        </div>
+
+        <p className="mt-3 text-[11px] italic text-[var(--muted)]">More party buffs coming.</p>
+      </section>
     </>
+  );
+}
+
+/**
+ * One party-buff row: a checkbox, a title, a one-line explanation, and — only
+ * when it needs numbers — a couple of inputs below it. Kept deliberately dumb;
+ * all damage logic lives in resolvePartyBuffs.
+ */
+function BuffSwitch({
+  on,
+  onChange,
+  title,
+  desc,
+  children,
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+  title: string;
+  desc: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="rounded-[12px] border border-[var(--line)] p-2.5">
+      <label className="flex items-start gap-2">
+        <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 accent-forest-600" />
+        <span className="min-w-0">
+          <span className="block text-sm font-medium text-[var(--text)]">{title}</span>
+          <span className="block text-[11px] leading-snug text-[var(--muted)]">{desc}</span>
+        </span>
+      </label>
+      {on && children ? <div className="mt-2 pl-6">{children}</div> : null}
+    </div>
   );
 }

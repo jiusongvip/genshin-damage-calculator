@@ -23,6 +23,8 @@ import type {
 } from './damage';
 import type { SetPick } from '../data/artifactSets';
 import { resolveSetBuffs } from '../data/artifactSets';
+import type { PartyState } from '../data/partyBuffs';
+import { DEFAULT_PARTY, resolvePartyBuffs } from '../data/partyBuffs';
 import { talentRowsFor } from '../data/generated/talents';
 import type { TalentGroup } from '../data/generated/talents';
 import { GROUP_TO_TALENT } from '../components/calculator/constants';
@@ -69,6 +71,8 @@ export interface AssembleInput {
   /** Buffs excluding artifact-set bonuses; set bonuses fold in per row. */
   baseBuffs: BuffState;
   setPicks: SetPick[];
+  /** Declared teammate buffs, resolved per row element. Omitted = none. */
+  party?: PartyState;
   enemy: EnemyData;
   level: number;
   /** Effective per-talent levels (already C3/C5-bumped), 1-15. */
@@ -101,6 +105,7 @@ export function assembleDamageGroups(input: AssembleInput): DamageGroupVm[] {
     activeRowId = null,
   } = input;
   const swirlElement = input.swirlElement ?? 'pyro';
+  const party = input.party ?? DEFAULT_PARTY;
 
   const talentRows = talentRowsFor(character.id) ?? [];
   const map = new Map<TalentGroup, DamageRowVm[]>();
@@ -129,7 +134,11 @@ export function assembleDamageGroups(input: AssembleInput): DamageGroupVm[] {
         character,
         weapon,
         artifacts,
-        buffs: addBuffs(baseBuffs, resolveSetBuffs(setPicks, row.element, GROUP_TO_TALENT[row.group])),
+        buffs: addBuffs(
+          baseBuffs,
+          resolveSetBuffs(setPicks, row.element, GROUP_TO_TALENT[row.group]),
+          resolvePartyBuffs(party, row.element),
+        ),
         enemy,
         characterLevel: level,
         attackType: GROUP_TO_TALENT[row.group],

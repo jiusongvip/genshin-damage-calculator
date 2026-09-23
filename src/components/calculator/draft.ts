@@ -6,6 +6,8 @@ import type { TalentKey } from '../../data/talents';
 import { talentRowsFor } from '../../data/generated/talents';
 import type { TalentGroup } from '../../data/generated/talents';
 import { CONSTELLATION_TALENT_BONUS } from '../../data/generated/constellationTalents';
+import { DEFAULT_PARTY } from '../../data/partyBuffs';
+import type { PartyState } from '../../data/partyBuffs';
 import type {
   AdditiveReaction,
   AmplifiedReaction,
@@ -60,6 +62,14 @@ export interface Draft {
   critDMG: number;
   critMode: CritMode;
   em: number;
+  /** Hand-declared stat bonuses (M3 §1a) — atk/hp/def + energy recharge. */
+  atkPercent: number;
+  flatATK: number;
+  hpPercent: number;
+  flatHP: number;
+  defPercent: number;
+  flatDEF: number;
+  er: number;
   amplified: AmplifiedReaction;
   additive: AdditiveReaction;
   transformative: TransformativeReaction;
@@ -74,6 +84,9 @@ export interface Draft {
   constellation: number;
   /** Enabled ascension-passive indices. */
   passiveOn: number[];
+  /** Declared teammate buffs — see data/partyBuffs.ts. Flattened onto the draft
+   *  (every field 0/1 or numeric) so the URL / localStorage serializer is uniform. */
+  party: PartyState;
   /** Artifact set bonuses are derived from the pieces below. */
   artifacts: ArtifactBuild;
 }
@@ -158,6 +171,13 @@ export function defaultsFor(c: (typeof CHARACTERS)[number]): Draft {
     critDMG: 0,
     critMode: 'expected',
     em: 0,
+    atkPercent: 0,
+    flatATK: 0,
+    hpPercent: 0,
+    flatHP: 0,
+    defPercent: 0,
+    flatDEF: 0,
+    er: 0,
     amplified: 'none',
     additive: 'none',
     transformative: 'none',
@@ -170,6 +190,7 @@ export function defaultsFor(c: (typeof CHARACTERS)[number]): Draft {
     resShred: 0,
     constellation: 0,
     passiveOn: [],
+    party: { ...DEFAULT_PARTY },
     artifacts: { ...resolvePreset(c) },
   };
 }
@@ -203,6 +224,13 @@ export function sanitize(d: Draft): Draft {
     critRate: clamp(d.critRate, 0, 1),
     critDMG: clamp(d.critDMG, 0, 10),
     em: clamp(d.em, 0, 3000),
+    atkPercent: clamp(d.atkPercent ?? 0, -1, 20),
+    flatATK: clamp(d.flatATK ?? 0, 0, 1_000_000),
+    hpPercent: clamp(d.hpPercent ?? 0, -1, 20),
+    flatHP: clamp(d.flatHP ?? 0, 0, 1_000_000),
+    defPercent: clamp(d.defPercent ?? 0, -1, 20),
+    flatDEF: clamp(d.flatDEF ?? 0, 0, 1_000_000),
+    er: clamp(d.er ?? 0, -1, 20),
     reactionBonus: clamp(d.reactionBonus, 0, 10),
     ampReactionBonus: clamp(d.ampReactionBonus, 0, 10),
     transformReactionBonus: clamp(d.transformReactionBonus, 0, 10),
@@ -211,6 +239,19 @@ export function sanitize(d: Draft): Draft {
     resShred: clamp(d.resShred, 0, 2),
     constellation: Math.round(clamp(d.constellation ?? 0, 0, 6)),
     passiveOn: (d.passiveOn ?? []).filter((n) => Number.isInteger(n) && n >= 0 && n <= 9),
+    party: {
+      bennett: d.party?.bennett ? 1 : 0,
+      bennettBase: clamp(d.party?.bennettBase ?? DEFAULT_PARTY.bennettBase, 0, 3000),
+      bennettLevel: Math.round(clamp(d.party?.bennettLevel ?? DEFAULT_PARTY.bennettLevel, 1, 15)),
+      kazuha: d.party?.kazuha ? 1 : 0,
+      kazuhaEM: clamp(d.party?.kazuhaEM ?? DEFAULT_PARTY.kazuhaEM, 0, 2000),
+      viridescent: d.party?.viridescent ? 1 : 0,
+      partyElement: (d.party?.partyElement ?? DEFAULT_PARTY.partyElement) as ElementType,
+      zhongli: d.party?.zhongli ? 1 : 0,
+      noblesse: d.party?.noblesse ? 1 : 0,
+      pyroResonance: d.party?.pyroResonance ? 1 : 0,
+      hydroResonance: d.party?.hydroResonance ? 1 : 0,
+    },
     artifacts: {
       ...d.artifacts,
       flowerHP: clamp(d.artifacts.flowerHP ?? 0, 0, 1_000_000),
@@ -330,6 +371,13 @@ export function draftToQuery(draft: Draft, defaults: Draft): string {
   num('cd', draft.critDMG, defaults.critDMG);
   put('cm', draft.critMode === 'expected' ? null : draft.critMode);
   num('em', draft.em, defaults.em);
+  num('ap', draft.atkPercent, defaults.atkPercent);
+  num('fa', draft.flatATK, defaults.flatATK);
+  num('hp', draft.hpPercent, defaults.hpPercent);
+  num('fh', draft.flatHP, defaults.flatHP);
+  num('dp', draft.defPercent, defaults.defPercent);
+  num('fd', draft.flatDEF, defaults.flatDEF);
+  num('er', draft.er, defaults.er);
   put('amp', draft.amplified === 'none' ? null : draft.amplified);
   put('ad', draft.additive === 'none' ? null : draft.additive);
   put('tr', draft.transformative === 'none' ? null : draft.transformative);
@@ -342,6 +390,18 @@ export function draftToQuery(draft: Draft, defaults: Draft): string {
   num('rs', draft.resShred, defaults.resShred);
   num('cn', draft.constellation, defaults.constellation);
   if (draft.passiveOn.length) put('pv', draft.passiveOn.join('.'));
+  const pq = draft.party, pd = defaults.party;
+  if (pq.bennett) put('pb', 1);
+  num('pbb', pq.bennettBase, pd.bennettBase);
+  num('pbl', pq.bennettLevel, pd.bennettLevel);
+  if (pq.kazuha) put('pk', 1);
+  num('pke', pq.kazuhaEM, pd.kazuhaEM);
+  if (pq.viridescent) put('vv', 1);
+  put('pwe', pq.partyElement === pd.partyElement ? null : pq.partyElement);
+  if (pq.zhongli) put('zl', 1);
+  if (pq.noblesse) put('nb', 1);
+  if (pq.pyroResonance) put('rp', 1);
+  if (pq.hydroResonance) put('rh', 1);
   put('sand', draft.artifacts.sandsMain.type === defaults.artifacts.sandsMain.type ? null : draft.artifacts.sandsMain.type);
   put('gob', draft.artifacts.gobletMain.type === defaults.artifacts.gobletMain.type ? null : draft.artifacts.gobletMain.type);
   put('circ', draft.artifacts.circletMain.type === defaults.artifacts.circletMain.type ? null : draft.artifacts.circletMain.type);
@@ -404,6 +464,13 @@ export function draftFromQuery(params: URLSearchParams, defaults: Draft): Draft 
     critDMG: num('cd', defaults.critDMG),
     critMode: (params.get('cm') as CritMode) ?? defaults.critMode,
     em: num('em', defaults.em),
+    atkPercent: num('ap', defaults.atkPercent),
+    flatATK: num('fa', defaults.flatATK),
+    hpPercent: num('hp', defaults.hpPercent),
+    flatHP: num('fh', defaults.flatHP),
+    defPercent: num('dp', defaults.defPercent),
+    flatDEF: num('fd', defaults.flatDEF),
+    er: num('er', defaults.er),
     amplified: (params.get('amp') as AmplifiedReaction) ?? defaults.amplified,
     additive: (params.get('ad') as AdditiveReaction) ?? defaults.additive,
     transformative: (params.get('tr') as TransformativeReaction) ?? defaults.transformative,
@@ -419,6 +486,19 @@ export function draftFromQuery(params: URLSearchParams, defaults: Draft): Draft 
       .split('.')
       .map((x) => parseInt(x, 10))
       .filter((n) => Number.isInteger(n) && n >= 0),
+    party: {
+      bennett: params.get('pb') === '1' ? 1 : defaults.party.bennett,
+      bennettBase: num('pbb', defaults.party.bennettBase),
+      bennettLevel: num('pbl', defaults.party.bennettLevel),
+      kazuha: params.get('pk') === '1' ? 1 : defaults.party.kazuha,
+      kazuhaEM: num('pke', defaults.party.kazuhaEM),
+      viridescent: params.get('vv') === '1' ? 1 : defaults.party.viridescent,
+      partyElement: (params.get('pwe') as ElementType) ?? defaults.party.partyElement,
+      zhongli: params.get('zl') === '1' ? 1 : defaults.party.zhongli,
+      noblesse: params.get('nb') === '1' ? 1 : defaults.party.noblesse,
+      pyroResonance: params.get('rp') === '1' ? 1 : defaults.party.pyroResonance,
+      hydroResonance: params.get('rh') === '1' ? 1 : defaults.party.hydroResonance,
+    },
     artifacts: {
       ...defaults.artifacts,
       sandsMain: params.has('sand')
