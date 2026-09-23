@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { CharacterData, EnemyData, WeaponData } from '../../lib/damage';
 import { formatNumber } from '../../lib/damage';
 import { ELEMENT_LABEL } from '../../data/elements';
@@ -19,6 +19,64 @@ const TALENT_INPUTS: [TalentBucket, string][] = [
   ['skill', 'Elemental Skill'],
   ['burst', 'Elemental Burst'],
 ];
+
+const CONSTELLATIONS = [0, 1, 2, 3, 4, 5, 6];
+
+/**
+ * C0…C6 as a radiogroup: arrows walk the levels (selection follows focus, the
+ * way radios behave), and only the checked cell sits in the Tab order.
+ */
+function ConstellationSegmented({ value, onChange }: { value: number; onChange: (c: number) => void }) {
+  const refs = useRef<Array<HTMLButtonElement | null>>([]);
+  const move = (next: number) => {
+    if (next === value) return;
+    onChange(next);
+    refs.current[next]?.focus();
+  };
+  return (
+    <div
+      role="radiogroup"
+      aria-labelledby="constellation-label"
+      className="flex gap-1"
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          move(Math.min(6, value + 1));
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          move(Math.max(0, value - 1));
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          move(0);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          move(6);
+        }
+      }}
+    >
+      {CONSTELLATIONS.map((c) => (
+        <button
+          key={c}
+          ref={(el) => {
+            refs.current[c] = el;
+          }}
+          type="button"
+          role="radio"
+          aria-checked={c === value}
+          tabIndex={c === value ? 0 : -1}
+          onClick={() => onChange(c)}
+          className={`min-h-9 min-w-9 flex-1 rounded-lg text-sm tnum transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-forest-500 ${
+            c === value
+              ? 'bg-forest-600 text-white'
+              : 'border border-[var(--line)] bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)]'
+          }`}
+        >
+          C{c}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export interface ScenarioBarProps {
   character: CharacterData;
@@ -146,27 +204,19 @@ export function ScenarioBar({
 
         {/* Controls — a grid that fills the width instead of wrapping with gaps */}
         <div className="grid flex-1 grid-cols-2 content-start gap-2.5 sm:grid-cols-4">
-          <NumberField label="Level" value={level} onChange={onLevel} min={1} max={90} integer />
+          <NumberField label="Level" value={level} onChange={onLevel} min={1} max={90} integer className="col-span-2 sm:col-span-1" />
 
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium text-[var(--muted)]">Constellation</span>
-            <select
-              value={constellation}
-              onChange={(e) => onConstellation(parseInt(e.target.value, 10))}
-              className="h-9 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2.5 text-sm text-[var(--text)]"
-            >
-              {[0, 1, 2, 3, 4, 5, 6].map((c) => (
-                <option key={c} value={c}>
-                  C{c}
-                </option>
-              ))}
-            </select>
+          <div className="col-span-2 flex flex-col gap-1">
+            <span id="constellation-label" className="text-[11px] font-medium text-[var(--muted)]">
+              Constellation
+            </span>
+            <ConstellationSegmented value={constellation} onChange={onConstellation} />
             {constellationNote && (
               <span data-testid="constellation-note" className="text-[10px] leading-tight text-[var(--muted)]">
                 {constellationNote}
               </span>
             )}
-          </label>
+          </div>
 
           <div className="col-span-2 flex flex-col gap-1">
             <span

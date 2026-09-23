@@ -16,8 +16,9 @@ const weaponSelect = (page: Page) => page.locator('label').filter({ hasText: 'We
 const enemySelect = (page: Page) => page.getByRole('button', { name: /· Lv\d+/ });
 
 /**
- * The open dropdown. Scoping to it matters: the Constellation control is a
- * native `<select>`, whose `<option>`s also answer to the "option" role.
+ * The open dropdown. Scoping to it matters: the Constellation control used to
+ * be a native `<select>` whose `<option>`s also answered to the "option" role;
+ * it is a radiogroup now, but the listbox scope keeps the pick unambiguous.
  */
 const openListbox = (page: Page) => page.getByRole('listbox');
 
