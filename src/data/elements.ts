@@ -34,7 +34,7 @@ export const ELEMENT_DOT: Record<ElementType, string> = {
   anemo: 'bg-anemo',
   geo: 'bg-geo',
   dendro: 'bg-dendro',
-  physical: 'bg-gray-400',
+  physical: 'bg-physical',
 };
 
 export const ELEMENT_TEXT: Record<ElementType, string> = {

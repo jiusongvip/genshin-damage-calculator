@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import type { CharacterData, ElementType, EnemyData, WeaponData } from '../../lib/damage';
 import { formatNumber } from '../../lib/damage';
-import { ELEMENT_LABEL } from '../../data/elements';
+import { ELEMENT_DOT, ELEMENT_LABEL } from '../../data/elements';
 import { ENEMIES } from '../../data/enemies';
 import type { Scenario } from '../../lib/scenarios';
 import { ElementIcon } from '../ElementIcon';
 import { Glyph, IconSelect, NumberField, WeaponIcon } from './primitives';
-import { ELEMENT_DOT, ELEMENT_BG, NO_TALENT_NOTE } from './constants';
+import { ELEMENT_BG, NO_TALENT_NOTE } from './constants';
 import type { Draft } from './draft';
 
 /** The three talent buckets the bar edits — narrower than `TalentGroup`,

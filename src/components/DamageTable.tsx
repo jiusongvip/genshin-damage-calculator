@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { formatNumber } from '../lib/damage';
 import type { DamageGroupVm, DamageRowVm } from '../lib/damage-groups';
+import { ELEMENT_DOT } from '../data/elements';
+
+/** Data-viz bar tints — the same hues as the row dots, washed way back. */
+const ELEMENT_TINT: Record<string, string> = {
+  pyro: 'bg-pyro/18',
+  hydro: 'bg-hydro/18',
+  electro: 'bg-electro/18',
+  cryo: 'bg-cryo/18',
+  anemo: 'bg-anemo/18',
+  geo: 'bg-geo/18',
+  dendro: 'bg-dendro/18',
+  physical: 'bg-physical/18',
+};
 
 // The row/group view models and their labels live in the React-free
 // lib/damage-groups module (shared with the static character pages). Re-exported
@@ -76,11 +89,17 @@ export function Delta({ from, to }: { from: number | undefined; to: number }) {
  * Data bar drawn behind a value, scaled to the biggest number in the table, so
  * "which hit actually carries the rotation" reads without comparing digits.
  * Rows and group totals share one scale, so a Burst total visibly dwarfs a
- * single Normal hit.
+ * single Normal hit. Rows take their element's hue; group totals stay forest.
  */
-function ValueBar({ value, max }: { value: number; max: number }) {
+function ValueBar({ value, max, tint }: { value: number; max: number; tint?: string }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
-  return <span className="absolute inset-y-1 right-0 rounded-sm bg-forest-500/15" style={{ width: `${pct.toFixed(2)}%` }} aria-hidden="true" />;
+  return (
+    <span
+      className={`absolute inset-y-1 right-0 rounded-sm ${tint ?? 'bg-forest-500/15'}`}
+      style={{ width: `${pct.toFixed(2)}%` }}
+      aria-hidden="true"
+    />
+  );
 }
 
 /**
@@ -152,14 +171,29 @@ export default function DamageTable({
                 {hasDiff && <th className="px-5 py-2.5 text-right font-medium">Diff</th>}
               </tr>
             </thead>
-            {groups.map((g) => (
+            {groups.map((g) => {
+              // Display-only rows (CD, Duration, Energy) are metadata, not hits —
+              // they ride in the header as chips instead of eating table rows.
+              const meta = g.rows.filter((r) => r.text !== undefined);
+              const hits = g.rows.filter((r) => r.text === undefined);
+              return (
               <tbody key={g.group} className="border-b border-[var(--line)] last:border-b-0">
                 <tr className="bg-[var(--surface-2)]/50">
-                  <td colSpan={hasDiff ? 5 : 4} className="px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-forest-600">
-                    {g.label}
+                  <td colSpan={hasDiff ? 5 : 4} className="px-5 py-2">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-forest-600">{g.label}</span>
+                      {meta.map((r) => (
+                        <span
+                          key={r.id}
+                          className="tnum rounded-full bg-[var(--surface)] px-2 py-px text-[10px] font-medium text-[var(--muted)] ring-1 ring-[var(--line)]"
+                        >
+                          {r.text}
+                        </span>
+                      ))}
+                    </span>
                   </td>
                 </tr>
-                {g.rows.map((r) => (
+                {hits.map((r) => (
                   <tr
                     key={r.id}
                     onClick={() => onPick(r)}
@@ -167,31 +201,31 @@ export default function DamageTable({
                       r.active ? 'bg-forest-500/10' : ''
                     }`}
                   >
-                    <td className="px-5 py-2 text-[var(--text)]">
+                    <td
+                      className={`px-5 py-2 text-[var(--text)] ${r.active ? 'shadow-[inset_2px_0_0_var(--color-forest-500)]' : ''}`}
+                    >
                       <span className="flex items-center gap-2">
-                        {r.active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-forest-500" aria-hidden="true" />}
+                        <span
+                          data-testid={`row-element-${r.id}`}
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${ELEMENT_DOT[r.element] ?? ELEMENT_DOT.physical}`}
+                          aria-hidden="true"
+                        />
                         {r.label}
                       </span>
                     </td>
-                    {r.text ? (
-                      <td colSpan={hasDiff ? 4 : 3} className="px-5 py-2 text-right tnum text-[var(--muted)]">
-                        {r.text}
+                    <>
+                      <td className="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
+                      <td className="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
+                      <td className={`relative px-3 py-2 text-right tnum font-semibold text-[var(--text)] ${hasDiff ? '' : 'pr-5'}`}>
+                        <ValueBar value={r.expected} max={maxExpected} tint={ELEMENT_TINT[r.element]} />
+                        <span className="relative">{formatNumber(r.expected)}</span>
                       </td>
-                    ) : (
-                      <>
-                        <td className="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
-                        <td className="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
-                        <td className={`relative px-3 py-2 text-right tnum font-semibold text-[var(--text)] ${hasDiff ? '' : 'pr-5'}`}>
-                          <ValueBar value={r.expected} max={maxExpected} />
-                          <span className="relative">{formatNumber(r.expected)}</span>
+                      {hasDiff && (
+                        <td className="px-5 py-2 text-right">
+                          <Delta from={r.diff} to={r.expected} />
                         </td>
-                        {hasDiff && (
-                          <td className="px-5 py-2 text-right">
-                            <Delta from={r.diff} to={r.expected} />
-                          </td>
-                        )}
-                      </>
-                    )}
+                      )}
+                    </>
                   </tr>
                 ))}
                 {g.total && (
@@ -211,7 +245,8 @@ export default function DamageTable({
                   </tr>
                 )}
               </tbody>
-            ))}
+              );
+            })}
           </table>
         </div>
 

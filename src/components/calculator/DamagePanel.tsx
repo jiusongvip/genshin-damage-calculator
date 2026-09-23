@@ -93,9 +93,7 @@ export function DamagePanel({
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
       <div className="space-y-4">
-        <div className="max-h-[46vh] overflow-y-auto pr-1">
-          <DamageTable groups={groups} onPick={onPickRow} />
-        </div>
+        <DamageTable groups={groups} onPick={onPickRow} />
       </div>
 
       <div className="space-y-4">

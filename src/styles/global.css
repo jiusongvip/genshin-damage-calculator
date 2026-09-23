@@ -37,6 +37,8 @@
   --color-anemo: #6ee0c0;
   --color-geo: #f2c14e;
   --color-dendro: #8fd460;
+  /* Physical isn't an element — the neutral stand-in for its data-viz dots. */
+  --color-physical: #9ca3af;
 
   /* Genshin-style display — Trajan/Cinzel caps, matches the game's logo lettering */
   --font-display: "Cinzel Variable", "Times New Roman", serif;

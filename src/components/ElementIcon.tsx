@@ -7,7 +7,7 @@
  */
 export function ElementIcon({ el, className = 'h-4 w-4' }: { el: string; className?: string }) {
   if (el === 'physical') {
-    return <span className={`element-dot bg-gray-400 ${className}`} aria-hidden="true" />;
+    return <span className={`element-dot bg-physical ${className}`} aria-hidden="true" />;
   }
   return (
     <img

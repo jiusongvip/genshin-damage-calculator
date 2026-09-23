@@ -4,7 +4,19 @@ import { RELEASED_CHARACTERS } from '../../data/characters';
 import { buildCharacterPageData, hasPublishableData } from '../../lib/character-pages';
 import type { CharacterPageData } from '../../lib/character-pages';
 import { formatNumber } from '../../lib/damage';
-import { ELEMENT_LABEL } from '../../data/elements';
+import { ELEMENT_DOT, ELEMENT_LABEL } from '../../data/elements';
+
+/** Data-viz bar tints — same hues as the row dots, washed way back. */
+const ELEMENT_TINT: Record<string, string> = {
+  pyro: 'bg-pyro/18',
+  hydro: 'bg-hydro/18',
+  electro: 'bg-electro/18',
+  cryo: 'bg-cryo/18',
+  anemo: 'bg-anemo/18',
+  geo: 'bg-geo/18',
+  dendro: 'bg-dendro/18',
+  physical: 'bg-physical/18',
+};
 
 export function getStaticPaths() {
   return RELEASED_CHARACTERS.filter(hasPublishableData).map((c) => ({
@@ -16,6 +28,11 @@ export function getStaticPaths() {
 const { character: c, groups, constellations, passives, weapons, calcHref, title, description, weaponName } =
   Astro.props as CharacterPageData;
 const element = ELEMENT_LABEL[c.element] ?? c.element;
+// One shared bar scale per table, exactly like the interactive DamageTable.
+const maxExpected = Math.max(
+  1,
+  ...groups.flatMap((g) => [...g.rows.map((r) => r.expected), g.total?.expected ?? 0]),
+);
 
 const canonicalURL = `https://www.genshindamagecalculator.com/characters/${c.id}/`;
 const schema = [
@@ -63,10 +80,21 @@ const schema = [
   <section class="page-shell section-pad border-t border-[var(--line)]" data-testid="character-damage-table">
     <h2 class="font-display text-2xl font-semibold text-[var(--text)]">Damage per hit</h2>
     {
-      groups.map((g) => (
+      groups.map((g) => {
+        // Display-only rows (CD, Duration, Energy) ride in the header as chips.
+        const meta = g.rows.filter((r) => r.text !== undefined);
+        const hits = g.rows.filter((r) => r.text === undefined);
+        return (
         <div class="panel mt-5 overflow-hidden">
           <div class="border-b border-[var(--line)] px-5 py-3">
-            <h3 class="text-xs font-semibold uppercase tracking-[0.14em] text-forest-600">{g.label}</h3>
+            <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3 class="text-xs font-semibold uppercase tracking-[0.14em] text-forest-600">{g.label}</h3>
+              {meta.map((r) => (
+                <span class="tnum rounded-full bg-[var(--surface)] px-2 py-px text-[10px] font-medium text-[var(--muted)] ring-1 ring-[var(--line)]">
+                  {r.text}
+                </span>
+              ))}
+            </span>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full min-w-[520px] text-left text-sm">
@@ -79,19 +107,19 @@ const schema = [
                 </tr>
               </thead>
               <tbody>
-                {g.rows.map((r) => (
+                {hits.map((r) => (
                   <tr class="border-t border-[var(--line)]/60 first:border-t-0">
-                    <td class="px-5 py-2 text-[var(--text)]">{r.label}</td>
-                    {
-                      !r.text && <td class="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
-                    }
-                    {
-                      !r.text && <td class="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
-                    }
-                    {r.text && <td class="px-3 py-2" />}
-                    {r.text && <td class="px-3 py-2" />}
-                    <td class="px-5 py-2 text-right tnum font-semibold text-[var(--text)]">
-                      {r.text ? r.text : formatNumber(r.expected)}
+                    <td class="px-5 py-2 text-[var(--text)]">
+                      <span class="flex items-center gap-2">
+                        <span class={`h-1.5 w-1.5 shrink-0 rounded-full ${ELEMENT_DOT[r.element] ?? ELEMENT_DOT.physical}`} aria-hidden="true" />
+                        {r.label}
+                      </span>
+                    </td>
+                    <td class="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
+                    <td class="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
+                    <td class="relative px-5 py-2 text-right tnum font-semibold text-[var(--text)]">
+                      <span class={`absolute inset-y-1 right-0 rounded-sm ${ELEMENT_TINT[r.element] ?? ELEMENT_TINT.physical}`} style={`width: ${Math.min((r.expected / maxExpected) * 100, 100).toFixed(2)}%`} aria-hidden="true" />
+                      <span class="relative">{formatNumber(r.expected)}</span>
                     </td>
                   </tr>
                 ))}
@@ -101,7 +129,10 @@ const schema = [
                       <td class="px-5 py-2 font-medium text-[var(--muted)]">Total DMG</td>
                       <td class="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.nonCrit)}</td>
                       <td class="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.crit)}</td>
-                      <td class="px-5 py-2 text-right tnum font-semibold text-[var(--muted)]">{formatNumber(g.total.expected)}</td>
+                      <td class="relative px-5 py-2 text-right tnum font-semibold text-[var(--muted)]">
+                        <span class="absolute inset-y-1 right-0 rounded-sm bg-forest-500/15" style={`width: ${Math.min((g.total.expected / maxExpected) * 100, 100).toFixed(2)}%`} aria-hidden="true" />
+                        <span class="relative">{formatNumber(g.total.expected)}</span>
+                      </td>
                     </tr>
                   )
                 }
@@ -109,7 +140,8 @@ const schema = [
             </table>
           </div>
         </div>
-      ))
+        );
+      })
     }
   </section>
 
