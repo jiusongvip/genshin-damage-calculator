@@ -13,11 +13,15 @@ import type { Draft } from './draft';
  *  which also covers charged / plunge rows. */
 type TalentBucket = keyof Draft['talentLevels'];
 
-/** Talent inputs shown in the bar, with their tooltips. */
-const TALENT_INPUTS: [TalentBucket, string][] = [
-  ['normal', 'Normal Attack (also Charged / Plunge)'],
-  ['skill', 'Elemental Skill'],
-  ['burst', 'Elemental Burst'],
+/** Talent inputs shown in the bar: short visible label plus the tooltip. */
+const TALENT_INPUTS: [TalentBucket, string, string][] = [
+  [
+    'normal',
+    'Normal',
+    'Normal Attack (also Charged / Plunge). Talent level caps at 10. Constellation C3 / C5 raise one talent by +3 (up to 15); a few passives add +1. Set 11-15 only when that applies.',
+  ],
+  ['skill', 'Skill', 'Elemental Skill. Talent level caps at 10. Constellation C3 / C5 raise one talent by +3 (up to 15); a few passives add +1. Set 11-15 only when that applies.'],
+  ['burst', 'Burst', 'Elemental Burst. Talent level caps at 10. Constellation C3 / C5 raise one talent by +3 (up to 15); a few passives add +1. Set 11-15 only when that applies.'],
 ];
 
 const CONSTELLATIONS = [0, 1, 2, 3, 4, 5, 6];
@@ -88,10 +92,11 @@ export interface ScenarioBarProps {
   level: number;
   constellation: number;
   talentLevels: { normal: number; skill: number; burst: number };
+  /** What the engine reads per bucket, i.e. after the C3 / C5 +3. Equal to the
+   *  edited levels unless that constellation raises this talent. */
+  talentEffective: { normal: number; skill: number; burst: number };
   customEnemy: boolean;
   enemyLevel: number;
-  /** e.g. "C3 → skill talent +3" — empty when no constellation raises a talent. */
-  talentBonusNote: string;
   /** e.g. "C4 not modelled — …" — empty when this level feeds the engine. */
   constellationNote: string;
 
@@ -138,9 +143,9 @@ export function ScenarioBar({
   level,
   constellation,
   talentLevels,
+  talentEffective,
   customEnemy,
   enemyLevel,
-  talentBonusNote,
   constellationNote,
   expected,
   nonCrit,
@@ -218,33 +223,45 @@ export function ScenarioBar({
             )}
           </div>
 
-          <div className="col-span-2 flex flex-col gap-1">
-            <span
-              className="text-[11px] font-medium text-[var(--muted)]"
-              title="Talent level caps at 10. Constellation C3 / C5 raise one talent by +3 (up to 15); a few passives add +1. Set 11-15 only when that applies."
-            >
-              Talents — Normal / Skill / Burst <span className="text-[10px] font-normal">(cap 10)</span>
-            </span>
+          <div className="col-span-2 flex flex-col gap-1 sm:col-span-4">
             <div className="grid grid-cols-3 gap-1.5">
-              {TALENT_INPUTS.map(([g, label]) => (
-                <NumberField
-                  key={g}
-                  label={label}
-                  hideLabel
-                  integer
-                  min={1}
-                  max={15}
-                  value={talentLevels[g]}
-                  onChange={(v) => onTalentLevel(g, v)}
-                  title={label}
-                  inputClassName="w-[3ch] text-center text-sm"
-                />
-              ))}
+              {TALENT_INPUTS.map(([g, name, tip]) => {
+                const eff = talentEffective[g];
+                const bumped = eff !== talentLevels[g];
+                return (
+                  <div key={g} className="flex min-w-0 flex-col gap-1">
+                    <span className="flex min-w-0 items-center gap-1">
+                      <span className="truncate text-[11px] font-medium text-[var(--muted)]" title={tip}>
+                        {name}
+                      </span>
+                      {bumped && (
+                        <span
+                          data-testid={`talent-effective-${g}`}
+                          title={`C3 / C5 raise this talent by +3 (up to 15) — the engine reads ${eff}.`}
+                          className="tnum shrink-0 rounded-full bg-forest-600/12 px-1.5 py-px text-[10px] font-semibold text-forest-600"
+                        >
+                          → {eff}
+                        </span>
+                      )}
+                    </span>
+                    <NumberField
+                      label={name}
+                      hideLabel
+                      integer
+                      min={1}
+                      max={15}
+                      value={talentLevels[g]}
+                      onChange={(v) => onTalentLevel(g, v)}
+                      title={tip}
+                      inputClassName="w-[3ch] shrink-0 text-center text-sm"
+                    />
+                  </div>
+                );
+              })}
             </div>
-            {talentBonusNote && <span className="text-[10px] font-semibold text-forest-600">{talentBonusNote}</span>}
           </div>
 
-          <label className="col-span-2 flex flex-col gap-1">
+          <label className="col-span-2 flex flex-col gap-1 self-start">
             <span className="text-[11px] font-medium text-[var(--muted)]">Weapon</span>
             <IconSelect
               className="relative w-full"
@@ -258,7 +275,7 @@ export function ScenarioBar({
             />
           </label>
 
-          <div className="col-span-2 flex flex-col gap-1">
+          <div className="col-span-2 flex flex-col gap-1 self-start">
             <span className="text-[11px] font-medium text-[var(--muted)]">Enemy</span>
             <div className="flex items-center gap-2">
               <IconSelect

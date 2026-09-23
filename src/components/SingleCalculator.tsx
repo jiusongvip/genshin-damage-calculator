@@ -265,12 +265,6 @@ export default function SingleCalculator() {
   const hasTalentData = talentRows.length > 0;
 
   const consTalent = CONSTELLATION_TALENT_BONUS[character.id] ?? {};
-  const talentBonusNote = [
-    draft.constellation >= 3 && consTalent[3] ? `C3 → ${consTalent[3]} talent +3` : '',
-    draft.constellation >= 5 && consTalent[5] ? `C5 → ${consTalent[5]} talent +3` : '',
-  ]
-    .filter(Boolean)
-    .join(' · ');
   /** This level feeds the engine only via the effect table or its own talent bump. */
   const bumpAtLevel = (l: number) => (l === 3 || l === 5 ? consTalent[l] : undefined);
   const constellationNote =
@@ -438,9 +432,9 @@ export default function SingleCalculator() {
         level={draft.level}
         constellation={draft.constellation}
         talentLevels={draft.talentLevels}
+        talentEffective={effectiveTalentLevels(character.id, draft.talentLevels, draft.constellation)}
         customEnemy={draft.customEnemy}
         enemyLevel={draft.enemyLevel}
-        talentBonusNote={talentBonusNote}
         constellationNote={constellationNote}
         expected={expected}
         nonCrit={result.nonCrit}
