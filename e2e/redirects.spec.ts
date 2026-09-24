@@ -10,5 +10,7 @@ import { expect, test } from '@playwright/test';
 test('the retired formula URL ends up on the surviving guide', async ({ page }) => {
   await page.goto('/how-damage-is-calculated/');
   await expect(page).toHaveURL(/\/guides\/damage-formula\/$/);
-  await expect(page.locator('h1')).toBeVisible();
+  // Scoped to main: the Astro dev toolbar injects h1s of its own, and a bare
+  // `h1` intermittently hit a strict-mode violation against them.
+  await expect(page.locator('main h1')).toBeVisible();
 });
