@@ -55,13 +55,22 @@ v2 方案 §6 的八条既有约定照旧有效，逐条遵守。
 2. **和 brief #5 的附魔机制直接冲突**：`src/data/selfStates.ts:139` 的 `infusedElement` 只把
    `row.element === 'physical'` 的行改色。已被写死成元素的角色**既无处声明开关，也永远改不回来**。
 
-规模（本期开工时实测，脚本在 `.audit/` 里，不进 git）：**31 个非法器角色**的
-`normal` / `charged` / `plunge` 组带永久元素。法器角色的常驻元素是对的，不在此列。
+规模（原型 `.audit/brief-6/section-element-proto.mjs` 实测，全量 122 角色）：**27 个非法器角色、
+59 处组级变化，方向全部是「元素 → 物理」，0 处反向**。法器角色的常驻元素是对的，不在此列。
 
 | 类别 | 角色 |
 | --- | --- |
-| 普攻整套被染色（27 个） | arlecchino, yoimiya, lyney, amber, furina, yelan, tartaglia, sigewinne, fischl, kujou-sara, sethos, ororon, ganyu, diona, aloy, venti, kazuha, chasca, faruzan, xilonen, gorou, tighnari, collei, sandrone, iansan, linnea, jahoda |
-| 只有下落被染色（4 个） | raiden-shogun, cyno, lohen, skirk |
+| `combat1` 整套被染色 | arlecchino, yoimiya, lyney, amber, furina, yelan, tartaglia, sigewinne, fischl, kujou-sara, sethos, ororon, ganyu, diona, aloy, venti, kazuha, chasca, faruzan, xilonen, gorou, tighnari, collei, sandrone, iansan, linnea, jahoda |
+
+### 附带发现：爆发重述的下落行和普攻下落混在同一组
+
+raiden-shogun / cyno / lohen / skirk 的 `combat1` 下落**本来就是 physical**（没问题）。它们的问题在
+`combat2` / `combat3` 里又各重述了一遍 `Plunge DMG`、`Low/High Plunge DMG`（游戏内是开 Q 后被强化的
+那套下落，元素与倍率都不同），`groupFor` 把它们也归进 `plunge` 组 —— 于是读者的「Plunging Attack」
+区里出现 **6 行下落、同一攻击两个数**，且没有任何说明哪套是开状态后的。
+
+这**不属于** Task 1 的归位范围（那些行的元素是对的，是状态元素），但它是 Task 2「状态专属行」的
+直接论据：状态改写的行要么挂到状态名下、要么在标签上写明属于哪个状态。Task 2 的设计稿里必须处理。
 
 ### 要做的
 
@@ -135,7 +144,14 @@ Task 1 把附魔从数据里拿掉之后，这些主 C 在默认状态下会**�
 rowReplace?: (row, levels, input) => { multiplier: number; element?: ElementType } | null;
 /** 倍率乘系数（宵宫 E 的「普攻伤害提升」若拿到结构化参数）。 */
 rowMultiplierMul?: (row, levels, input) => number;
+/** 这一行只在某个状态下存在（雷电/赛诺/丝柯克/罗罕开 Q 后的那套下落）。 */
+requiresState?: string;
 ```
+
+`requiresState` 是 Task 1「附带发现」逼出来的需求：那四个角色的爆发重述行现在和普攻下落混在同一组，
+读者看到同一攻击两个数。选一个角色（建议雷电将军，数据最全）先把这条做通 —— 关着的行是灰的或干脆
+不列，开了才出现，别再用「两行并存」糊过去。做不通就在文档里写明为什么，并把这一组行**只保留
+`combat1` 那套**（保守），不许留两个数并列。
 
 ### 目标角色（按主 C 价值排序，做完 4 个即可交差）
 
