@@ -16,10 +16,11 @@ import { weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, NO_ARTIFACTS, setPicksFromPieces } from '../data/presets';
 import { weaponBuffAt } from '../data/weaponPassives';
-import { scopedSelfBuffs, unscopedSelfBuffs } from '../data/constellations';
+import { scopedBuffs, scopedSelfBuffs, unscopedBuffs, unscopedSelfBuffs } from '../data/constellations';
+import { infusedElement, stateEffects, stateRowBonus } from '../data/selfStates';
 import { talentRowsFor } from '../data/generated/talents';
 import { addBuffs, computeDamage } from './damage';
-import type { BuffState, CharacterData, DamageResult, EnemyData, ScalingStat, WeaponData } from './damage';
+import type { BuffState, CharacterData, DamageResult, ElementType, EnemyData, ScalingStat, WeaponData } from './damage';
 import { resolveSetBuffs } from '../data/artifactSets';
 import type { SetPick } from '../data/artifactSets';
 import { resolvePartyBuffs } from '../data/partyBuffs';
@@ -79,10 +80,12 @@ export function resolveBuild(draft: Draft): DraftBuild {
     transformative: 'none',
   });
 
+  const effLevels = effectiveTalentLevels(character.id, draft.talentLevels, draft.constellation);
   const patches: Partial<BuffState>[] = [
     // Element- / attack-limited effects are resolved per hit (headlineBuffs,
     // damage-groups.ts), not folded here.
     unscopedSelfBuffs(character.id, draft.constellation, draft.passiveOn),
+    unscopedBuffs(stateEffects(character.id, draft.stateOn, draft.stateInputs, effLevels)),
     { dmgBonus: draft.dmgBonus, dmgReduction: draft.dmgReduction },
     {
       naDmgBonus: draft.naDmgBonus,
@@ -119,7 +122,6 @@ export function resolveBuild(draft: Draft): DraftBuild {
   const nonWeaponBuffs = addBuffs(DEFAULT_BUFFS, ...patches);
   const baseBuffs = addBuffs(nonWeaponBuffs, weaponBuffAt(draft.weaponId, draft.weaponRefine, draft.weaponStacks));
   const setPicks = setPicksFromPieces(draft.artifacts.sets ?? {});
-  const effLevels = effectiveTalentLevels(character.id, draft.talentLevels, draft.constellation);
 
   return { character, weaponOptions, weapon, enemy, whiteboard, ownEM: own.em, scaling, baseBuffs, setPicks, effLevels };
 }
@@ -147,21 +149,36 @@ export function draftToGroups(draft: Draft, build: DraftBuild = resolveBuild(dra
     activeRowId: draft.activeRowId,
     constellation: draft.constellation,
     passiveOn: draft.passiveOn,
+    stateOn: draft.stateOn,
+    stateInputs: draft.stateInputs,
   });
 }
 
-/** The buffs the headline hit sees: the build's base buffs plus the set,
- *  party and self bonuses scoped to the hit it describes. */
-export function headlineBuffs(draft: Draft, build: DraftBuild = resolveBuild(draft)): BuffState {
+/** The talent row the headline stands for, if it is a single row. */
+function headlineRow(draft: Draft, build: DraftBuild) {
+  return draft.activeRowId ? talentRowsFor(build.character.id)?.find((r) => r.id === draft.activeRowId) : undefined;
+}
+
+/** The element the headline hit deals, after any declared infusion. */
+export function headlineElement(draft: Draft, build: DraftBuild = resolveBuild(draft)): ElementType {
   const element = draft.elementOverride ?? build.character.element;
-  const label = draft.activeRowId
-    ? talentRowsFor(build.character.id)?.find((r) => r.id === draft.activeRowId)?.label
-    : undefined;
+  const row = headlineRow(draft, build);
+  // A whole-combo headline (no row) is a Normal Attack; a loaded row knows its group.
+  const group = row?.group ?? (draft.attackType === 'charged' ? 'charged' : draft.attackType === 'normal' ? 'normal' : 'skill');
+  return infusedElement(build.character.id, draft.stateOn, group, element);
+}
+
+/** The buffs the headline hit sees: the build's base buffs plus the set,
+ *  party, self and state bonuses scoped to the hit it describes. */
+export function headlineBuffs(draft: Draft, build: DraftBuild = resolveBuild(draft)): BuffState {
+  const element = headlineElement(draft, build);
+  const hit = { element, attack: draft.attackType, label: headlineRow(draft, build)?.label };
   return addBuffs(
     build.baseBuffs,
     resolveSetBuffs(build.setPicks, element, draft.attackType),
     resolvePartyBuffs(draft.party, element),
-    scopedSelfBuffs(build.character.id, draft.constellation, draft.passiveOn, { element, attack: draft.attackType, label }),
+    scopedSelfBuffs(build.character.id, draft.constellation, draft.passiveOn, hit),
+    scopedBuffs(stateEffects(build.character.id, draft.stateOn, draft.stateInputs, build.effLevels), hit),
   );
 }
 
@@ -175,6 +192,10 @@ export function draftHeadline(
   build: DraftBuild = resolveBuild(draft),
   buffs: BuffState = headlineBuffs(draft, build),
 ): DamageResult {
+  const row = headlineRow(draft, build);
+  const stateBonus = row
+    ? stateRowBonus(build.character.id, draft.stateOn, draft.stateInputs, build.effLevels, row)
+    : 0;
   return computeDamage({
     character: build.character,
     weapon: build.weapon,
@@ -183,8 +204,8 @@ export function draftHeadline(
     enemy: build.enemy,
     characterLevel: draft.level,
     attackType: draft.attackType,
-    skillMultiplier: draft.skillMult,
-    element: draft.elementOverride ?? undefined,
+    skillMultiplier: draft.skillMult + stateBonus,
+    element: headlineElement(draft, build),
     scaling: draft.scalingOverride ?? undefined,
     amplified: draft.amplified,
     additive: draft.additive,

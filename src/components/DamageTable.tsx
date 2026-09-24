@@ -214,6 +214,7 @@ export default function DamageTable({
                       <span className="flex items-center gap-2">
                         <span
                           data-testid={`row-element-${r.id}`}
+                          data-element={r.element}
                           className={`h-1.5 w-1.5 shrink-0 rounded-full ${ELEMENT_DOT[r.element] ?? ELEMENT_DOT.physical}`}
                           aria-hidden="true"
                         />

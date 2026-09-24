@@ -25,7 +25,8 @@ import type { SetPick } from '../data/artifactSets';
 import { resolveSetBuffs } from '../data/artifactSets';
 import type { PartyState } from '../data/partyBuffs';
 import { DEFAULT_PARTY, resolvePartyBuffs } from '../data/partyBuffs';
-import { scopedSelfBuffs } from '../data/constellations';
+import { scopedBuffs, scopedSelfBuffs } from '../data/constellations';
+import { infusedElement, stateEffects, stateRowBonus } from '../data/selfStates';
 import { talentRowsFor } from '../data/generated/talents';
 import type { TalentGroup } from '../data/generated/talents';
 import { GROUP_TO_TALENT } from '../components/calculator/constants';
@@ -87,6 +88,9 @@ export interface AssembleInput {
    *  effects (the unlimited ones are already in baseBuffs). Omitted = none. */
   constellation?: number;
   passiveOn?: number[];
+  /** Declared self-states and their inputs (data/selfStates.ts). Omitted = none. */
+  stateOn?: string[];
+  stateInputs?: Record<string, number>;
 }
 
 /**
@@ -117,9 +121,15 @@ export function assembleDamageGroups(input: AssembleInput): DamageGroupVm[] {
   for (const g of ORDER) map.set(g, []);
   const levelForGroup = (group: TalentGroup) => effLevels[bucketOf(group)];
 
+  const stateOn = input.stateOn ?? [];
+  const stateInputs = input.stateInputs ?? {};
+  const states = stateEffects(character.id, stateOn, stateInputs, effLevels);
+
   for (const row of talentRows) {
     const value = row.values[levelForGroup(row.group) - 1] ?? 0;
     const hits = Math.max(1, row.hits);
+    // A declared infusion turns Physical Normal / Charged / Plunging hits elemental.
+    const element = infusedElement(character.id, stateOn, row.group, row.element);
     let vm: DamageRowVm;
     if (!row.isDamage) {
       vm = {
@@ -135,25 +145,23 @@ export function assembleDamageGroups(input: AssembleInput): DamageGroupVm[] {
         active: false,
       };
     } else {
+      const hit = { element, attack: GROUP_TO_TALENT[row.group], label: row.label };
       const r = computeDamage({
         character,
         weapon,
         artifacts,
         buffs: addBuffs(
           baseBuffs,
-          resolveSetBuffs(setPicks, row.element, GROUP_TO_TALENT[row.group]),
-          resolvePartyBuffs(party, row.element),
-          scopedSelfBuffs(character.id, input.constellation ?? 0, input.passiveOn ?? [], {
-            element: row.element,
-            attack: GROUP_TO_TALENT[row.group],
-            label: row.label,
-          }),
+          resolveSetBuffs(setPicks, element, GROUP_TO_TALENT[row.group]),
+          resolvePartyBuffs(party, element),
+          scopedSelfBuffs(character.id, input.constellation ?? 0, input.passiveOn ?? [], hit),
+          scopedBuffs(states, hit),
         ),
         enemy,
         characterLevel: level,
         attackType: GROUP_TO_TALENT[row.group],
-        skillMultiplier: value * hits,
-        element: row.element,
+        skillMultiplier: value * hits + stateRowBonus(character.id, stateOn, stateInputs, effLevels, row),
+        element,
         scaling: row.scaling,
         amplified,
         additive,
@@ -164,7 +172,7 @@ export function assembleDamageGroups(input: AssembleInput): DamageGroupVm[] {
         id: row.id,
         label: hits > 1 ? `${row.label} ×${hits}` : row.label,
         group: row.group,
-        element: row.element,
+        element,
         value: value * hits,
         nonCrit: r.nonCrit,
         crit: r.critHit,

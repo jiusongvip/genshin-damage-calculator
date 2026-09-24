@@ -259,6 +259,16 @@ export function scopeMatches(scope: HitScope, hit: Hit): boolean {
   return true;
 }
 
+/** The effects in a list that apply to every hit, summed. */
+export function unscopedBuffs(effects: SelfEffect[]): Partial<BuffState> {
+  return accumulate(effects.filter((e) => !e.only));
+}
+
+/** The scoped effects in a list that one hit receives, summed. */
+export function scopedBuffs(effects: SelfEffect[], hit: Hit): Partial<BuffState> {
+  return accumulate(effects.filter((e) => e.only && scopeMatches(e.only, hit)));
+}
+
 /** Constellation + passive effects that apply to every hit — safe to fold into
  *  the build's global buff state. */
 export function unscopedSelfBuffs(charId: string, level: number, enabled: number[]): Partial<BuffState> {

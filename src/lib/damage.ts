@@ -148,6 +148,13 @@ export interface BuffState {
   er: number;
   /** Flat ATK gained per point of Max HP (Staff of Homa 0.008, Jade Cutter 0.012). */
   atkFromHP: number;
+  /** Flat ATK per point of Max HP with its own cap (Hu Tao's Paramita Papilio),
+   *  kept apart from atkFromHP so the cap never clips a weapon's conversion. */
+  atkFromHPCapped: number;
+  /** That cap, as a multiple of Base ATK (character + weapon); 0 means uncapped. */
+  atkFromHPCappedMax: number;
+  /** Flat ATK gained per point of DEF (Noelle's Sweeping Time). */
+  atkFromDEF: number;
   /** Flat ATK gained per point of Elemental Mastery (Staff of the Scarlet Sands 0.52). */
   atkFromEM: number;
   /** ATK% gained per 1.0 of Energy Recharge above the base 100% (Engulfing Lightning). */
@@ -562,12 +569,17 @@ export function computeDamage(input: DamageInput): DamageResult {
   const er = w.er + art.er + ascStat.er + buffs.er;
 
   // ---- Attribute conversions ----
-  const convertedFlatAtk = buffs.atkFromHP * totalHP + buffs.atkFromEM * em;
+  const baseATKTotal = baseATK + weapon.baseATK;
+  const hpAtkCap = buffs.atkFromHPCappedMax > 0 ? buffs.atkFromHPCappedMax * baseATKTotal : Infinity;
+  const convertedFlatAtk =
+    buffs.atkFromHP * totalHP +
+    Math.min((buffs.atkFromHPCapped ?? 0) * totalHP, hpAtkCap) +
+    (buffs.atkFromDEF ?? 0) * totalDEF +
+    buffs.atkFromEM * em;
   const erAtkCap = buffs.atkFromERMax > 0 ? buffs.atkFromERMax : Infinity;
   const convertedAtkPct = Math.min(buffs.atkFromER * er, erAtkCap);
 
   // ---- Total ATK ----
-  const baseATKTotal = baseATK + weapon.baseATK;
   const totalATK =
     baseATKTotal *
       (1 + art.atkPercent + w.atkPercent + ascStat.atkPercent + buffs.atkPercent + convertedAtkPct) +

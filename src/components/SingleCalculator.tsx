@@ -19,7 +19,7 @@ import { constellationsFor, passivesFor } from '../data/generated/constellations
 import { CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
 import { overlayBaseline, snapshotBaseline } from './DamageTable';
 import type { DamageRowVm, DamageGroupVm, DamageBaseline } from './DamageTable';
-import { draftHeadline, draftToGroups, headlineBuffs, resolveBuild } from '../lib/draft-build';
+import { draftHeadline, draftToGroups, headlineBuffs, headlineElement, resolveBuild } from '../lib/draft-build';
 import {
   addScenario,
   loadScenarios,
@@ -52,7 +52,8 @@ import type { Draft } from './calculator/draft';
 import { zoneRefs } from './calculator/primitives';
 import { DamagePanel } from './calculator/DamagePanel';
 import { EquipmentPanel } from './calculator/EquipmentPanel';
-import { CharacterPassives, CharacterStats } from './calculator/CharacterPanel';
+import { CharacterPassives, CharacterStats, SelfStatePanel } from './calculator/CharacterPanel';
+import { selfStatesFor } from '../data/selfStates';
 import { ScenarioBar } from './calculator/ScenarioBar';
 import { BaseZone } from './calculator/zones/BaseZone';
 import { BonusZone } from './calculator/zones/BonusZone';
@@ -96,6 +97,7 @@ export default function SingleCalculator() {
 
   const constellations = useMemo(() => constellationsFor(character.id) ?? [], [character.id]);
   const ascensionPassives = useMemo(() => passivesFor(character.id) ?? [], [character.id]);
+  const selfStates = useMemo(() => selfStatesFor(character.id), [character.id]);
   const consModelled = CONSTELLATION_EFFECTS[character.id] ?? {};
   const passiveModelled = PASSIVE_EFFECTS[character.id] ?? {};
 
@@ -196,10 +198,11 @@ export default function SingleCalculator() {
     setDraft(defaultsFor(c));
   };
 
-  // The element the zones currently describe.
-  const activeElement: ElementType = draft.elementOverride ?? character.element;
+  // The element the zones currently describe, after any declared infusion.
+  const activeElement: ElementType = useMemo(() => headlineElement(draft, build), [draft, build]);
 
   const buffs: BuffState = useMemo(() => headlineBuffs(draft, build), [draft, build]);
+  const result = useMemo(() => draftHeadline(draft, build, buffs), [draft, build, buffs]);
 
   // Reactions this character can trigger, with their current values, so the
   // numbers are visible at a glance instead of one selected at a time.
@@ -215,8 +218,9 @@ export default function SingleCalculator() {
       enemy,
       characterLevel: draft.level,
       attackType: draft.attackType,
-      skillMultiplier: draft.skillMult,
-      element: draft.elementOverride ?? undefined,
+      // The headline's own multiplier (it includes any state bonus) and element.
+      skillMultiplier: result.skillMultiplier,
+      element: activeElement,
       scaling: draft.scalingOverride ?? undefined,
     };
     const amplified = reach.amplified.map((key) => ({
@@ -230,9 +234,7 @@ export default function SingleCalculator() {
       value: computeDamage({ ...common, amplified: 'none', transformative: key, swirlElement: draft.swirlElement }).transformative,
     }));
     return { amplified, transformative };
-  }, [character, weapon, draft.artifacts, buffs, enemy, draft.level, draft.attackType, draft.skillMult, draft.elementOverride, draft.scalingOverride, draft.swirlElement]);
-
-  const result = useMemo(() => draftHeadline(draft, build, buffs), [draft, build, buffs]);
+  }, [character, weapon, draft.artifacts, buffs, enemy, draft.level, draft.attackType, result.skillMultiplier, activeElement, draft.scalingOverride, draft.swirlElement]);
 
   const baseDamage =
     result.baseStat * result.skillMultiplier * (1 + result.baseDmgBonus) + result.additive + draft.flatBaseDmg;
@@ -511,6 +513,20 @@ export default function SingleCalculator() {
       >
 
       {/* ============ Constellations & passives (Character tab) ============ */}
+      {tab === 'character' && (
+        <div className="mb-3">
+          <SelfStatePanel
+            states={selfStates}
+            on={draft.stateOn}
+            inputs={draft.stateInputs}
+            levels={build.effLevels}
+            onToggle={(id, on) =>
+              set('stateOn', on ? [...draft.stateOn.filter((x) => x !== id), id] : draft.stateOn.filter((x) => x !== id))
+            }
+            onInput={(id, v) => set('stateInputs', { ...draft.stateInputs, [id]: v })}
+          />
+        </div>
+      )}
       {tab === 'character' && (
         <CharacterPassives
           constellations={constellations}

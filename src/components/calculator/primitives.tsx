@@ -462,3 +462,36 @@ export function Zone({
 }
 
 export const zoneRefs = new Map<string, HTMLElement>();
+
+/**
+ * One declared-buff row (party buffs, character states): a checkbox, a title,
+ * a one-line explanation, and — only when it needs numbers — inputs below it.
+ * Kept deliberately dumb; the damage logic lives in resolvePartyBuffs and
+ * data/selfStates.ts.
+ */
+export function BuffSwitch({
+  on,
+  onChange,
+  title,
+  desc,
+  children,
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+  title: string;
+  desc: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="rounded-[12px] border border-[var(--line)] p-2.5">
+      <label className="flex items-start gap-2">
+        <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 accent-forest-600" />
+        <span className="min-w-0">
+          <span className="block text-sm font-medium text-[var(--text)]">{title}</span>
+          <span className="block text-[11px] leading-snug text-[var(--muted)]">{desc}</span>
+        </span>
+      </label>
+      {on && children ? <div className="mt-2 pl-6">{children}</div> : null}
+    </div>
+  );
+}

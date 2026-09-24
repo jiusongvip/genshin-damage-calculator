@@ -7,6 +7,7 @@ import { talentRowsFor } from '../../data/generated/talents';
 import type { TalentGroup } from '../../data/generated/talents';
 import { CONSTELLATION_TALENT_BONUS } from '../../data/generated/constellationTalents';
 import { DEFAULT_PARTY } from '../../data/partyBuffs';
+import { selfStatesFor } from '../../data/selfStates';
 import type { PartyState } from '../../data/partyBuffs';
 import type {
   AdditiveReaction,
@@ -84,6 +85,10 @@ export interface Draft {
   constellation: number;
   /** Enabled ascension-passive indices. */
   passiveOn: number[];
+  /** Declared self-states (data/selfStates.ts ids), e.g. Hu Tao's Skill. */
+  stateOn: string[];
+  /** Inputs those states take, by state id (Raiden's Resolve stacks). */
+  stateInputs: Record<string, number>;
   /** Declared teammate buffs — see data/partyBuffs.ts. Flattened onto the draft
    *  (every field 0/1 or numeric) so the URL / localStorage serializer is uniform. */
   party: PartyState;
@@ -252,9 +257,23 @@ export function defaultsFor(c: (typeof CHARACTERS)[number]): Draft {
     resShred: 0,
     constellation: 0,
     passiveOn: [],
+    stateOn: [],
+    stateInputs: {},
     party: { ...DEFAULT_PARTY },
     artifacts: { ...resolvePreset(c) },
   };
+}
+
+/** Keep only states this character has, with their inputs inside range. */
+function sanitizeStates(d: Draft): Pick<Draft, 'stateOn' | 'stateInputs'> {
+  const states = selfStatesFor(d.charId);
+  const known = new Set(states.map((s) => s.id));
+  const stateInputs: Record<string, number> = {};
+  for (const s of states) {
+    const v = d.stateInputs?.[s.id];
+    if (s.input && v != null && Number.isFinite(v)) stateInputs[s.id] = Math.round(clamp(v, s.input.min, s.input.max));
+  }
+  return { stateOn: [...new Set((d.stateOn ?? []).filter((id) => known.has(id)))], stateInputs };
 }
 
 /** Clamp every numeric field to its allowed range (used when restoring a URL). */
@@ -301,6 +320,7 @@ export function sanitize(d: Draft): Draft {
     resShred: clamp(d.resShred, 0, 2),
     constellation: Math.round(clamp(d.constellation ?? 0, 0, 6)),
     passiveOn: (d.passiveOn ?? []).filter((n) => Number.isInteger(n) && n >= 0 && n <= 9),
+    ...sanitizeStates(d),
     party: {
       bennett: d.party?.bennett ? 1 : 0,
       bennettBase: clamp(d.party?.bennettBase ?? DEFAULT_PARTY.bennettBase, 0, 3000),
@@ -459,6 +479,11 @@ export function draftToQuery(draft: Draft, defaults: Draft): string {
   num('rs', draft.resShred, defaults.resShred);
   num('cn', draft.constellation, defaults.constellation);
   if (draft.passiveOn.length) put('pv', draft.passiveOn.join('.'));
+  if (draft.stateOn.length) put('ss', draft.stateOn.join('.'));
+  const si = Object.entries(draft.stateInputs ?? {})
+    .map(([k, v]) => `${k}:${v}`)
+    .join(',');
+  if (si) put('si', si);
   const pq = draft.party, pd = defaults.party;
   if (pq.bennett) put('pb', 1);
   num('pbb', pq.bennettBase, pd.bennettBase);
@@ -561,6 +586,14 @@ export function draftFromQuery(params: URLSearchParams, defaults: Draft): Draft 
       .split('.')
       .map((x) => parseInt(x, 10))
       .filter((n) => Number.isInteger(n) && n >= 0),
+    stateOn: (params.get('ss') ?? '').split('.').filter(Boolean),
+    stateInputs: Object.fromEntries(
+      (params.get('si') ?? '')
+        .split(',')
+        .map((pair) => pair.split(':'))
+        .filter((kv) => kv.length === 2 && kv[1] !== '' && Number.isFinite(parseFloat(kv[1])))
+        .map(([k, v]) => [k, parseFloat(v)]),
+    ),
     party: {
       bennett: params.get('pb') === '1' ? 1 : defaults.party.bennett,
       bennettBase: num('pbb', defaults.party.bennettBase),

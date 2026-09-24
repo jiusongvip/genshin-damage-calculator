@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import type { ArtifactBuild, DamageResult, SecondaryStatType } from '../../lib/damage';
 import { formatNumber, formatPercent } from '../../lib/damage';
 import { NO_ARTIFACTS } from '../../data/presets';
@@ -8,7 +7,7 @@ import type { PartyState } from '../../data/partyBuffs';
 import { ElementIcon } from '../ElementIcon';
 import type { WeaponPassiveData } from '../../data/generated/weaponPassives';
 import type { WeaponPassiveEffect } from '../../data/weaponPassives';
-import { Glyph, IconSelect, Num, NumberField, Pct } from './primitives';
+import { BuffSwitch, Glyph, IconSelect, Num, NumberField, Pct } from './primitives';
 import { ELEMENTS, MAIN_OPTIONS, PIECE_ROWS, SECONDARY_LABEL, STAT_GLYPH, SUB_OPTIONS } from './constants';
 import type { PieceKey } from './constants';
 import { ELEMENT_LABEL } from '../../data/elements';
@@ -363,34 +362,3 @@ export function EquipmentPanel({
   );
 }
 
-/**
- * One party-buff row: a checkbox, a title, a one-line explanation, and — only
- * when it needs numbers — a couple of inputs below it. Kept deliberately dumb;
- * all damage logic lives in resolvePartyBuffs.
- */
-function BuffSwitch({
-  on,
-  onChange,
-  title,
-  desc,
-  children,
-}: {
-  on: boolean;
-  onChange: (v: boolean) => void;
-  title: string;
-  desc: string;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="rounded-[12px] border border-[var(--line)] p-2.5">
-      <label className="flex items-start gap-2">
-        <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 accent-forest-600" />
-        <span className="min-w-0">
-          <span className="block text-sm font-medium text-[var(--text)]">{title}</span>
-          <span className="block text-[11px] leading-snug text-[var(--muted)]">{desc}</span>
-        </span>
-      </label>
-      {on && children ? <div className="mt-2 pl-6">{children}</div> : null}
-    </div>
-  );
-}

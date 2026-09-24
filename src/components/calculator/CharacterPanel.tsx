@@ -1,6 +1,8 @@
 import type { BuffState, DamageResult } from '../../lib/damage';
 import { formatNumber, formatPercent } from '../../lib/damage';
 import type { ConstellationEntry, PassiveEntry } from '../../data/generated/constellations';
+import type { SelfState } from '../../data/selfStates';
+import { BuffSwitch, NumberField } from './primitives';
 
 /** One row of the base / mod / total stat table. */
 interface StatRow {
@@ -162,5 +164,58 @@ export function CharacterPassives({
         )}
       </div>
     </details>
+  );
+}
+
+export interface SelfStatePanelProps {
+  states: SelfState[];
+  on: string[];
+  inputs: Record<string, number>;
+  /** Effective (constellation-raised) talent levels — the numbers the notes quote. */
+  levels: { normal: number; skill: number; burst: number };
+  onToggle: (id: string, on: boolean) => void;
+  onInput: (id: string, value: number) => void;
+}
+
+/**
+ * "Active state": the Skill / Burst states a character's damage actually
+ * happens in (Hu Tao's Paramita Papilio, Raiden's Musou Isshin). Declared by
+ * the reader, like party buffs — nothing here guesses uptime.
+ */
+export function SelfStatePanel({ states, on, inputs, levels, onToggle, onInput }: SelfStatePanelProps) {
+  if (states.length === 0) return null;
+  return (
+    <section className="panel p-4" data-testid="self-states">
+      <h3 className="text-base font-semibold text-[var(--text)]">
+        Active state{' '}
+        <span className="text-xs font-normal text-[var(--muted)]">— switch on what you are in when the hit lands</span>
+      </h3>
+      <div className="mt-3 space-y-3">
+        {states.map((s) => {
+          const value = inputs[s.id] ?? s.input?.default ?? 0;
+          return (
+            <BuffSwitch
+              key={s.id}
+              on={on.includes(s.id)}
+              onChange={(v) => onToggle(s.id, v)}
+              title={s.label}
+              desc={s.note(levels, value)}
+            >
+              {s.input ? (
+                <NumberField
+                  label={s.input.label}
+                  value={value}
+                  min={s.input.min}
+                  max={s.input.max}
+                  step={1}
+                  onChange={(v) => onInput(s.id, v)}
+                />
+              ) : null}
+            </BuffSwitch>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-[11px] text-[var(--muted)]">More character states coming.</p>
+    </section>
   );
 }
