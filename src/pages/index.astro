@@ -3,14 +3,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import SingleCalculator from '../components/SingleCalculator.tsx';
 import { RELEASED_CHARACTERS } from '../data/characters';
 import { hasPublishableData } from '../lib/character-pages';
-import { getWeapon } from '../data/weapons';
-import { ENEMIES } from '../data/enemies';
-import { DEFAULT_BUFFS, resolvePreset, resolveSetPicks } from '../data/presets';
-import { resolveSetBuffs } from '../data/artifactSets';
+import { defaultsFor } from '../components/calculator/draft';
+import { draftHeadline, resolveBuild } from '../lib/draft-build';
 import { signatureTalent } from '../data/talents';
 import { FAQS } from '../data/faqs';
 import { FEATURED_CHARACTERS, OFFICIAL_VIDEOS, OFFICIAL_YOUTUBE } from '../data/media';
-import { addBuffs, computeDamage, formatNumber, formatPercent } from '../lib/damage';
+import { formatNumber, formatPercent } from '../lib/damage';
 import type { ElementType } from '../lib/damage';
 
 const siteURL = 'https://www.genshindamagecalculator.com';
@@ -28,25 +26,16 @@ const characterPageIds = new Set(RELEASED_CHARACTERS.filter(hasPublishableData).
 // made the numbers incomparable — a Cryo support outranked Raiden Shogun purely
 // on a x1.5 nobody had chosen. Reactions are a team decision, so they belong in
 // the calculator, not in a per-character reference number.
-const enemy = ENEMIES[0];
+// Same path as the calculator's default load (defaultsFor → draftHeadline), so
+// a card and /?c=<id> show the same number.
 const presetRows = RELEASED_CHARACTERS.map((c) => {
-  const weapon = getWeapon(c.bestWeapon)!;
+  const draft = defaultsFor(c);
+  const build = resolveBuild(draft);
+  const r = draftHeadline(draft, build);
   const signature = signatureTalent(c.id);
-  const attackType = signature?.key ?? 'burst';
-  const buffs = addBuffs(DEFAULT_BUFFS, resolveSetBuffs(resolveSetPicks(c), c.element, attackType));
-  const r = computeDamage({
-    character: c,
-    weapon,
-    artifacts: resolvePreset(c),
-    buffs,
-    enemy,
-    characterLevel: 90,
-    amplified: 'none',
-    transformative: 'none',
-  });
   return {
     character: c,
-    weapon,
+    weapon: build.weapon,
     expected: r.expected,
     critRate: r.critRate,
     critDMG: r.critDMG,

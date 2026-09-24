@@ -90,4 +90,13 @@ test.describe('calculator', () => {
     await expect(page.getByRole('button', { name: 'Clear baseline' })).toBeVisible();
     await expect(table).toContainText('Diff');
   });
+
+  test('the default headline is a number the table shows', async ({ page }) => {
+    // It used to price Hu Tao's Physical combo as Pyro: 17,885 over a table
+    // whose Total said 14,242. The headline must be one of the table's cells.
+    await gotoCalculator(page);
+    const total = page.locator('#damage-table tr', { hasText: 'Total DMG' }).locator('td').last();
+    const cell = Number((await total.innerText()).replace(/[^0-9]/g, ''));
+    await expect.poll(() => readExpected(page)).toBe(cell);
+  });
 });

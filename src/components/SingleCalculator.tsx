@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RELEASED_CHARACTERS as CHARACTERS } from '../data/characters';
 import { NO_ARTIFACTS } from '../data/presets';
-import { addBuffs, computeDamage, formatNumber } from '../lib/damage';
+import { computeDamage, formatNumber } from '../lib/damage';
 import type {
   ArtifactBuild,
   BuffState,
@@ -14,14 +14,12 @@ import { talentRowsFor } from '../data/generated/talents';
 import { CONSTELLATION_TALENT_BONUS } from '../data/generated/constellationTalents';
 import { weaponPassiveFor } from '../data/generated/weaponPassives';
 import { weaponPassiveMaxStacks, WEAPON_PASSIVE_EFFECTS } from '../data/weaponPassives';
-import { resolveSetBuffs } from '../data/artifactSets';
-import { resolvePartyBuffs } from '../data/partyBuffs';
 import type { PartyState } from '../data/partyBuffs';
 import { constellationsFor, passivesFor } from '../data/generated/constellations';
 import { CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
 import { overlayBaseline, snapshotBaseline } from './DamageTable';
 import type { DamageRowVm, DamageGroupVm, DamageBaseline } from './DamageTable';
-import { draftToGroups, resolveBuild } from '../lib/draft-build';
+import { draftHeadline, draftToGroups, headlineBuffs, resolveBuild } from '../lib/draft-build';
 import {
   addScenario,
   loadScenarios,
@@ -40,6 +38,7 @@ import {
   TRANSFORMATIVE,
 } from './calculator/constants';
 import {
+  attackFields,
   bucketOf,
   clamp,
   defaultsFor,
@@ -87,7 +86,7 @@ export default function SingleCalculator() {
   // zone-floor stats / pre-set base buffs). Shared with the "Compare against a
   // saved scenario" flow so a stored panel diffs identically to a live one.
   const build = useMemo(() => resolveBuild(draft), [draft]);
-  const { character, weaponOptions, weapon, enemy, whiteboard, ownEM, baseBuffs, setPicks } = build;
+  const { character, weaponOptions, weapon, enemy, whiteboard, ownEM } = build;
 
   const weaponPassive = weaponPassiveFor(draft.weaponId);
   const weaponEffect = WEAPON_PASSIVE_EFFECTS[draft.weaponId];
@@ -108,19 +107,26 @@ export default function SingleCalculator() {
   /** Merge a partial patch into the declared party-buff state. */
   const setParty = (p: Partial<PartyState>) => setDraft((d) => ({ ...d, party: { ...d.party, ...p } }));
 
-  /** Changing the attack type re-derives the signature multiplier and drops
-   *  whatever row was loaded from the per-hit table. */
+  /** Changing the attack type loads the hit (or combo) it stands for, with that
+   *  hit's own element and scaling — see attackPick in calculator/draft.ts. */
   const changeAttackType = (t: TalentKey) =>
     setDraft((d) => ({
       ...d,
-      attackType: t,
-      skillMult:
-        signatureMultiplierAt(character.id, t, effectiveTalentLevels(character.id, d.talentLevels, d.constellation)) ||
-        d.skillMult,
-      activeRowId: null,
-      elementOverride: null,
-      scalingOverride: null,
+      ...(attackFields(character.id, t, effectiveTalentLevels(character.id, d.talentLevels, d.constellation)) ?? {
+        attackType: t,
+        activeRowId: null,
+        elementOverride: null,
+        scalingOverride: null,
+      }),
     }));
+
+  /** A loaded row's multiplier at the talent level a draft actually has. */
+  const rowMultiplier = (d: Draft, rowId: string): number | null => {
+    const row = (talentRowsFor(character.id) ?? []).find((r) => r.id === rowId);
+    if (!row) return null;
+    const lv = effectiveTalentLevels(character.id, d.talentLevels, d.constellation)[bucketOf(row.group)];
+    return (row.values[lv - 1] ?? 0) * Math.max(1, row.hits);
+  };
 
   /** From a chain step in the damage tab, reveal and highlight its zone. */
   const jumpToZone = (id: string) => {
@@ -132,16 +138,18 @@ export default function SingleCalculator() {
   /** Editing the multiplier by hand detaches it from the picked row. */
   const changeSkillMult = (v: number) => setDraft((d) => ({ ...d, skillMult: v, activeRowId: null }));
 
-  /** Raising the constellation re-derives the signature multiplier — unless a
-   *  table row is loaded, in which case that row owns the multiplier. */
+  /** Raising the constellation re-derives the multiplier at the new effective
+   *  talent level — from the loaded row if there is one, else the combo — so a
+   *  C3/C5 talent bump moves the headline in step with the table. */
   const changeConstellation = (cn: number) =>
-    setDraft((d) => ({
-      ...d,
-      constellation: cn,
-      skillMult: d.activeRowId
-        ? d.skillMult
-        : signatureMultiplierAt(character.id, d.attackType, effectiveTalentLevels(character.id, d.talentLevels, cn)) || d.skillMult,
-    }));
+    setDraft((d) => {
+      const next = { ...d, constellation: cn };
+      next.skillMult =
+        (d.activeRowId ? rowMultiplier(next, d.activeRowId) : null) ??
+        (signatureMultiplierAt(character.id, d.attackType, effectiveTalentLevels(character.id, d.talentLevels, cn)) ||
+          d.skillMult);
+      return next;
+    });
 
   /** Picking "Custom…" seeds the level from the preset it replaces. */
   const changeEnemy = (id: string) =>
@@ -188,20 +196,10 @@ export default function SingleCalculator() {
     setDraft(defaultsFor(c));
   };
 
-  // The element and attack type the zones currently describe — used to filter
-  // element- and attack-type-specific artifact set and party bonuses.
+  // The element the zones currently describe.
   const activeElement: ElementType = draft.elementOverride ?? character.element;
-  const activeAttack: TalentKey = draft.attackType;
 
-  const buffs: BuffState = useMemo(
-    () =>
-      addBuffs(
-        baseBuffs,
-        resolveSetBuffs(setPicks, activeElement, activeAttack),
-        resolvePartyBuffs(draft.party, activeElement),
-      ),
-    [baseBuffs, setPicks, activeElement, activeAttack, draft.party],
-  );
+  const buffs: BuffState = useMemo(() => headlineBuffs(draft, build), [draft, build]);
 
   // Reactions this character can trigger, with their current values, so the
   // numbers are visible at a glance instead of one selected at a time.
@@ -234,26 +232,7 @@ export default function SingleCalculator() {
     return { amplified, transformative };
   }, [character, weapon, draft.artifacts, buffs, enemy, draft.level, draft.attackType, draft.skillMult, draft.elementOverride, draft.scalingOverride, draft.swirlElement]);
 
-  const result = useMemo(
-    () =>
-      computeDamage({
-        character,
-        weapon,
-        artifacts: draft.artifacts,
-        buffs,
-        enemy,
-        characterLevel: draft.level,
-        attackType: draft.attackType,
-        skillMultiplier: draft.skillMult,
-        element: draft.elementOverride ?? undefined,
-        scaling: draft.scalingOverride ?? undefined,
-        amplified: draft.amplified,
-        additive: draft.additive,
-        transformative: draft.transformative,
-        swirlElement: draft.transformative === 'swirl' ? draft.swirlElement : undefined,
-      }),
-    [character, weapon, draft.artifacts, buffs, enemy, draft.level, draft.attackType, draft.skillMult, draft.elementOverride, draft.scalingOverride, draft.amplified, draft.additive, draft.transformative, draft.swirlElement],
-  );
+  const result = useMemo(() => draftHeadline(draft, build, buffs), [draft, build, buffs]);
 
   const baseDamage =
     result.baseStat * result.skillMultiplier * (1 + result.baseDmgBonus) + result.additive + draft.flatBaseDmg;

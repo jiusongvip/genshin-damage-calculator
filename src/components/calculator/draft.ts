@@ -101,20 +101,77 @@ export const bucketOf = (group: TalentGroup): 'normal' | 'skill' | 'burst' =>
 
 /**
  * Multiplier for an attack type at a given talent level, read from the per-hit
- * table so the headline result tracks the talent-level inputs. Mirrors how the
- * aggregates were built: Normal/Charged are the whole combo (sum), Skill/Burst
- * are the biggest single hit (max).
+ * table so the headline result tracks the talent-level inputs. See attackPick
+ * for which hit (or combo) that is.
  */
 export function signatureMultiplierAt(
   charId: string,
   attackType: TalentKey,
   levels: { normal: number; skill: number; burst: number },
 ): number {
+  return attackPick(charId, attackType, levels)?.multiplier ?? 0;
+}
+
+/** What the headline describes for one attack type: the multiplier plus the
+ *  element, scaling and (for a single hit) the table row it came from. */
+export interface AttackPick {
+  multiplier: number;
+  /** The table row the multiplier is, or null when it is a whole-combo sum. */
+  rowId: string | null;
+  element: ElementType;
+  scaling: ScalingStat;
+}
+
+/**
+ * The hit (or combo) an attack type stands for. The headline used to take the
+ * multiplier from here but the element from the character — so Hu Tao's
+ * Physical normal combo was priced as Pyro and the headline agreed with no row
+ * of the table under it. Element and scaling now come from the same rows.
+ *
+ * Normal: the whole combo — the one group the table totals — but only when
+ * every hit shares one element and scaling; otherwise its biggest row.
+ * Charged / Skill / Burst: the biggest single row. Their rows are often
+ * alternatives (Neuvillette's two charged forms, Hu Tao's normal vs low-HP
+ * burst), so a sum would be a number no row of the table shows.
+ */
+export function attackPick(
+  charId: string,
+  attackType: TalentKey,
+  levels: { normal: number; skill: number; burst: number },
+): AttackPick | null {
   const rows = (talentRowsFor(charId) ?? []).filter((r) => r.isDamage && r.group === attackType);
-  if (rows.length === 0) return 0;
+  if (rows.length === 0) return null;
   const level = levels[bucketOf(attackType)];
-  const values = rows.map((r) => (r.values[level - 1] ?? 0) * Math.max(1, r.hits));
-  return attackType === 'skill' || attackType === 'burst' ? Math.max(...values) : values.reduce((a, b) => a + b, 0);
+  const valueOf = (r: (typeof rows)[number]) => (r.values[level - 1] ?? 0) * Math.max(1, r.hits);
+  const uniform = rows.every((r) => r.element === rows[0].element && r.scaling === rows[0].scaling);
+  if (attackType === 'normal' && uniform) {
+    return {
+      multiplier: rows.reduce((s, r) => s + valueOf(r), 0),
+      rowId: null,
+      element: rows[0].element,
+      scaling: rows[0].scaling,
+    };
+  }
+  const best = rows.reduce((m, r) => (valueOf(r) > valueOf(m) ? r : m), rows[0]);
+  return { multiplier: valueOf(best), rowId: best.id, element: best.element, scaling: best.scaling };
+}
+
+/** The draft fields an attack type implies — what picking it (or loading it
+ *  from a URL that only says `at=`) should set. */
+export function attackFields(
+  charId: string,
+  attackType: TalentKey,
+  levels: { normal: number; skill: number; burst: number },
+): Pick<Draft, 'attackType' | 'skillMult' | 'activeRowId' | 'elementOverride' | 'scalingOverride'> | null {
+  const pick = attackPick(charId, attackType, levels);
+  if (!pick) return null;
+  return {
+    attackType,
+    skillMult: pick.multiplier,
+    activeRowId: pick.rowId,
+    elementOverride: pick.element,
+    scalingOverride: pick.scaling,
+  };
 }
 
 /** C3 / C5 raise one combat talent by 3 — which one is per character. */
@@ -140,6 +197,17 @@ export function formatRowText(label: string, percent: boolean, value: number): s
 }
 
 export function defaultsFor(c: (typeof CHARACTERS)[number]): Draft {
+  const talentLevels = { normal: 10, skill: 10, burst: 10 };
+  const attackType = signatureTalent(c.id)?.key ?? 'burst';
+  // No per-hit rows (the two dataset gaps): the placeholder multiplier on the
+  // character, priced at the character's own element as before.
+  const attack = attackFields(c.id, attackType, talentLevels) ?? {
+    attackType,
+    skillMult: c.skillMultiplier,
+    activeRowId: null,
+    elementOverride: null,
+    scalingOverride: null,
+  };
   return {
     charId: c.id,
     level: 90,
@@ -150,14 +218,8 @@ export function defaultsFor(c: (typeof CHARACTERS)[number]): Draft {
     customEnemy: false,
     enemyLevel: ENEMIES[0].level,
     enemyResMap: {},
-    attackType: signatureTalent(c.id)?.key ?? 'burst',
-    skillMult:
-      signatureMultiplierAt(c.id, signatureTalent(c.id)?.key ?? 'burst', { normal: 10, skill: 10, burst: 10 }) ||
-      c.skillMultiplier,
-    talentLevels: { normal: 10, skill: 10, burst: 10 },
-    activeRowId: null,
-    elementOverride: null,
-    scalingOverride: null,
+    ...attack,
+    talentLevels,
     statOverride: null,
     baseDmgBonus: 0,
     flatBaseDmg: 0,
@@ -323,6 +385,9 @@ const encResMap = (map: Partial<Record<ElementType, number>>): string =>
     .map(([k, v]) => `${k}:${v}`)
     .join(',');
 
+/** URL value for an explicitly empty row / element / scaling override. */
+const NONE = '-';
+
 /** The multiplier the reader derives when `sm` is absent — writer and reader must agree. */
 function derivedSkillMult(charId: string, attackType: TalentKey, levels: Draft['talentLevels'], fallback: number): number {
   return signatureMultiplierAt(charId, attackType, levels) || fallback;
@@ -355,9 +420,13 @@ export function draftToQuery(draft: Draft, defaults: Draft): string {
   const dtl = defaults.talentLevels;
   if (tl.normal !== dtl.normal || tl.skill !== dtl.skill || tl.burst !== dtl.burst)
     put('tl', `${tl.normal}.${tl.skill}.${tl.burst}`);
-  put('row', draft.activeRowId);
-  put('ce', draft.elementOverride);
-  put('cs', draft.scalingOverride);
+  // Row / element / scaling are implied by the attack type; write them only
+  // when the draft departs from that, with '-' for an explicit "none".
+  const implied = attackFields(draft.charId, draft.attackType, draft.talentLevels);
+  const orNone = (v: string | null) => v ?? NONE;
+  if (draft.activeRowId !== (implied?.activeRowId ?? null)) put('row', orNone(draft.activeRowId));
+  if (draft.elementOverride !== (implied?.elementOverride ?? null)) put('ce', orNone(draft.elementOverride));
+  if (draft.scalingOverride !== (implied?.scalingOverride ?? null)) put('cs', orNone(draft.scalingOverride));
   if (draft.statOverride != null) put('st', draft.statOverride);
   num('bd', draft.baseDmgBonus, defaults.baseDmgBonus);
   num('fb', draft.flatBaseDmg, defaults.flatBaseDmg);
@@ -426,6 +495,12 @@ export function draftFromQuery(params: URLSearchParams, defaults: Draft): Draft 
     skill: Number.isFinite(tlParts[1]) ? clamp(tlParts[1], 1, 15) : defaults.talentLevels.skill,
     burst: Number.isFinite(tlParts[2]) ? clamp(tlParts[2], 1, 15) : defaults.talentLevels.burst,
   };
+  const implied = attackFields(charId, restoredAttack, restoredLevels);
+  const readImplied = (k: string, fallback: string | null | undefined): string | null => {
+    const v = params.get(k);
+    if (v === NONE) return null;
+    return v ?? fallback ?? null;
+  };
   return sanitize({
     ...defaults,
     charId,
@@ -448,9 +523,9 @@ export function draftFromQuery(params: URLSearchParams, defaults: Draft): Draft 
       ? num('sm', defaults.skillMult)
       : derivedSkillMult(charId, restoredAttack, restoredLevels, defaults.skillMult),
     talentLevels: restoredLevels,
-    activeRowId: params.get('row') ?? null,
-    elementOverride: (params.get('ce') as ElementType) ?? null,
-    scalingOverride: (params.get('cs') as ScalingStat) ?? null,
+    activeRowId: readImplied('row', implied?.activeRowId),
+    elementOverride: readImplied('ce', implied?.elementOverride) as ElementType | null,
+    scalingOverride: readImplied('cs', implied?.scalingOverride) as ScalingStat | null,
     statOverride: params.has('st') ? num('st', 0) : null,
     baseDmgBonus: num('bd', defaults.baseDmgBonus),
     flatBaseDmg: num('fb', defaults.flatBaseDmg),

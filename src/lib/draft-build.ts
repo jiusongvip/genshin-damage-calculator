@@ -19,7 +19,9 @@ import { weaponBuffAt } from '../data/weaponPassives';
 import { constellationBuffs, passiveBuffs } from '../data/constellations';
 import { addBuffs, computeDamage } from './damage';
 import type { BuffState, CharacterData, DamageResult, EnemyData, ScalingStat, WeaponData } from './damage';
+import { resolveSetBuffs } from '../data/artifactSets';
 import type { SetPick } from '../data/artifactSets';
+import { resolvePartyBuffs } from '../data/partyBuffs';
 import { assembleDamageGroups } from './damage-groups';
 import type { DamageGroupVm } from './damage-groups';
 import type { Draft } from '../components/calculator/draft';
@@ -141,5 +143,44 @@ export function draftToGroups(draft: Draft, build: DraftBuild = resolveBuild(dra
     transformative: draft.transformative,
     swirlElement: draft.swirlElement,
     activeRowId: draft.activeRowId,
+  });
+}
+
+/** The buffs the headline hit sees: the build's base buffs plus the set and
+ *  party bonuses scoped to the element and attack type it describes. */
+export function headlineBuffs(draft: Draft, build: DraftBuild = resolveBuild(draft)): BuffState {
+  const element = draft.elementOverride ?? build.character.element;
+  return addBuffs(
+    build.baseBuffs,
+    resolveSetBuffs(build.setPicks, element, draft.attackType),
+    resolvePartyBuffs(draft.party, element),
+  );
+}
+
+/**
+ * The headline hit for a draft — the calculator's Expected number. The home
+ * page cards and the character pages call this too, so a character shows one
+ * number everywhere instead of one per code path.
+ */
+export function draftHeadline(
+  draft: Draft,
+  build: DraftBuild = resolveBuild(draft),
+  buffs: BuffState = headlineBuffs(draft, build),
+): DamageResult {
+  return computeDamage({
+    character: build.character,
+    weapon: build.weapon,
+    artifacts: draft.artifacts,
+    buffs,
+    enemy: build.enemy,
+    characterLevel: draft.level,
+    attackType: draft.attackType,
+    skillMultiplier: draft.skillMult,
+    element: draft.elementOverride ?? undefined,
+    scaling: draft.scalingOverride ?? undefined,
+    amplified: draft.amplified,
+    additive: draft.additive,
+    transformative: draft.transformative,
+    swirlElement: draft.transformative === 'swirl' ? draft.swirlElement : undefined,
   });
 }

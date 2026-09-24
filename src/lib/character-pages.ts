@@ -2,15 +2,11 @@
 // Build-time data for the static /characters/<id>/ pages.
 //
 // Every number here is produced by the SAME engine path the calculator uses for
-// its default load state (defaultsFor → assembleDamageGroups), so a rendered
+// its default load state (defaultsFor → resolveBuild → draftToGroups / draftHeadline), so a rendered
 // page and /?c=<id> agree row for row. React-free: this runs inside getStaticPaths.
 // ============================================================================
 
-import { ENEMIES } from '../data/enemies';
-import { getWeapon, weaponsForType } from '../data/weapons';
-import { DEFAULT_BUFFS, resolvePreset, resolveSetPicks, setPicksFromPieces } from '../data/presets';
-import { resolveSetBuffs } from '../data/artifactSets';
-import { weaponBuffAt } from '../data/weaponPassives';
+import { weaponsForType } from '../data/weapons';
 import { WEAPON_PASSIVE_EFFECTS } from '../data/weaponPassives';
 import { talentRowsFor } from '../data/generated/talents';
 import { constellationsFor, passivesFor } from '../data/generated/constellations';
@@ -18,13 +14,12 @@ import type { ConstellationEntry, PassiveEntry } from '../data/generated/constel
 import { CONSTELLATION_EFFECTS, PASSIVE_EFFECTS } from '../data/constellations';
 import { CONSTELLATION_TALENT_BONUS } from '../data/generated/constellationTalents';
 import { signatureTalent } from '../data/talents';
-import type { TalentKey } from '../data/talents';
-import { addBuffs, computeDamage, formatNumber } from './damage';
+import { formatNumber } from './damage';
 import { ELEMENT_LABEL } from '../data/elements';
 import type { CharacterData, WeaponData } from './damage';
-import { assembleDamageGroups } from './damage-groups';
 import type { DamageGroupVm } from './damage-groups';
-import { defaultsFor, effectiveTalentLevels } from '../components/calculator/draft';
+import { draftHeadline, draftToGroups, resolveBuild } from './draft-build';
+import { defaultsFor } from '../components/calculator/draft';
 
 export interface WeaponPick {
   weapon: WeaponData;
@@ -66,66 +61,23 @@ export function hasPublishableData(c: CharacterData): boolean {
   return !c.unreleased && hasPage(c.id);
 }
 
-/** The buff inputs the calculator uses when a page loads with only ?c=<id>. */
-function defaultContext(c: CharacterData) {
-  const draft = defaultsFor(c);
-  const weapon = getWeapon(draft.weaponId)!;
-  const artifacts = resolvePreset(c);
-  const setPicks = setPicksFromPieces(artifacts.sets ?? {});
-  const baseBuffs = addBuffs(DEFAULT_BUFFS, weaponBuffAt(draft.weaponId, draft.weaponRefine, draft.weaponStacks));
-  const effLevels = effectiveTalentLevels(c.id, draft.talentLevels, draft.constellation);
-  const enemy = ENEMIES.find((e) => e.id === draft.enemyId) ?? ENEMIES[0];
-  return { draft, weapon, artifacts, setPicks, baseBuffs, effLevels, enemy };
-}
-
-/** Signature-attack expected damage for a character holding a specific weapon. */
-function headlineWithWeapon(c: CharacterData, w: WeaponData, attackType: TalentKey, skillMult: number): number {
-  const ctx = defaultContext(c);
-  const buffs = addBuffs(
-    DEFAULT_BUFFS,
-    weaponBuffAt(w.id, 1, 0),
-    resolveSetBuffs(resolveSetPicks(c), c.element, attackType),
-  );
-  const r = computeDamage({
-    character: c,
-    weapon: w,
-    artifacts: ctx.artifacts,
-    buffs,
-    enemy: ctx.enemy,
-    characterLevel: 90,
-    attackType,
-    skillMultiplier: skillMult,
-    amplified: 'none',
-    transformative: 'none',
-  });
-  return r.expected;
+/** Signature-attack expected damage for a character holding a specific weapon
+ *  at R1 / 0 stacks — the calculator's own headline with only the weapon swapped. */
+function headlineWithWeapon(c: CharacterData, w: WeaponData): number {
+  const draft = { ...defaultsFor(c), weaponId: w.id };
+  return draftHeadline(draft).expected;
 }
 
 export function buildCharacterPageData(c: CharacterData): CharacterPageData {
-  const ctx = defaultContext(c);
-  const groups = assembleDamageGroups({
-    character: c,
-    weapon: ctx.weapon,
-    artifacts: ctx.artifacts,
-    baseBuffs: ctx.baseBuffs,
-    setPicks: ctx.setPicks,
-    enemy: ctx.enemy,
-    level: ctx.draft.level,
-    effLevels: ctx.effLevels,
-    amplified: ctx.draft.amplified,
-    additive: ctx.draft.additive,
-    transformative: ctx.draft.transformative,
-    swirlElement: ctx.draft.swirlElement,
-    activeRowId: ctx.draft.activeRowId,
-  });
+  const draft = defaultsFor(c);
+  const build = resolveBuild(draft);
+  const groups = draftToGroups(draft, build);
 
   const sig = signatureTalent(c.id);
-  const attackType = sig?.key ?? 'burst';
-  const skillMult = ctx.draft.skillMult;
   const ranked = weaponsForType(c.weaponType)
     .map((w) => ({
       weapon: w,
-      expected: headlineWithWeapon(c, w, attackType, skillMult),
+      expected: headlineWithWeapon(c, w),
       passiveModelled: !!WEAPON_PASSIVE_EFFECTS[w.id],
       equipped: w.id === c.bestWeapon,
     }))
@@ -150,14 +102,14 @@ export function buildCharacterPageData(c: CharacterData): CharacterPageData {
   const element = ELEMENT_LABEL[c.element] ?? c.element;
   const title = `${c.name} Damage Calculator & Build — Genshin`;
   const description =
-    `${c.name} (${element} ${c.weaponType}): per-hit damage at Lv90 with ${ctx.weapon.name}, ` +
+    `${c.name} (${element} ${c.weaponType}): per-hit damage at Lv90 with ${build.weapon.name}, ` +
     `best weapons & constellations — up to ${formatNumber(topExpected)}.`;
 
   return {
     character: c,
     groups,
     signatureLabel: sig?.label ?? 'Elemental Burst',
-    weaponName: ctx.weapon.name,
+    weaponName: build.weapon.name,
     constellations: (constellationsFor(c.id) ?? []).map((e) => ({
       ...e,
       modeled: !!consModelled[e.level] || bumpLevels.includes(e.level as 3 | 5),

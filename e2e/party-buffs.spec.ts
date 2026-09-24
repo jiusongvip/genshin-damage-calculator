@@ -16,7 +16,10 @@ const normalTotal = (page: import('@playwright/test').Page) =>
 
 test.describe('party buffs', () => {
   test('Kazuha A4 (Pyro) lifts the Pyro headline but not the Physical normal rows', async ({ page }) => {
-    await gotoCalculator(page); // Hu Tao, Damage tab, headline = Pyro burst
+    // Hu Tao's default headline is her Physical normal combo; load the Pyro
+    // burst so the headline is a hit Kazuha A4 applies to.
+    await page.goto('/?at=burst');
+    await waitForCalculator(page);
     const totalBefore = (await normalTotal(page).innerText()).trim();
     const headlineBefore = await readExpected(page);
 
