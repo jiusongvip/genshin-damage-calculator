@@ -85,7 +85,7 @@ const schema = [
         const meta = g.rows.filter((r) => r.text !== undefined);
         const hits = g.rows.filter((r) => r.text === undefined);
         return (
-        <div class="panel mt-5 overflow-hidden">
+        <div class="panel @container mt-5 overflow-hidden">
           <div class="border-b border-[var(--line)] px-5 py-3">
             <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
               <h3 class="text-xs font-semibold uppercase tracking-[0.14em] text-forest-600">{g.label}</h3>
@@ -97,12 +97,13 @@ const schema = [
             </span>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full min-w-[520px] text-left text-sm">
+            {/* Below 520px of panel, Non-CRIT / CRIT fold under the attack name so Average stays on screen. */}
+            <table class="w-full text-left text-sm @min-[520px]:min-w-[520px]">
               <thead>
                 <tr class="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
                   <th class="px-5 py-2.5 font-medium">Attack</th>
-                  <th class="px-3 py-2.5 text-right font-medium">Non-CRIT</th>
-                  <th class="px-3 py-2.5 text-right font-medium">CRIT</th>
+                  <th class="hidden @min-[520px]:table-cell px-3 py-2.5 text-right font-medium">Non-CRIT</th>
+                  <th class="hidden @min-[520px]:table-cell px-3 py-2.5 text-right font-medium">CRIT</th>
                   <th class="px-5 py-2.5 text-right font-medium">Average</th>
                 </tr>
               </thead>
@@ -114,9 +115,12 @@ const schema = [
                         <span class={`h-1.5 w-1.5 shrink-0 rounded-full ${ELEMENT_DOT[r.element] ?? ELEMENT_DOT.physical}`} aria-hidden="true" />
                         {r.label}
                       </span>
+                      <span class="block @min-[520px]:hidden tnum mt-0.5 pl-3.5 text-[11px] text-[var(--muted)]">
+                        non-crit {formatNumber(r.nonCrit)} · crit {formatNumber(r.crit)}
+                      </span>
                     </td>
-                    <td class="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
-                    <td class="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
+                    <td class="hidden @min-[520px]:table-cell px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
+                    <td class="hidden @min-[520px]:table-cell px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
                     <td class="relative px-5 py-2 text-right tnum font-semibold text-[var(--text)]">
                       <span class={`absolute inset-y-1 right-0 rounded-sm ${ELEMENT_TINT[r.element] ?? ELEMENT_TINT.physical}`} style={`width: ${Math.min((r.expected / maxExpected) * 100, 100).toFixed(2)}%`} aria-hidden="true" />
                       <span class="relative">{formatNumber(r.expected)}</span>
@@ -126,9 +130,14 @@ const schema = [
                 {
                   g.total && (
                     <tr class="border-t border-[var(--line)]">
-                      <td class="px-5 py-2 font-medium text-[var(--muted)]">Total DMG</td>
-                      <td class="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.nonCrit)}</td>
-                      <td class="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.crit)}</td>
+                      <td class="px-5 py-2 font-medium text-[var(--muted)]">
+                        Total DMG
+                        <span class="block @min-[520px]:hidden tnum mt-0.5 text-[11px] font-normal">
+                          non-crit {formatNumber(g.total.nonCrit)} · crit {formatNumber(g.total.crit)}
+                        </span>
+                      </td>
+                      <td class="hidden @min-[520px]:table-cell px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.nonCrit)}</td>
+                      <td class="hidden @min-[520px]:table-cell px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.crit)}</td>
                       <td class="relative px-5 py-2 text-right tnum font-semibold text-[var(--muted)]">
                         <span class="absolute inset-y-1 right-0 rounded-sm bg-forest-500/15" style={`width: ${Math.min((g.total.expected / maxExpected) * 100, 100).toFixed(2)}%`} aria-hidden="true" />
                         <span class="relative">{formatNumber(g.total.expected)}</span>
@@ -154,14 +163,15 @@ const schema = [
           passive. Weapons whose passive is not modelled show only their raw stats; better a missing buff than a
           wrong one.
         </p>
-        <div class="panel mt-5 overflow-hidden">
+        <div class="panel @container mt-5 overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full min-w-[520px] text-left text-sm">
+            {/* Below 520px of panel, Base ATK / Substat fold under the weapon name so Average stays on screen. */}
+            <table class="w-full text-left text-sm @min-[520px]:min-w-[520px]">
               <thead>
                 <tr class="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
                   <th class="px-5 py-2.5 font-medium">Weapon</th>
-                  <th class="px-3 py-2.5 text-right font-medium">Base ATK</th>
-                  <th class="px-3 py-2.5 font-medium">Substat</th>
+                  <th class="hidden @min-[520px]:table-cell px-3 py-2.5 text-right font-medium">Base ATK</th>
+                  <th class="hidden @min-[520px]:table-cell px-3 py-2.5 font-medium">Substat</th>
                   <th class="px-5 py-2.5 text-right font-medium">Average</th>
                 </tr>
               </thead>
@@ -172,9 +182,13 @@ const schema = [
                       {w.weapon.name}
                       <span class="ml-2 text-xs text-[var(--muted)]">{w.weapon.rarity}★</span>
                       {w.equipped && <span class="ml-2 text-[10px] font-semibold uppercase tracking-wide text-forest-600">preset</span>}
+                      <span class="block @min-[520px]:hidden tnum mt-0.5 text-[11px] text-[var(--muted)]">
+                        base ATK {formatNumber(w.weapon.baseATK)} · {w.weapon.secondary.type}
+                        {!w.passiveModelled && ' · passive not modelled'}
+                      </span>
                     </td>
-                    <td class="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(w.weapon.baseATK)}</td>
-                    <td class="px-3 py-2 text-[var(--muted)]">
+                    <td class="hidden @min-[520px]:table-cell px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(w.weapon.baseATK)}</td>
+                    <td class="hidden @min-[520px]:table-cell px-3 py-2 text-[var(--muted)]">
                       {w.weapon.secondary.type}
                       {!w.passiveModelled && <span class="ml-2 text-[10px] text-[var(--muted)]">passive not modelled</span>}
                     </td>

@@ -410,8 +410,11 @@ export default function SingleCalculator() {
       active ? 'border-forest-600 bg-forest-600/10 text-forest-700' : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)]'
     }`;
 
+  // On a tall desktop the calculator is a fixed, viewport-high shell whose tab
+  // content scrolls inside it. Below 820px of height that left the damage table
+  // about 300px to scroll in, so short screens fall back to page scrolling.
   return (
-    <div className="mx-auto flex w-full flex-col lg:h-[calc(100dvh-7rem)] lg:min-h-0">
+    <div className="mx-auto flex w-full flex-col lg:[@media(min-height:820px)]:h-[calc(100dvh-7rem)] lg:min-h-0">
       {/* ============ Scenario bar ============ */}
       <ScenarioBar
         character={character}
@@ -450,7 +453,11 @@ export default function SingleCalculator() {
         <div
           role="tablist"
           aria-label="Calculator sections"
-          className="flex flex-wrap justify-center gap-1 rounded-full bg-[var(--surface-2)] p-1"
+          // One row at every width: on a phone the four tabs share the strip
+          // (it used to wrap to two rows at 375px), from sm up they size to text.
+          // The size sits here, not on the buttons: global.css gives buttons
+          // `font: inherit`, which outranks the layered text utilities.
+          className="flex w-full gap-0.5 rounded-full bg-[var(--surface-2)] p-1 text-[13px] sm:w-auto sm:gap-1 sm:text-sm"
           onKeyDown={(e) => {
             const at = TABS.findIndex(([id]) => id === tab);
             const next =
@@ -482,7 +489,7 @@ export default function SingleCalculator() {
               aria-controls="calc-panel"
               tabIndex={tab === id ? 0 : -1}
               onClick={() => setTab(id)}
-              className={`rounded-full px-3.5 py-1 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-forest-500 ${
+              className={`min-h-9 flex-auto whitespace-nowrap rounded-full px-1.5 py-1 font-medium transition-colors sm:min-h-0 sm:flex-none sm:px-3.5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-forest-500 ${
                 tab === id
                   ? 'bg-[var(--surface)] text-[var(--text)] shadow-sm'
                   : 'text-[var(--muted)] hover:text-[var(--text)]'
@@ -495,12 +502,12 @@ export default function SingleCalculator() {
       </div>
 
 
-      {/* ============ Tab content — scrolls inside the fixed shell ============ */}
+      {/* ============ Tab content — scrolls inside the shell on tall screens ============ */}
       <div
         id="calc-panel"
         role="tabpanel"
         aria-labelledby={`calc-tab-${tab}`}
-        className="mt-3 min-h-0 flex-1 lg:overflow-y-auto lg:pr-1"
+        className="mt-3 min-h-0 flex-1 lg:[@media(min-height:820px)]:overflow-y-auto lg:pr-1"
       >
 
       {/* ============ Constellations & passives (Character tab) ============ */}

@@ -102,6 +102,11 @@ function ValueBar({ value, max, tint }: { value: number; max: number; tint?: str
   );
 }
 
+/** Columns shown only when the panel is wide enough for all four (see below). */
+const WIDE_ONLY = 'hidden @min-[560px]:table-cell';
+/** Their stand-in inside the first column when it is not. */
+const NARROW_ONLY = 'block @min-[560px]:hidden';
+
 /**
  * Per-hit damage table, modelled on the reference calculators: every damage
  * instance a talent produces, with its Non-CRIT / CRIT / Average columns.
@@ -124,10 +129,12 @@ export default function DamageTable({
     ...groups.flatMap((g) => [...g.rows.map((r) => r.expected), g.total?.expected ?? 0]),
   );
 
-  // The table has a 560px floor, but the panel it sits in is 352px on a phone
-  // and 510px at a 1280px viewport, so it always scrolls on the left half of
-  // the range. With no cue the reader just sees "AVERAGE" sliced in half and
-  // concludes the numbers are wrong, so each clipped edge gets a fade.
+  // The panel is 352px on a phone and 510px at a 1280px viewport, narrower
+  // than four columns need, and the column that got cut off was Average — the
+  // one the reader came for. Below 560px of panel (a container query, not the
+  // viewport: the panel is half the page on desktop) Non-CRIT and CRIT fold
+  // into a muted line under the attack name. If a Diff column still pushes it
+  // wider, each clipped edge gets a fade and the header says so.
   const scrollRef = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ left: false, right: false });
 
@@ -151,7 +158,7 @@ export default function DamageTable({
   }, [syncEdges, groups]);
 
   return (
-    <section id="damage-table" className="panel mt-5 overflow-hidden">
+    <section id="damage-table" className="panel @container mt-5 overflow-hidden">
       <div className="flex items-baseline justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
         <h3 className="text-base font-semibold text-[var(--text)]">Damage per hit</h3>
         <span className="text-xs text-[var(--muted)]">
@@ -161,12 +168,12 @@ export default function DamageTable({
 
       <div className="relative">
         <div ref={scrollRef} onScroll={syncEdges} className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full text-left text-sm @min-[560px]:min-w-[560px]">
             <thead>
               <tr className="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
                 <th className="px-5 py-2.5 font-medium">Attack</th>
-                <th className="px-3 py-2.5 text-right font-medium">Non-CRIT</th>
-                <th className="px-3 py-2.5 text-right font-medium">CRIT</th>
+                <th className={`${WIDE_ONLY} px-3 py-2.5 text-right font-medium`}>Non-CRIT</th>
+                <th className={`${WIDE_ONLY} px-3 py-2.5 text-right font-medium`}>CRIT</th>
                 <th className={`px-3 py-2.5 text-right font-medium ${hasDiff ? '' : 'pr-5'}`}>Average</th>
                 {hasDiff && <th className="px-5 py-2.5 text-right font-medium">Diff</th>}
               </tr>
@@ -212,10 +219,13 @@ export default function DamageTable({
                         />
                         {r.label}
                       </span>
+                      <span className={`${NARROW_ONLY} tnum mt-0.5 pl-3.5 text-[11px] text-[var(--muted)]`}>
+                        non-crit {formatNumber(r.nonCrit)} · crit {formatNumber(r.crit)}
+                      </span>
                     </td>
                     <>
-                      <td className="px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(r.nonCrit)}</td>
-                      <td className="px-3 py-2 text-right tnum text-forest-600">{formatNumber(r.crit)}</td>
+                      <td className={`${WIDE_ONLY} px-3 py-2 text-right tnum text-[var(--text)]`}>{formatNumber(r.nonCrit)}</td>
+                      <td className={`${WIDE_ONLY} px-3 py-2 text-right tnum text-forest-600`}>{formatNumber(r.crit)}</td>
                       <td className={`relative px-3 py-2 text-right tnum font-semibold text-[var(--text)] ${hasDiff ? '' : 'pr-5'}`}>
                         <ValueBar value={r.expected} max={maxExpected} tint={ELEMENT_TINT[r.element]} />
                         <span className="relative">{formatNumber(r.expected)}</span>
@@ -230,9 +240,14 @@ export default function DamageTable({
                 ))}
                 {g.total && (
                   <tr className="border-t border-[var(--line)]">
-                    <td className="px-5 py-2 font-medium text-[var(--muted)]">Total DMG</td>
-                    <td className="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.nonCrit)}</td>
-                    <td className="px-3 py-2 text-right tnum text-[var(--muted)]">{formatNumber(g.total.crit)}</td>
+                    <td className="px-5 py-2 font-medium text-[var(--muted)]">
+                      Total DMG
+                      <span className={`${NARROW_ONLY} tnum mt-0.5 text-[11px] font-normal`}>
+                        non-crit {formatNumber(g.total.nonCrit)} · crit {formatNumber(g.total.crit)}
+                      </span>
+                    </td>
+                    <td className={`${WIDE_ONLY} px-3 py-2 text-right tnum text-[var(--muted)]`}>{formatNumber(g.total.nonCrit)}</td>
+                    <td className={`${WIDE_ONLY} px-3 py-2 text-right tnum text-[var(--muted)]`}>{formatNumber(g.total.crit)}</td>
                     <td className={`relative px-3 py-2 text-right tnum font-semibold text-forest-600 ${hasDiff ? '' : 'pr-5'}`}>
                       <ValueBar value={g.total.expected} max={maxExpected} />
                       <span className="relative">{formatNumber(g.total.expected)}</span>
