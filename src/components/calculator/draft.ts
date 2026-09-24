@@ -325,6 +325,7 @@ export function sanitize(d: Draft): Draft {
       bennett: d.party?.bennett ? 1 : 0,
       bennettBase: clamp(d.party?.bennettBase ?? DEFAULT_PARTY.bennettBase, 0, 3000),
       bennettLevel: Math.round(clamp(d.party?.bennettLevel ?? DEFAULT_PARTY.bennettLevel, 1, 15)),
+      bennettC1: d.party?.bennettC1 ? 1 : 0,
       kazuha: d.party?.kazuha ? 1 : 0,
       kazuhaEM: clamp(d.party?.kazuhaEM ?? DEFAULT_PARTY.kazuhaEM, 0, 2000),
       viridescent: d.party?.viridescent ? 1 : 0,
@@ -488,6 +489,7 @@ export function draftToQuery(draft: Draft, defaults: Draft): string {
   if (pq.bennett) put('pb', 1);
   num('pbb', pq.bennettBase, pd.bennettBase);
   num('pbl', pq.bennettLevel, pd.bennettLevel);
+  if (pq.bennettC1) put('pb1', 1);
   if (pq.kazuha) put('pk', 1);
   num('pke', pq.kazuhaEM, pd.kazuhaEM);
   if (pq.viridescent) put('vv', 1);
@@ -598,6 +600,7 @@ export function draftFromQuery(params: URLSearchParams, defaults: Draft): Draft 
       bennett: params.get('pb') === '1' ? 1 : defaults.party.bennett,
       bennettBase: num('pbb', defaults.party.bennettBase),
       bennettLevel: num('pbl', defaults.party.bennettLevel),
+      bennettC1: params.has('pb1') ? 1 : 0,
       kazuha: params.get('pk') === '1' ? 1 : defaults.party.kazuha,
       kazuhaEM: num('pke', defaults.party.kazuhaEM),
       viridescent: params.get('vv') === '1' ? 1 : defaults.party.viridescent,

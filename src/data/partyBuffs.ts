@@ -24,6 +24,8 @@ export interface PartyState {
   bennett: number;
   bennettBase: number;
   bennettLevel: number;
+  /** Bennett C1 "Grand Expectation": the ratio gains another 20% of base ATK. */
+  bennettC1: number;
   /** Kaedehara Kazuha A4: EM × 0.04% elemental DMG to the swirled element. */
   kazuha: number;
   kazuhaEM: number;
@@ -46,6 +48,7 @@ export const DEFAULT_PARTY: PartyState = {
   bennett: 0,
   bennettBase: 865, // Lv90 Bennett (191 base ATK) + a 674-base-ATK sword
   bennettLevel: 10,
+  bennettC1: 0,
   kazuha: 0,
   kazuhaEM: 800,
   viridescent: 0,
@@ -71,7 +74,9 @@ export function bennettAtkBonusRatio(level: number): number {
  */
 export function resolvePartyBuffs(party: PartyState, element: ElementType): Partial<BuffState> {
   const out: Partial<BuffState> = {};
-  if (party.bennett) out.flatATK = (out.flatATK ?? 0) + party.bennettBase * bennettAtkBonusRatio(party.bennettLevel);
+  if (party.bennett)
+    out.flatATK =
+      (out.flatATK ?? 0) + party.bennettBase * (bennettAtkBonusRatio(party.bennettLevel) + (party.bennettC1 ? 0.2 : 0));
   if (party.noblesse) out.atkPercent = (out.atkPercent ?? 0) + 0.2;
   if (party.pyroResonance) out.atkPercent = (out.atkPercent ?? 0) + 0.25;
   if (party.hydroResonance) out.hpPercent = (out.hpPercent ?? 0) + 0.25;

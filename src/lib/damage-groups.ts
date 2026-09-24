@@ -29,7 +29,7 @@ import { scopedBuffs, scopedSelfBuffs } from '../data/constellations';
 import { infusedElement, stateEffects, stateRowBonus } from '../data/selfStates';
 import { talentRowsFor } from '../data/generated/talents';
 import type { TalentGroup } from '../data/generated/talents';
-import { GROUP_TO_TALENT } from '../components/calculator/constants';
+import { rowAttackType } from '../components/calculator/constants';
 import { bucketOf, formatRowText } from '../components/calculator/draft';
 
 export interface DamageRowVm {
@@ -145,21 +145,22 @@ export function assembleDamageGroups(input: AssembleInput): DamageGroupVm[] {
         active: false,
       };
     } else {
-      const hit = { element, attack: GROUP_TO_TALENT[row.group], label: row.label };
+      const attack = rowAttackType(character.id, row);
+      const hit = { element, attack, label: row.label };
       const r = computeDamage({
         character,
         weapon,
         artifacts,
         buffs: addBuffs(
           baseBuffs,
-          resolveSetBuffs(setPicks, element, GROUP_TO_TALENT[row.group]),
+          resolveSetBuffs(setPicks, element, attack),
           resolvePartyBuffs(party, element),
           scopedSelfBuffs(character.id, input.constellation ?? 0, input.passiveOn ?? [], hit),
           scopedBuffs(states, hit),
         ),
         enemy,
         characterLevel: level,
-        attackType: GROUP_TO_TALENT[row.group],
+        attackType: attack,
         skillMultiplier: value * hits + stateRowBonus(character.id, stateOn, stateInputs, effLevels, row),
         element,
         scaling: row.scaling,

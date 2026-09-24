@@ -32,7 +32,7 @@ import {
   AMPLIFIED,
   ELEMENT_BG,
   ELEMENTS,
-  GROUP_TO_TALENT,
+  rowAttackType,
   NO_TALENT_NOTE,
   REACHABLE_REACTIONS,
   TRANSFORMATIVE,
@@ -339,7 +339,7 @@ export default function SingleCalculator() {
       return {
         ...d,
         activeRowId: row.id,
-        attackType: GROUP_TO_TALENT[row.group],
+        attackType: rowAttackType(character.id, row),
         skillMult: value,
         elementOverride: row.element,
         scalingOverride: row.scaling,

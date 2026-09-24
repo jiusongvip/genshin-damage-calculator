@@ -63,3 +63,11 @@ describe('resolvePartyBuffs', () => {
     expect(resolvePartyBuffs(p, 'pyro').atkPercent).toBeCloseTo(0.45, 6);
   });
 });
+
+describe('Bennett C1', () => {
+  it('adds 20% of the base ATK to the ratio (paimon: 865 at Burst 10 -> +1045 ATK)', () => {
+    const buff = resolvePartyBuffs({ ...DEFAULT_PARTY, bennett: 1, bennettBase: 865, bennettLevel: 10, bennettC1: 1 }, 'pyro');
+    expect(buff.flatATK).toBeCloseTo(865 * 1.208, 6);
+    expect(Math.round(buff.flatATK!)).toBe(1045);
+  });
+});

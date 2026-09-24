@@ -88,6 +88,27 @@ export const GROUP_TO_TALENT: Record<TalentGroup, TalentKey> = {
   burst: 'burst',
 };
 
+/**
+ * Rows whose attack type is not their table group's. Curated from game text,
+ * one character at a time — the rule is not "a Burst-talent row is Burst DMG":
+ * Cyno's Burst plunges stay Plunging Attacks.
+ */
+const ROW_ATTACK_OVERRIDE: Record<string, Record<string, TalentKey>> = {
+  // "While Musou Isshin is active, the Raiden Shogun's Normal, Charged, and
+  // Plunging Attack DMG will be considered Elemental Burst DMG." Her Normal and
+  // Charged hits already sit in the Burst group; the plunges do not.
+  'raiden-shogun': {
+    'combat3-10-plunge-dmg': 'burst',
+    'combat3-11-low-plunge-dmg': 'burst',
+    'combat3-11-high-plunge-dmg': 'burst',
+  },
+};
+
+/** The engine attack type of one table row. */
+export function rowAttackType(charId: string, row: { id: string; group: TalentGroup }): TalentKey {
+  return ROW_ATTACK_OVERRIDE[charId]?.[row.id] ?? GROUP_TO_TALENT[row.group];
+}
+
 /** Which element(s) each reaction actually deals, for the leading icon. */
 export const REACTION_ELEMENT: Record<string, ElementType[]> = {
   vaporize: ['hydro', 'pyro'],

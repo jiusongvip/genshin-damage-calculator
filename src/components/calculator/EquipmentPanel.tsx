@@ -278,8 +278,17 @@ export function EquipmentPanel({
               <Num label="Bennett base ATK" value={party.bennettBase} onChange={(v) => onParty({ bennettBase: v })} max={3000} />
               <Num label="Burst level" value={party.bennettLevel} onChange={(v) => onParty({ bennettLevel: v })} min={1} max={15} step={1} />
             </div>
+            <label className="mt-2 flex items-center gap-2 text-xs text-[var(--text)]">
+              <input
+                type="checkbox"
+                checked={!!party.bennettC1}
+                onChange={(e) => onParty({ bennettC1: e.target.checked ? 1 : 0 })}
+                className="h-4 w-4 accent-forest-600"
+              />
+              Bennett C1 (+20% of his base ATK)
+            </label>
             <p className="mt-1 text-[11px] text-forest-600">
-              +{formatNumber(party.bennettBase * bennettAtkBonusRatio(party.bennettLevel))} ATK
+              +{formatNumber(party.bennettBase * (bennettAtkBonusRatio(party.bennettLevel) + (party.bennettC1 ? 0.2 : 0)))} ATK
             </p>
           </BuffSwitch>
 
