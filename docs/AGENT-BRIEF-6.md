@@ -39,7 +39,7 @@ v2 方案 §6 的八条既有约定照旧有效，逐条遵守。
 
 ---
 
-## Task 1 — 天赋表元素归位（最先做，正确性债）
+## Task 1 — 天赋表元素归位（最先做，正确性债）✅ 已完成
 
 ### 现象
 
@@ -71,6 +71,27 @@ raiden-shogun / cyno / lohen / skirk 的 `combat1` 下落**本来就是 physical
 
 这**不属于** Task 1 的归位范围（那些行的元素是对的，是状态元素），但它是 Task 2「状态专属行」的
 直接论据：状态改写的行要么挂到状态名下、要么在标签上写明属于哪个状态。Task 2 的设计稿里必须处理。
+
+### 附带发现 2：六行的值是「另一个攻击的百分之几」，不是独立一击（Task 2）
+
+Task 1 的数字对照（见下方完成记录）在宵宫身上暴露了这件事：genshin-db 有些伤害行的 format 写的是
+`{paramX} Normal Attack DMG` —— 它是**对另一个攻击的倍率**，不是 ×ATK 的一击。我们的表把它当普通
+行放进 `skill` / `burst`，读者会看到一个根本不存在（且被放大到 ATK 上）的伤害数字。
+
+`.audit/brief-6/scan-multiplier-rows.mjs` 全量扫出来是 6 行 / 5 个角色（可复现，脚本已留）：
+
+| 角色 | 位置 | 行 | format |
+| --- | --- | --- | --- |
+| yoimiya | combat2 | Blazing Arrow DMG | `{param4:F1P} Normal Attack DMG` |
+| razor | combat3 | Soul Companion DMG | `{param2:F1P} Normal Attack DMG` |
+| wriothesley | combat2 | Enhanced Repelling Fist DMG | `{param1:F1P} Normal Attack DMG` |
+| wanderer | combat2 | Kuugo: Fushoudan DMG | `{param2:F1P} Normal Attack DMG` |
+| wanderer | combat2 | Kuugo: Toufukai DMG | `{param3:F1P} Charged Attack DMG` |
+| venti | combat1 | Windsunder Arrow DMG | `{param12:F1P} Normal Attack DMG` |
+
+paimon 对宵宫这一行的处理证明了这个读法：她面板上每一行普攻都恰好是我们的 **1.5879 倍** = 该行
+`param4` 在天赋 9 的值，即 `普攻伤害 × 158.79%`。所以 Task 2 的 `rowMultiplierMul` 不是想象中的
+机制，是竞品已经在用、我们数据里已经有的形状。**Q2 的答案由此改变**（见「待拍板」）。
 
 ### 要做的
 
@@ -125,6 +146,44 @@ paimon 逐跳复核 3 个角色（宵宫 / 甘雨 / 菲谢尔）：不开任何�
 容差和禁令照 brief #5 Task 5。**分类以 paimon 为准**：若某个你判成「纯标错、游戏内是物理」的
 角色，paimon 不开任何状态时给出的仍是元素伤害，那就按 paimon 的来（进白名单），并在表里注明
 「与游戏内文本理解不一致，依竞品裁判规则采纳 paimon」。反过来不成立 —— 我们不许主动改竞品。
+
+### 完成记录（2026-09-24）
+
+代码：`scripts/lib/talent-rules.mjs` 新增小节解析（`descriptionSection` / `elementFromSpans` /
+`combat1Element` / `BASE_CHARGED_LABEL`，`PERMANENT_INFUSION` 降为兜底白名单且当前为空）、
+`scripts/generate-talents.mjs` 按行取元素、`src/data/generated/talents.ts` 重生成、
+不变量测试在 `src/lib/data-audit.test.ts`。
+
+- 表里 **215 行**元素改为 physical，0 行反向。静态页上默认数字变化的是
+  **10 个角色 / 86 行**，方向全部向下（−6.8% ~ −24.0%）：
+  linnea −24.0%、venti / jahoda / faruzan / collei / sandrone −9.3%、kazuha −8.8%、
+  ganyu −8.7%、aloy −7.4%、tartaglia −6.8%。其余 17 个角色默认预设杯是无属性的 46.6%
+  增伤，所以只有读者换上对应元素杯 / 套装时才会分开 —— 数字不变不代表规则没生效。
+- **竞品逐跳对照**：`.audit/brief-6/` 新脚本 `scrape-numbers.mjs`（每个角色单独刷新页面，
+  避免上一次选择的装备残留）读到面板全量属性 + 每一行三列，落进
+  `src/lib/competitor-elements.test.ts` 共 **58 条断言，全部 ≤0.5%**：
+  甘雨（普攻物理 / 霜华矢冰，面板自带 20% 冰伤）、菲谢尔（面板无任何增伤）、
+  罗伦（paimon 标冰，面板 0% 冰 0% 物理）、枫原万叶（paimon 下落标风，面板 0% 风 0% 物理）。
+- **元素颜色差异的 3 个角色全部结案**，结论是竞品把状态当成默认，且其中 2 个在竞品自己那侧
+  连数字都不影响：
+  - **lohen / kazuha**：竞品面板的 Cryo / Anemo / Physical 增伤都是 0.0%，所以它那几行无论标
+    什么元素，数字与我们逐行相同（上面两条 cross-check 就是证据）。差异只是色点。
+    游戏内文本也不支持：罗伦 `combat1` 三个小节**没有任何元素字样**；万叶的下落写得很清楚
+    「If this Plunging Attack is triggered by Chihayaburu, it will be converted to
+    Plunging Attack: Midare Ranzan」—— 那是技能状态，正是 brief #5 的 `infusion` 开关该管的事。
+  - **yoimiya**：竞品的数**字**证明它默认开着 E —— 她普攻每一行都是我们的 1.5879 倍，
+    正好等于 `combat2` 的 Blazing Arrow 倍率（天赋 9）。把这当成默认值会把附魔写死进数据，
+    brief #5 的附魔开关就没有意义，而且竞品自己都漏了：这个 1.5879 也被它乘到了
+    `Aimed Shot`（重击）上，而天赋原文是「arrows fired by Yoimiya's **Normal Attack**」。
+    我们保留了它的原文语义，并把这个差异作为断言写死在测试里。
+  - 依据铁律的例外条款：这三处都**不是「我们更准」的主观判断**，而是能指出竞品在哪一步把
+    状态算进默认（宵宫）或色点与数字无关（罗伦 / 万叶）。故**不进白名单**，`PERMANENT_INFUSION`
+    保持为空；若 owner 仍要求逐字照抄竞品，只需要往那个空对象里填条目（宵宫 / 罗伦各 3 组、
+    万叶的 plunge），代码路径已经在那里。
+- 甘雨的 `Frostflake Arrow / Bloom` 两行：竞品的 Average 用的是 55% 暴击率（面板显示 35%），
+  即它对这两行单独 +20%（冰莲标记 / 冰套一类的条件加成）。非暴击与暴击两列我们完全对得上，
+  Average 的差异按铁律记录为断言而不是放宽容差。
+
 
 ---
 
@@ -243,8 +302,11 @@ UI 展示文本不生效。规则在该文件头部注释里已经写清（`stat
   剩下的顾虑只在**同组内出现两种元素**时成立：生成时若检测到同一 `(角色, 组)` 里元素不一致，
   按 `Low/High Plunge` 的先例拆行；genshin-db 没有独立参数就整行取物理、把元素那档写进 note。
   不要凭想象补参数。
-- **Q2 宵宫 E 的普攻增伤**：genshin-db 没有这个结构化参数。**建议只加附魔、不加增伤**，
-  宁低不错；不接受在本期开「手填常数」这个例外（一开例外，铁律就废了）。
+- **Q2 宵宫 E 的普攻增伤**：~~genshin-db 没有这个结构化参数~~ **Task 1 的对照推翻了这个判断**：
+  参数就在 `combat2` 的 `Blazing Arrow DMG = {param4} Normal Attack DMG`（天赋 9 = 158.79%），
+  竞品正是用它解释宵宫的每一个普攻数字。所以不需要手填常数，也不破铁律 —— 需要的是 Task 2 的
+  `rowMultiplierMul`：状态打开时把普攻行按这个行的值整体加倍率，同时该行不再作为独立伤害行显示。
+  同样形状的还有 5 行（见附带发现 2），Task 2 一并处理。
 - **Q3 Task 2 做几个**：建议 4 个封顶，宁少而对。
 
 ---
