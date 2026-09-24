@@ -12,6 +12,7 @@ import { CONSTELLATION_EFFECTS, PASSIVE_EFFECTS, constellationBuffs } from '../d
 import { WEAPON_PASSIVE_EFFECTS, weaponBuffAt } from '../data/weaponPassives';
 import { weaponPassiveFor } from '../data/generated/weaponPassives';
 import { effectiveTalentLevels, signatureMultiplierAt } from '../components/calculator/draft';
+import { PERMANENT_INFUSION } from '../../scripts/lib/talent-rules.mjs';
 
 /**
  * Data-accuracy audit: Baizhu in depth (the original template) plus three
@@ -630,14 +631,13 @@ describe('Fischl — bow user: aimed-shot grouping and the combat1 element cavea
     expect(row('Fully-Charged Aimed Shot').values[9]).toBeCloseTo(2.232, 6);
   });
 
-  it('KNOWN GAP — her physical normal combo is tagged Electro', () => {
-    // genshin-db carries ONE element per talent; Fischl's combat1 text only
-    // mentions Electro (the fully-charged shot), so generate-talents.mjs tags
-    // every combat1 row Electro. In game the five normal shots are Physical.
-    // Harmless against the default 10%-everything enemy, wrong against
-    // Physical-RES exceptions (mechanicals). If combat1 elements are ever split
-    // per row, this is the canary that must flip.
-    for (const r of rows.filter((r) => r.isDamage && r.group === 'normal')) expect(r.element).toBe('electro');
+  it('her normal combo is Physical while her charged shot is Electro', () => {
+    // The canary brief #6 left for exactly this flip: one element per combat
+    // talent used to hand Fischl's five Physical shots her charged shot's
+    // Electro, because that span is the only one in her combat1 text.
+    for (const r of rows.filter((r) => r.isDamage && r.group === 'normal')) expect(r.element).toBe('physical');
+    expect(row('Fully-Charged Aimed Shot').element).toBe('electro');
+    expect(rows.find((r) => r.group === 'plunge')!.element).toBe('physical');
   });
 
   it('engine output is stable under both panels', () => {
@@ -847,6 +847,43 @@ describe('weapon passive modelling — WEAPON_PASSIVE_EFFECTS integrity', () => 
         expect(Number.isFinite(value), `${id}.${stat}`).toBe(true);
         expect(value, `${id}.${stat}`).toBeGreaterThanOrEqual(0);
       }
+    }
+  });
+});
+
+describe('combat1 elements are per section, not per talent (brief #6 Task 1)', () => {
+  // The rule lives in scripts/lib/talent-rules.mjs so the generator and this
+  // check cannot disagree; PERMANENT_INFUSION is the only sanctioned exception,
+  // for kits whose permanent infusion genshin-db states outside the standard
+  // Normal / Charged / Plunging sections.
+
+  it('no non-Catalyst combo or Plunging row is elemental outside the whitelist', () => {
+    const offenders: string[] = [];
+    for (const char of CHARACTERS) {
+      const rows = talentRowsFor(char.id);
+      if (!rows || char.weaponType === 'catalyst') continue;
+      // A Catalyst's attacks — plunges included — are its own element; the game
+      // text says so ("Deals AoE Dendro DMG upon impact", Baizhu).
+      const allowed = PERMANENT_INFUSION[char.id] ?? {};
+      for (const group of ['normal', 'plunge'] as const) {
+        for (const row of rows.filter((r) => r.isDamage && r.group === group && r.id.startsWith('combat1')))
+          if (row.element !== (allowed[group] ?? 'physical')) offenders.push(`${char.id}/${group}=${row.element}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('the burst-restated Plunging rows keep their state element', () => {
+    // Raiden / Cyno / Lohen / Skirk restate their plunge inside combat2/3 with
+    // the infused element. Those rows are state damage, not the plain combo, so
+    // the recolours-from-data step must leave them alone — they are Task 2's
+    // row-ownership problem.
+    for (const id of ['raiden-shogun', 'cyno', 'lohen', 'skirk']) {
+      const rows = talentRowsFor(id)!.filter((r) => r.group === 'plunge' && !r.id.startsWith('combat1'));
+      expect(rows.length, id).toBeGreaterThan(0);
+      for (const r of rows) expect(r.element, `${id}/${r.label}`).not.toBe('physical');
+      for (const r of talentRowsFor(id)!.filter((x) => x.group === 'plunge' && x.id.startsWith('combat1')))
+        expect(r.element, `${id}/${r.label}`).toBe('physical');
     }
   });
 });

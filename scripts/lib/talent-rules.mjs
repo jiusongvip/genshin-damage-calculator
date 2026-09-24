@@ -35,6 +35,116 @@ export const TALENT_NAME_OVERRIDE = {
 export const NO_TALENT_DATA = ['manekin', 'manekina'];
 
 // ---------------------------------------------------------------------------
+// Element.
+//
+// genshin-db has no element field; the only signal is the coloured
+// "<color=#FF9999FF>Pyro DMG</color>" spans in a talent's descriptionRaw. The
+// first version of the generator took ONE element per combat talent — that is
+// the first span anywhere in the text — which read a Charged Attack sentence as
+// if it also described the Normal Attack combo. Yoimiya's whole combat1 came out
+// Pyro because of her "Charge Level 1 … deals Pyro DMG" line, so her Physical
+// combo got a Pyro DMG bonus it never earns, and her E-gated infusion had no
+// toggle left to declare it on (data/selfStates.ts only recolours Physical rows).
+//
+// The text is already structured, so parse per section instead: combat1 spells
+// out "Normal Attack" / "Charged Attack" / "Plunging Attack", and the element
+// that belongs to a section is the first damage span inside it.
+//
+// Two things make the section boundary non-trivial, and both were hit:
+//   • Colour cannot mark a boundary. Geo's #FFD780 is the same colour the
+//     headers use, so "the next coloured span" cuts a section short mid-sentence.
+//   • Kits carry sections beyond the three standard ones — Furina's "Arkhe:
+//     Seats Sacred and Secular", Xilonen's "Nightsoul's Blessing: Blade Roller"
+//     — and those describe a *state*. Letting one run into the next standard
+//     section handed Furina's Hydro Arkhe line to her Charged Attack, which the
+//     text itself says deals Physical DMG.
+// So a header is a coloured label that sits alone on its line and is not itself
+// a damage span.
+// ---------------------------------------------------------------------------
+
+const ELEMENT_WORDS = {
+  Pyro: 'pyro',
+  Hydro: 'hydro',
+  Electro: 'electro',
+  Cryo: 'cryo',
+  Anemo: 'anemo',
+  Geo: 'geo',
+  Dendro: 'dendro',
+  Physical: 'physical',
+};
+
+const HEADER_LINE = /^[ \t]*<color=#[0-9A-Fa-f]{8}>([^<]+)<\/color>[ \t]*$/;
+
+/** Text of the combat1 section whose header starts with `header` ('' if absent). */
+export function descriptionSection(raw, header) {
+  if (!raw) return '';
+  const headers = [];
+  raw.split('\n').forEach((line, i) => {
+    const m = line.match(HEADER_LINE);
+    if (!m || /DMG/i.test(m[1])) return;
+    headers.push({ i, title: m[1].trim() });
+  });
+  const at = headers.findIndex((h) => h.title.toLowerCase().startsWith(header.toLowerCase()));
+  if (at < 0) return '';
+  const next = headers.find((h) => h.i > headers[at].i);
+  const lines = raw.split('\n');
+  return lines.slice(headers[at].i, next ? next.i : lines.length).join('\n');
+}
+
+/** Element of the first damage-coloured span in a text block, or null. */
+export function elementFromSpans(text) {
+  for (const [, body] of (text || '').matchAll(/<color=#[0-9A-Fa-f]{8}>([^<]+)<\/color>/g)) {
+    if (!/DMG/i.test(body)) continue;
+    for (const [word, slug] of Object.entries(ELEMENT_WORDS)) if (body.includes(word)) return slug;
+  }
+  return null;
+}
+
+/**
+ * @typedef {'normal' | 'charged' | 'plunge'} Combat1Group
+ * @typedef {{ id: string, element: string, weaponType: string }} RosterCharacter
+ */
+
+/**
+ * Permanent infusions that genshin-db states OUTSIDE the three standard combat1
+ * sections, so section parsing cannot see them. Keyed by character id; the only
+ * legitimate entries are ones with a source line in the comment — an unverified
+ * entry is worse than a Physical row that a state toggle can recolour later.
+ * @type {Record<string, Partial<Record<Combat1Group, string>>>}
+ */
+export const PERMANENT_INFUSION = {};
+
+/**
+ * The uncharged base of the Charged Attack group. Its section names the element
+ * of the *payload* (a full-charge or Level-1 shot, Frostflake Arrow, …), which is
+ * not this row: damage.paimon.app prices these base shots Physical, and so does
+ * the game — the sentence that carries the colour describes a heavier shot.
+ */
+export const BASE_CHARGED_LABEL = /^(Aimed Shot|Charged Attack(?: DMG)?)$/i;
+
+/**
+ * Element of one combat1 group for one character: what its own section says,
+ * falling back to the weapon-type rule (a Catalyst's attacks are always its own
+ * element; everything else is Physical until a declared state infuses it).
+ * A Catalyst's Plunging Attack is elemental too, so the fallback only applies
+ * where the text itself is silent.
+ * @param {RosterCharacter} char
+ * @param {Combat1Group} group
+ * @param {string} raw combat1.descriptionRaw
+ * @param {string} [label] the row's attribute label, to spot the base charged shot
+ */
+export function combat1Element(char, group, raw, label) {
+  const override = PERMANENT_INFUSION[char.id]?.[group];
+  if (override) return override;
+  const header = group === 'plunge' ? 'Plunging Attack' : group === 'charged' ? 'Charged Attack' : 'Normal Attack';
+  const fromText =
+    group === 'charged' && label && BASE_CHARGED_LABEL.test(label) ? null : elementFromSpans(descriptionSection(raw, header));
+  if (fromText) return fromText;
+  if (group === 'plunge') return 'physical';
+  return char.weaponType === 'catalyst' ? char.element : 'physical';
+}
+
+// ---------------------------------------------------------------------------
 // Row classification.
 //
 // NEVER_DAMAGE lists the wording that marks a row as something other than a

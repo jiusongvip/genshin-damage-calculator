@@ -15,9 +15,12 @@
 //                            labels that omit it) is damage; everything else
 //                            (Cost, Duration, CD, Interval, Instances, HP
 //                            Restored/Loss, buffs) is kept as a display row
-//   • element              — parsed from the coloured "<color>…DMG</color>"
-//                            spans in descriptionRaw; a melee Normal combo
-//                            with no element span is Physical
+//   • element              — Normal / Charged / Plunge each take the element of
+//                            their OWN section of the combat1 text; a section
+//                            with no damage span is Physical unless the character
+//                            wields a Catalyst (whose attacks are always its
+//                            element). Skill / Burst use the talent's own span,
+//                            falling back to the character's element.
 //   • scaling stat         — read from the format string when it names exactly
 //                            one stat ("Max HP", "DEF", "Elemental Mastery").
 //                            Otherwise: Normal/Charged fall back to ATK unless
@@ -51,6 +54,7 @@ import {
   groupFor,
   parseHits,
   scalingFromFormat,
+  combat1Element,
 } from './lib/talent-rules.mjs';
 
 // ---------------------------------------------------------------------------
@@ -147,10 +151,11 @@ for (const char of ROSTER) {
     const combat = talents[combatKey];
     if (!combat?.attributes) continue;
 
-    const groupElement =
-      combatKey === 'combat1'
-        ? elementFromDescription(combat.descriptionRaw) ?? 'physical'
-        : elementFromDescription(combat.descriptionRaw) ?? char.element;
+    // Skill / Burst kits keep one element per talent: the whole block is that
+    // kit's damage. combat1 is a bundle of different attacks, so its element is
+    // decided per section — see combat1Element() in lib/talent-rules.
+    const talentElement =
+      elementFromDescription(combat.descriptionRaw) ?? (combatKey === 'combat1' ? 'physical' : char.element);
 
     const labels = combat.attributes.labels ?? [];
     const parameters = combat.attributes.parameters ?? {};
@@ -180,7 +185,7 @@ for (const char of ROSTER) {
           isDamage,
           hits: HIT_COUNT_OVERRIDE[`${char.id}:${finalLabel}`] ?? parseHits(fmt),
           scaling: scalingFromFormat(fmt, groupFallback),
-          element: groupElement,
+          element: combatKey === 'combat1' ? combat1Element(char, group, combat.descriptionRaw, finalLabel) : talentElement,
         });
       };
 

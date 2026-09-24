@@ -86,8 +86,10 @@ owner 已经跑过原型验证（脚本：`.audit/brief-6/section-element-proto.
      芙宁娜的 `Arkhe:` 和 Xilonen 的 `Nightsoul's Blessing:` 这类**额外小节**会把它们的元素
      span 漏给上一个标准小节（原型的第一版就是这么错的，芙宁娜重击被判成水）。
    - **元素**：`normal` / `charged` / `plunge` 各自取本小节内第一个含 "DMG" 的彩色 span 的元素。
-   - **兜底**：小节里没有元素 span 时 —— `normal` / `charged` 按武器类型定（法器 → 角色元素，
-     其余 → **physical**）；`plunge` 一律 **physical**（下落不受武器类型影响）。
+   - **兜底**（小节里没有元素 span 时）：`normal` / `charged` 按武器类型定（法器 → 角色元素，
+     其余 → **physical**）；`plunge` → **physical**。
+     注意是**兜底**不是覆盖：下落行有元素 span 时按文本走 —— 法器角色的下落攻击本来就是元素
+     （白术 `combat1` 原文「Deals AoE **Dendro DMG**」），实现时把 plunge 一律写成 physical 会算错。
    - `skill` / `burst`（`combat2` / `combat3`）：**保持现有解析，不要动**。
    - 这套规则自动做对了三类原本要手写白名单的情况：宵宫（普攻无 span → 物理、重击 Charge Level 1
      有火 span → 火）、甘雨（普攻物理、霜华矢那一组留冰）、amber 满蓄力留火。
