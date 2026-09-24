@@ -16,7 +16,8 @@ import { weaponsForType } from '../data/weapons';
 import { ENEMIES } from '../data/enemies';
 import { DEFAULT_BUFFS, NO_ARTIFACTS, setPicksFromPieces } from '../data/presets';
 import { weaponBuffAt } from '../data/weaponPassives';
-import { constellationBuffs, passiveBuffs } from '../data/constellations';
+import { scopedSelfBuffs, unscopedSelfBuffs } from '../data/constellations';
+import { talentRowsFor } from '../data/generated/talents';
 import { addBuffs, computeDamage } from './damage';
 import type { BuffState, CharacterData, DamageResult, EnemyData, ScalingStat, WeaponData } from './damage';
 import { resolveSetBuffs } from '../data/artifactSets';
@@ -79,8 +80,9 @@ export function resolveBuild(draft: Draft): DraftBuild {
   });
 
   const patches: Partial<BuffState>[] = [
-    constellationBuffs(character.id, draft.constellation),
-    passiveBuffs(character.id, draft.passiveOn),
+    // Element- / attack-limited effects are resolved per hit (headlineBuffs,
+    // damage-groups.ts), not folded here.
+    unscopedSelfBuffs(character.id, draft.constellation, draft.passiveOn),
     { dmgBonus: draft.dmgBonus, dmgReduction: draft.dmgReduction },
     {
       naDmgBonus: draft.naDmgBonus,
@@ -143,17 +145,23 @@ export function draftToGroups(draft: Draft, build: DraftBuild = resolveBuild(dra
     transformative: draft.transformative,
     swirlElement: draft.swirlElement,
     activeRowId: draft.activeRowId,
+    constellation: draft.constellation,
+    passiveOn: draft.passiveOn,
   });
 }
 
-/** The buffs the headline hit sees: the build's base buffs plus the set and
- *  party bonuses scoped to the element and attack type it describes. */
+/** The buffs the headline hit sees: the build's base buffs plus the set,
+ *  party and self bonuses scoped to the hit it describes. */
 export function headlineBuffs(draft: Draft, build: DraftBuild = resolveBuild(draft)): BuffState {
   const element = draft.elementOverride ?? build.character.element;
+  const label = draft.activeRowId
+    ? talentRowsFor(build.character.id)?.find((r) => r.id === draft.activeRowId)?.label
+    : undefined;
   return addBuffs(
     build.baseBuffs,
     resolveSetBuffs(build.setPicks, element, draft.attackType),
     resolvePartyBuffs(draft.party, element),
+    scopedSelfBuffs(build.character.id, draft.constellation, draft.passiveOn, { element, attack: draft.attackType, label }),
   );
 }
 

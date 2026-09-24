@@ -25,6 +25,7 @@ import type { SetPick } from '../data/artifactSets';
 import { resolveSetBuffs } from '../data/artifactSets';
 import type { PartyState } from '../data/partyBuffs';
 import { DEFAULT_PARTY, resolvePartyBuffs } from '../data/partyBuffs';
+import { scopedSelfBuffs } from '../data/constellations';
 import { talentRowsFor } from '../data/generated/talents';
 import type { TalentGroup } from '../data/generated/talents';
 import { GROUP_TO_TALENT } from '../components/calculator/constants';
@@ -82,6 +83,10 @@ export interface AssembleInput {
   transformative: TransformativeReaction;
   swirlElement?: ElementType;
   activeRowId?: string | null;
+  /** Constellation and toggled passives, for their element- / attack-limited
+   *  effects (the unlimited ones are already in baseBuffs). Omitted = none. */
+  constellation?: number;
+  passiveOn?: number[];
 }
 
 /**
@@ -138,6 +143,11 @@ export function assembleDamageGroups(input: AssembleInput): DamageGroupVm[] {
           baseBuffs,
           resolveSetBuffs(setPicks, row.element, GROUP_TO_TALENT[row.group]),
           resolvePartyBuffs(party, row.element),
+          scopedSelfBuffs(character.id, input.constellation ?? 0, input.passiveOn ?? [], {
+            element: row.element,
+            attack: GROUP_TO_TALENT[row.group],
+            label: row.label,
+          }),
         ),
         enemy,
         characterLevel: level,
