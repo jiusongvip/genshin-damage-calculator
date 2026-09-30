@@ -6,9 +6,10 @@ const canonicalURL = `${siteURL}/silver-light/`;
 
 const title = 'Silver Light — Genshin Impact Event Sword: Stats, Best Characters & Comparisons';
 const description =
-  'Silver Light is the free 4-star event sword in Genshin Impact: 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. Its best users are Cryo sword carries whose Stellar reactions scale with ATK and EM — see the full tier list and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
+  'Silver Light is the free 4-star event sword in Genshin Impact: 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. Its best users are the Stellar-reaction sword characters — Vesna, Odette and Cryo Traveler — whose damage scales with ATK and EM — see the full tier list and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
 
 const passive = {
+  name: 'Radiance on the Water',
   effect:
     'After using an Elemental Skill, the wielder gains 52 Elemental Mastery for 12s (R1). Stacks up to 2 times; each stack has its own timer.',
 };
@@ -25,15 +26,15 @@ const stats = [
 
 // Recommended characters — from the 7.1 weapon guides. This is qualitative
 // tiering, not a computed score: our calculator does not yet model the 7.x
-// Cryo "Stellar" reactions, so the Cryo carries below cannot be reproduced in
-// the damage engine the way an Aggravate carry (Keqing) can. `pending` marks a
-// pre-release character with no official portrait yet (Vesna) — drop her icon
-// at public/images/portraits/vesna.webp and clear the flag when it ships.
+// Stellar reactions, so the Stellar users below cannot be reproduced in the
+// damage engine the way an Aggravate carry (Keqing) can. `noPortrait` shows a
+// monogram for a character whose icon is not in the repo yet (Vesna) — drop it
+// at public/images/portraits/vesna.webp and clear the flag.
 type Tier = {
   key: string;
   title: string;
   subtitle: string;
-  chars?: { id: string; name: string; reason: string; pending?: boolean; team?: string }[];
+  chars?: { id: string; name: string; reason: string; noPortrait?: boolean; team?: string }[];
   prose?: string;
 };
 
@@ -46,21 +47,21 @@ const tiers: Tier[] = [
       {
         id: 'vesna',
         name: 'Vesna',
-        pending: true,
+        noPortrait: true,
         reason:
-          'A Cryo sword user built around the same Stellar reactions, which scale off both ATK and Elemental Mastery, so she draws on the ATK% sub-stat and the stacking EM passive at once. She is pre-release, so this rests on the 7.1 guides; her numbers cannot be computed in our calculator yet.',
+          'An Anemo sword on-field DPS whose damage runs through Stellar Swirl, which scales with both ATK and Elemental Mastery — so the ATK% sub-stat and the stacking EM passive both count. Her signature Beyond the Chrysalis is still well ahead; Silver Light is a free stand-in.',
       },
       {
         id: 'odette',
         name: 'Odette',
         reason:
-          'A Cryo sword carry whose Stellar reactions scale off both ATK and Elemental Mastery, so the ATK% sub-stat and the stacking EM passive land together. In early testing it ranks just behind her two strongest swords (one of them at R2), not above them.',
+          'A Cryo sword off-field Stellar Glimmer damage dealer and support: her Skill clone deals Stellar damage that scales with ATK and EM, so both halves of the weapon apply. In testing it ranks just behind her two strongest swords (one of them at R2), not above them.',
       },
       {
         id: 'aether',
         name: 'Cryo Traveler',
         reason:
-          'The free Cryo sword option runs the same EM-scaling Stellar reactions, and Silver Light is a no-pull upgrade over their usual craftable swords.',
+          'Deals Stellar Swirl damage through their Enhanced Charged Attack and Burst, so the ATK% and EM both apply — and Silver Light is a no-pull upgrade over their usual craftable swords.',
       },
     ],
   },
@@ -99,7 +100,7 @@ const comparisons = [
     name: 'Aquila Favonia',
     meta: '5\u2605 · 674 Base ATK · Physical DMG%',
     verdict: 'Silver Light wins on EM-scaling carries',
-    body: 'Aquila\u2019s huge base ATK is its only useful stat here \u2014 the Physical sub does nothing for elemental damage. On a Cryo sword carry running the EM-scaling Stellar reaction, or an Aggravate carry, Silver Light\u2019s ATK% + EM beats it; Aquila\u2019s base ATK only wins on a pure ATK/CRIT sword DPS who triggers no EM-scaling reaction at all.',
+    body: 'Aquila\u2019s huge base ATK is its only useful stat here \u2014 the Physical sub does nothing for elemental damage. On a Stellar-reaction user such as Vesna, or an Aggravate carry, Silver Light\u2019s ATK% + EM beats it; Aquila\u2019s base ATK only wins on a pure ATK/CRIT sword DPS who triggers no EM-scaling reaction at all.',
   },
   {
     name: 'Lion\u2019s Roar',
@@ -124,7 +125,7 @@ const comparisons = [
 const faqs = [
   {
     q: 'Is Silver Light a good weapon (the new event sword)?',
-    a: 'Silver Light is the free 4-star event sword: 510 base ATK, an ATK% secondary (about 41% at level 90), and a passive that stacks Elemental Mastery each time your Elemental Skill hits — up to two stacks, roughly doubling from R1 to R5 for about 208 EM at R5. Its standout users are Cryo sword carries whose Stellar reactions scale off both ATK and EM, so both halves of the kit apply at once; Aggravate sword DPS such as Keqing are the main conditional fit, where the EM feeds the reaction only if a Dendro ally keeps the aura up. On a character who triggers no EM-scaling reaction, the EM half is wasted and it becomes a plain, merely solid ATK% stick. As always the deciding factor is your character’s reaction, not the weapon’s rarity. One caveat: our calculator does not model the 7.x Stellar reactions yet, so Cryo/Stellar pairings are not directly comparable in the tool the way an Aggravate build is.',
+    a: 'Silver Light is the free 4-star event sword: 510 base ATK, an ATK% secondary (about 41% at level 90), and a passive that grants Elemental Mastery each time you use your Elemental Skill — up to two stacks, roughly doubling from R1 to R5 for about 208 EM at R5. Its standout users are the Stellar-reaction sword characters (Vesna, Odette, Cryo Traveler), whose Stellar damage scales off both ATK and EM, so both halves of the kit apply at once; Aggravate sword DPS such as Keqing are the main conditional fit, where the EM feeds the reaction only if a Dendro ally keeps the aura up. On a character who triggers no EM-scaling reaction, the EM half is wasted and it becomes a plain, merely solid ATK% stick. As always the deciding factor is your character’s reaction, not the weapon’s rarity. One caveat: our calculator does not model the 7.x Stellar reactions yet, so Stellar pairings are not directly comparable in the tool the way an Aggravate build is.',
   },
   {
     q: 'Is Silver Light good for Keqing?',
@@ -132,15 +133,15 @@ const faqs = [
   },
   {
     q: 'Is Silver Light good on Clorinde?',
-    a: 'A solid conditional fit, on the same reasoning as Keqing. Clorinde is an Aggravate/Quicken sword DPS with a CRIT Rate ascension, so ATK% plus EM both apply in those teams, and it is a strong free alternative to her signature Absolution — especially at R5 where the roughly 208 EM raises her Quicken damage. She is not, however, a headline user the way the Cryo Stellar carries are, and because Silver Light gives no CRIT she still leans on artifacts for CRIT DMG. Compare Silver Light against Absolution and Lion\u2019s Roar in the calculator using your real CRIT ratio to see the actual gap.',
+    a: 'A solid conditional fit, on the same reasoning as Keqing. Clorinde is an Aggravate/Quicken sword DPS with a CRIT Rate ascension, so ATK% plus EM both apply in those teams, and it is a strong free alternative to her signature Absolution — especially at R5 where the roughly 208 EM raises her Quicken damage. She is not, however, a headline user the way the Stellar-reaction characters are, and because Silver Light gives no CRIT she still leans on artifacts for CRIT DMG. Compare Silver Light against Absolution and Lion\u2019s Roar in the calculator using your real CRIT ratio to see the actual gap.',
   },
   {
     q: 'Is Silver Light good on Odette?',
-    a: 'Yes — she is one of its core users, and this is where the old "EM is wasted on a Cryo DPS" reasoning breaks down. Odette is a Cryo sword carry whose version 7.x Stellar reactions scale off both ATK and Elemental Mastery, so Silver Light\u2019s ATK% sub and stacking EM both feed her damage rather than one half sitting idle. Guides slot it just behind her two strongest Cryo swords (a refined 5-star and one other 4-star), so it is a top free option rather than an outright BiS. The honest caveat: our calculator does not yet model the Stellar reactions, so you cannot reproduce those exact numbers in the tool the way you can for an Aggravate carry — treat the Cryo recommendation as guide-based, not a computed figure.',
+    a: 'Yes — she is one of its core users, and this is where the old "EM is wasted on a Cryo character" reasoning breaks down. Odette is a 5-star Cryo sword character who deals Stellar Glimmer damage off-field through her Skill clone, and that damage scales off both ATK and Elemental Mastery, so Silver Light\u2019s ATK% sub and stacking EM both count rather than one half sitting idle. In testing it ranks just behind her two strongest swords (one of them at R2), so it is a top free option rather than an outright BiS. The honest caveat: our calculator does not yet model the Stellar reactions, so you cannot reproduce those exact numbers in the tool the way you can for an Aggravate carry — treat this recommendation as guide-based, not a computed figure.',
   },
   {
     q: 'Silver Light or Aquila Favonia \u2014 which is better?',
-    a: 'It depends entirely on whether your character benefits from Elemental Mastery. Aquila Favonia is a 5-star with a very high 674 base ATK but a Physical DMG% secondary that contributes nothing to elemental damage, so on most elemental sword DPS its only real value is that big base ATK. Silver Light trades base ATK (510) for an ATK% sub plus stacking EM. On an Aggravate character like Keqing or Clorinde, Silver Light usually wins because both the EM and the ATK% apply; on a pure ATK/Crit elemental DPS like Odette, Aquila\u2019s base ATK is often equal or better. Run both through the calculator on your specific character and build \u2014 the higher number is the answer.',
+    a: 'It depends entirely on whether your character benefits from Elemental Mastery. Aquila Favonia is a 5-star with a very high 674 base ATK but a Physical DMG% secondary that contributes nothing to elemental damage, so on most elemental sword DPS its only real value is that big base ATK. Silver Light trades base ATK (510) for an ATK% sub plus stacking EM. On an Aggravate character like Keqing or Clorinde, Silver Light usually wins because both the EM and the ATK% apply; on a pure ATK/CRIT elemental DPS who triggers no EM-scaling reaction, Aquila\u2019s base ATK is often equal or better. Run both through the calculator on your specific character and build \u2014 the higher number is the answer.',
   },
   {
     q: 'Silver Light vs Lion\u2019s Roar for Aggravate?',
@@ -208,7 +209,7 @@ const schema = [
           <h1 class="mt-1.5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-forest-900 md:text-5xl">Silver Light</h1>
 
           <p class="mt-3 text-base leading-relaxed text-[var(--muted)] md:text-[1.05rem]">
-            An <strong class="font-semibold text-[var(--text)]">ATK% sub-stat</strong> plus a <strong class="font-semibold text-[var(--text)]">stacking Elemental Mastery</strong> passive &mdash; strongest on <strong class="font-semibold text-[var(--text)]">Cryo sword carries</strong> whose Stellar reactions scale with both stats.
+            An <strong class="font-semibold text-[var(--text)]">ATK% sub-stat</strong> plus a <strong class="font-semibold text-[var(--text)]">stacking Elemental Mastery</strong> passive &mdash; strongest on <strong class="font-semibold text-[var(--text)]">Stellar-reaction</strong> sword users, whose damage scales with both stats.
           </p>
 
           <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
@@ -217,15 +218,14 @@ const schema = [
                 <dt class="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.1em] text-forest-600">{row.label}</dt>
                 <dd class="flex flex-wrap gap-2">
                   {row.chars.map((c) => (
-                    <a href="#recommended" class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white" title={c.pending ? `${c.name} (pre-release)` : c.name}>
+                    <a href="#recommended" class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
                       <span class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-sm font-semibold text-forest-700 ring-1 ring-forest-300">
-                        {c.pending ? c.name.charAt(0) : (
+                        {c.noPortrait ? c.name.charAt(0) : (
                           <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" decoding="async" class="h-full w-full object-cover" />
                         )}
                       </span>
                       <span class="text-sm font-medium text-forest-900">{c.name}</span>
                       {c.team && <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[0.65rem] font-semibold text-violet-700">{c.team} only</span>}
-                      {c.pending && <span class="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="pre-release"></span>}
                     </a>
                   ))}
                 </dd>
@@ -261,7 +261,7 @@ const schema = [
               ))}
             </dl>
             <p class="mt-4 border-t border-forest-200/70 pt-3 text-sm leading-relaxed text-[var(--muted)]">
-              <span class="font-semibold text-[var(--text)]">Passive:</span> {passive.effect}
+              <span class="font-semibold text-[var(--text)]">{passive.name}:</span> {passive.effect}
             </p>
           </div>
         </div>
@@ -276,18 +276,18 @@ const schema = [
     <p class="mt-4 max-w-[70ch] leading-relaxed text-[var(--muted)]">
       At level 90 Silver Light provides <strong class="text-[var(--text)]">510 Base ATK</strong> and an
       <strong class="text-[var(--text)]">ATK% secondary</strong> (about 41%). Its passive grants
-      <strong class="text-[var(--text)]">Elemental Mastery</strong> each time the wielder&rsquo;s Elemental Skill hits an
-      opponent, stacking up to two times; the amount roughly doubles from R1 to R5, reaching about
+      <strong class="text-[var(--text)]">Elemental Mastery</strong> for 12s each time the wielder uses their Elemental
+      Skill, stacking up to two times; the amount roughly doubles from R1 to R5, reaching about
       <strong class="text-[var(--text)]">208 EM at R5</strong> with both stacks up. That combination &mdash; ATK% for the base
       hit plus EM for the reaction &mdash; is what makes it a standout free option, but only on characters whose reactions
-      actually consume EM: the new Cryo <strong class="text-[var(--text)]">Stellar</strong> reactions scale with both stats,
-      which is why the Cryo sword carries below are its core users.
+      actually consume EM: the new <strong class="text-[var(--text)]">Stellar</strong> reactions scale with both stats,
+      which is why the Stellar sword users below are its core fits.
     </p>
 
     <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm leading-relaxed text-[var(--muted)]">
       <strong class="text-[var(--text)]">Heads up:</strong> this tier list is qualitative and drawn from the version 7.1 weapon
       guides, so it may reflect subjective ranking. Our damage calculator does not model the 7.x <em>Stellar</em> reactions yet,
-      so the Cryo carries cannot be reproduced as a computed number the way an Aggravate carry (Keqing) can.
+      so the Stellar users cannot be reproduced as a computed number the way an Aggravate carry (Keqing) can.
     </p>
   </section>
 
@@ -309,7 +309,7 @@ const schema = [
               {tier.chars.map((c) => (
                 <li class="panel flex gap-4 p-5">
                   <span class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-2xl font-semibold text-forest-700 ring-2 ring-forest-300">
-                    {c.pending ? c.name.charAt(0) : (
+                    {c.noPortrait ? c.name.charAt(0) : (
                       <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-full w-full object-cover" />
                     )}
                   </span>
@@ -318,9 +318,6 @@ const schema = [
                       {c.name}
                       {c.team && (
                         <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-violet-700">{c.team} team</span>
-                      )}
-                      {c.pending && (
-                        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-amber-700">Pre-release</span>
                       )}
                     </p>
                     <p class="mt-1 text-sm leading-relaxed text-[var(--muted)]">{c.reason}</p>
