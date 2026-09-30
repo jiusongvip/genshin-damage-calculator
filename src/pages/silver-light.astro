@@ -6,21 +6,104 @@ const canonicalURL = `${siteURL}/silver-light/`;
 
 const title = 'Silver Light — Genshin Impact Event Sword: Stats, Best Characters & Comparisons';
 const description =
-  'Silver Light is the free 4-star event sword in Genshin Impact: 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. See which characters it is best on and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
+  'Silver Light is the free 4-star event sword in Genshin Impact: 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. Its best users are Cryo sword carries whose Stellar reactions scale with ATK and EM — see the full tier list and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
+
+const passive = {
+  name: '霜星照水',
+  effect:
+    'After using an Elemental Skill, the wielder gains 52 Elemental Mastery for 12s (R1). Stacks up to 2 times; each stack has its own timer.',
+};
 
 const stats = [
-  { label: 'Rarity', value: '4\u2605 Event' },
-  { label: 'Weapon type', value: 'Sword' },
-  { label: 'Base ATK (Lv. 90)', value: '510' },
-  { label: 'Sub-stat', value: 'ATK%' },
+  { label: 'Base ATK · Lv.90', value: '510' },
+  { label: 'Sub-stat', value: 'ATK 41.3%' },
+  { label: 'Passive / stack', value: 'EM +52' },
+  { label: 'Max stacks', value: '2 × 12s' },
 ];
+
+// Recommended characters — from the 7.1 weapon guides. This is qualitative
+// tiering, not a computed score: our calculator does not yet model the 7.x
+// Cryo "Stellar" reactions, so the Cryo carries below cannot be reproduced in
+// the damage engine the way an Aggravate carry (Keqing) can. `pending` marks a
+// pre-release character with no official portrait yet (Vesna) — drop her icon
+// at public/images/portraits/vesna.webp and clear the flag when it ships.
+type Tier = {
+  key: string;
+  title: string;
+  subtitle: string;
+  chars?: { id: string; name: string; reason: string; pending?: boolean }[];
+  prose?: string;
+};
+
+const tiers: Tier[] = [
+  {
+    key: 'core',
+    title: 'Core fit',
+    subtitle: 'Uses every part of the weapon and is one of its better 4\u2605 choices.',
+    chars: [
+      {
+        id: 'odette',
+        name: 'Odette',
+        reason:
+          'A Cryo sword carry whose Stellar reactions scale off both ATK and Elemental Mastery, so the ATK% sub-stat and the stacking EM passive land together. Early testing places it just behind her two strongest Cryo swords (a refined 5\u2605 and one other 4\u2605), not above them.',
+      },
+      {
+        id: 'aether',
+        name: 'Cryo Traveler',
+        reason:
+          'The free Cryo sword option runs the same EM-scaling Stellar reactions, and Silver Light is a no-pull upgrade over their usual craftable swords.',
+      },
+      {
+        id: 'vesna',
+        name: 'Vesna',
+        pending: true,
+        reason:
+          'Listed by guides as a core Cryo sword user, but she is pre-release, so her kit and numbers are unverified and cannot be computed in our calculator yet.',
+      },
+    ],
+  },
+  {
+    key: 'conditional',
+    title: 'Conditional fit',
+    subtitle: 'The effect applies, but only in specific teams or play patterns.',
+    chars: [
+      {
+        id: 'keqing',
+        name: 'Keqing',
+        reason:
+          'Her Elemental Skill cooldown is shorter than the EM-stack duration, so she holds both stacks up permanently \u2014 but this only pays off in an Aggravate team with a Dendro ally keeping Electro aura alive. The weapon gives no CRIT, so it demands strong CRIT substats from artifacts. Physical and pure-Electro builds get little from it.',
+      },
+    ],
+  },
+  {
+    key: 'stopgap',
+    title: 'Stopgap',
+    subtitle: 'Better than nothing until you have a tuned weapon.',
+    prose:
+      'Other sword DPS who cast their Elemental Skill a lot still gain the ATK% sub-stat and some of the stacking EM, so Silver Light is a reasonable stand-in when there is no better 4\u2605 on hand. It is not, however, the intended best-in-slot for these carries.',
+  },
+];
+
+// Core-fit characters shown as avatars under the hero art.
+const bestOn: { id: string; name: string; short: string; pending?: boolean }[] = tiers[0].chars!.map((c) => ({
+  id: c.id,
+  name: c.name,
+  short: c.id === 'aether' ? 'Traveler' : c.name,
+  pending: c.pending,
+}));
+
+const ratings = [
+  { label: 'Strength', stars: 4 },
+  { label: 'Long-term', stars: 3 },
+  { label: 'Versatility', stars: 3 },
+].map((r) => ({ ...r, display: '\u2605'.repeat(r.stars) + '\u2606'.repeat(5 - r.stars) }));
 
 const comparisons = [
   {
     name: 'Aquila Favonia',
     meta: '5\u2605 · 674 Base ATK · Physical DMG%',
-    verdict: 'Silver Light wins on reaction DPS',
-    body: 'Aquila\u2019s huge base ATK is its only useful stat here \u2014 the Physical sub does nothing for elemental damage. On Aggravate carries Silver Light\u2019s ATK% + EM beats it; on a pure ATK/Crit DPS like Odette, Aquila\u2019s base ATK is equal or better.',
+    verdict: 'Silver Light wins on EM-scaling carries',
+    body: 'Aquila\u2019s huge base ATK is its only useful stat here \u2014 the Physical sub does nothing for elemental damage. On a Cryo sword carry running the EM-scaling Stellar reaction, or an Aggravate carry, Silver Light\u2019s ATK% + EM beats it; Aquila\u2019s base ATK only wins on a pure ATK/CRIT sword DPS who triggers no EM-scaling reaction at all.',
   },
   {
     name: 'Lion\u2019s Roar',
@@ -45,19 +128,19 @@ const comparisons = [
 const faqs = [
   {
     q: 'Is Silver Light a good weapon (the new event sword)?',
-    a: 'Silver Light is the free 4-star event sword: 510 base ATK, an ATK% secondary (about 41% at level 90), and a passive that stacks Elemental Mastery each time your Elemental Skill hits \u2014 up to two stacks, roughly doubling from R0 to R5 for about 208 EM at R5. Pairing ATK% with stacking EM makes it an outstanding free option for ATK-scaling sword DPS who trigger Aggravate or Quicken: Keqing and Clorinde get value from every stat on it. On a character who triggers no EM-scaling reaction, the EM half is wasted and it becomes a plain, merely solid ATK% stick. As always, the deciding factor is your character\u2019s reaction, not the weapon\u2019s rarity \u2014 drop it next to your current sword in the calculator and compare expected damage.',
+    a: 'Silver Light is the free 4-star event sword: 510 base ATK, an ATK% secondary (about 41% at level 90), and a passive that stacks Elemental Mastery each time your Elemental Skill hits — up to two stacks, roughly doubling from R0 to R5 for about 208 EM at R5. Its standout users are Cryo sword carries whose Stellar reactions scale off both ATK and EM, so both halves of the kit apply at once; Aggravate sword DPS such as Keqing are the main conditional fit, where the EM feeds the reaction only if a Dendro ally keeps the aura up. On a character who triggers no EM-scaling reaction, the EM half is wasted and it becomes a plain, merely solid ATK% stick. As always the deciding factor is your character’s reaction, not the weapon’s rarity. One caveat: our calculator does not model the 7.x Stellar reactions yet, so Cryo/Stellar pairings are not directly comparable in the tool the way an Aggravate build is.',
   },
   {
-    q: 'Is Silver Light BiS for Keqing?',
-    a: 'Keqing is an Electro sword DPS who scales with ATK and Crit DMG and plays Aggravate in most modern teams \u2014 exactly what Silver Light is built for. The ATK% sub feeds her base damage while the stacking EM boosts her Aggravate flat bonus, so at R5 it is one of her best free weapons and sits close to Mistsplitter Reforged (her signature) for Aggravate builds. A fully refined 5-star Crit weapon still has the higher ceiling, but Silver Light is the best no-pull option. Set Keqing in the calculator, switch between Silver Light, Lion\u2019s Roar and Mistsplitter, and compare \u2014 the winner depends on how much EM your artifacts already provide.',
+    q: 'Is Silver Light good for Keqing?',
+    a: 'It is a conditional fit, not an automatic BiS. Keqing is an Electro sword DPS who plays Aggravate in most modern teams, and there the ATK% sub feeds her base damage while the stacking EM raises her Aggravate flat bonus — and because her Elemental Skill cooldown is shorter than the EM-stack duration, she holds both stacks up permanently. But that value only exists in an Aggravate team with a Dendro ally keeping the Electro aura alive; on Physical or pure-Electro sets the EM is dead weight. Silver Light also grants no CRIT, so it leans harder on your artifacts for CRIT Rate and DMG. For Aggravate Keqing it is one of the better free options and sits near Mistsplitter Reforged, but a fully refined 5-star CRIT weapon still has the higher ceiling. Load Keqing in the calculator and swap between Silver Light, Lion\u2019s Roar and Mistsplitter — the winner depends on how much EM your artifacts already provide.',
   },
   {
     q: 'Is Silver Light good on Clorinde?',
-    a: 'Yes. Clorinde is an Aggravate sword DPS with a Crit Rate ascension, so she wants ATK% plus EM and gets full value from both halves of Silver Light\u2019s kit. It is a strong free alternative to her signature Absolution, especially at R5 where the roughly 208 EM meaningfully raises her Quicken damage. Because her kit already supplies heavy self-buffs, the ATK% is never wasted. Compare Silver Light against Absolution and Lion\u2019s Roar in the calculator using your real Crit ratio to see the actual gap.',
+    a: 'A solid conditional fit, on the same reasoning as Keqing. Clorinde is an Aggravate/Quicken sword DPS with a CRIT Rate ascension, so ATK% plus EM both apply in those teams, and it is a strong free alternative to her signature Absolution — especially at R5 where the roughly 208 EM raises her Quicken damage. She is not, however, a headline user the way the Cryo Stellar carries are, and because Silver Light gives no CRIT she still leans on artifacts for CRIT DMG. Compare Silver Light against Absolution and Lion\u2019s Roar in the calculator using your real CRIT ratio to see the actual gap.',
   },
   {
-    q: 'Does Silver Light\u2019s EM passive matter on Odette?',
-    a: 'Barely \u2014 and this is the mistake players keep making. Odette is a Cryo sword DPS who scales with ATK and Crit DMG; unless you run her in a Melt team, Elemental Mastery does nothing for her damage, so Silver Light\u2019s signature passive is wasted and the weapon reduces to a 510-base ATK% sword. That is why Aquila Favonia can look just as good or better on her: its higher 674 base ATK feeds her ATK% multipliers directly, and its equally useless Physical sub costs her nothing. For Odette, prioritize a Crit or ATK% weapon \u2014 Mistsplitter Reforged is her best \u2014 and treat Silver Light as filler, not an upgrade.',
+    q: 'Is Silver Light good on Odette?',
+    a: 'Yes — she is one of its core users, and this is where the old "EM is wasted on a Cryo DPS" reasoning breaks down. Odette is a Cryo sword carry whose version 7.x Stellar reactions scale off both ATK and Elemental Mastery, so Silver Light\u2019s ATK% sub and stacking EM both feed her damage rather than one half sitting idle. Guides slot it just behind her two strongest Cryo swords (a refined 5-star and one other 4-star), so it is a top free option rather than an outright BiS. The honest caveat: our calculator does not yet model the Stellar reactions, so you cannot reproduce those exact numbers in the tool the way you can for an Aggravate carry — treat the Cryo recommendation as guide-based, not a computed figure.',
   },
   {
     q: 'Silver Light or Aquila Favonia \u2014 which is better?',
@@ -99,45 +182,87 @@ const schema = [
 ---
 
 <BaseLayout title={title} description={description} canonicalURL={canonicalURL} schema={schema}>
-  <!-- ============ Hero (typographic — no bitmap) ============ -->
-  <section class="page-shell pt-8 md:pt-12">
+  <!-- ============ Hero (image left · text right, compact above-the-fold) ============ -->
+  <section class="page-shell pt-6 md:pt-8">
     <div
-      class="relative overflow-hidden rounded-3xl border border-forest-500/40 bg-linear-to-br from-forest-800 via-forest-700 to-forest-600 px-6 py-12 text-forest-50 shadow-sm md:px-14 md:py-16"
+      class="relative overflow-hidden rounded-3xl border border-forest-200 bg-linear-to-br from-cryo/10 via-[#F3FBFF] to-forest-50 px-5 py-6 shadow-sm md:px-8 md:py-8"
     >
-      <!-- official weapon art -->
-      <img
-        src="/images/weapons/silver-light-hero.webp"
-        alt="Official Silver Light sword art"
-        width="512"
-        height="1024"
-        fetchpriority="high"
-        decoding="async"
-        class="pointer-events-none absolute -right-4 top-1/2 h-[112%] w-auto max-w-none -translate-y-1/2 rotate-6 opacity-90 drop-shadow-2xl md:right-6 md:h-[130%] md:rotate-12"
-      />
-      <!-- soft glow behind the blade -->
-      <div class="pointer-events-none absolute right-10 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-cryo/20 blur-3xl" aria-hidden="true"></div>
+      <div class="grid items-center gap-5 md:grid-cols-[minmax(0,280px)_1fr] md:gap-8">
+        <!-- weapon art + spec card (left) -->
+        <div class="flex flex-col items-center">
+          <div class="relative flex w-full justify-center">
+            <div class="pointer-events-none absolute inset-0 m-auto h-40 w-40 rounded-full bg-cryo/25 blur-3xl" aria-hidden="true"></div>
+            <img
+              src="/images/weapons/silver-light-hero.webp"
+              alt="Official Silver Light sword art"
+              width="512"
+              height="1024"
+              fetchpriority="high"
+              decoding="async"
+              class="relative h-52 w-auto max-w-none -rotate-3 drop-shadow-xl md:h-[18rem]"
+            />
+          </div>
 
-      <div class="relative max-w-[62ch]">
-        <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-forest-200">
-          <img src="/images/weapons/silver-light.webp" alt="" width="128" height="128" class="h-5 w-5 rounded bg-white/90 object-contain p-0.5 shadow-sm ring-1 ring-black/5" aria-hidden="true" />
-          Weapon Guide · Free Event Sword
-        </p>
-
-        <h1 class="mt-4 font-display text-5xl font-semibold tracking-tight md:text-7xl">Silver Light</h1>
-
-        <p class="mt-5 text-lg leading-relaxed text-forest-100 md:text-xl">
-          A free <strong class="font-semibold text-forest-50">4&#9733; event sword</strong> that pairs an ATK% sub-stat with a
-          stacking Elemental Mastery passive &mdash; built for ATK-scaling sword DPS who trigger Aggravate or Quicken.
-        </p>
-
-        <dl class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map((s) => (
-            <div class="rounded-xl border border-forest-50/15 bg-forest-50/10 px-4 py-3 backdrop-blur-sm">
-              <dt class="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-forest-200">{s.label}</dt>
-              <dd class="mt-1 font-display text-xl font-semibold text-forest-50">{s.value}</dd>
+          <div class="mt-3 w-full rounded-2xl border border-forest-200 bg-white/70 px-3.5 py-3 backdrop-blur-sm">
+            <dl class="grid grid-cols-2 gap-x-3 gap-y-2.5">
+              {stats.map((s) => (
+                <div class="min-w-0">
+                  <dt class="text-[0.58rem] font-semibold uppercase tracking-[0.08em] text-forest-600">{s.label}</dt>
+                  <dd class="mt-0.5 font-display text-[0.95rem] font-semibold leading-tight text-forest-900">{s.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div class="mt-2.5 grid grid-cols-3 gap-1 border-t border-forest-200/70 pt-2">
+              {ratings.map((r) => (
+                <div class="text-center">
+                  <div class="text-[0.58rem] font-medium leading-tight text-forest-600">{r.label}</div>
+                  <div class="font-display text-xs leading-tight tracking-[0.06em] text-amber-600" aria-label={`${r.stars} of 5`}>{r.display}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </dl>
+          </div>
+
+          <div class="mt-2.5 w-full rounded-xl border border-forest-200 bg-white/60 px-3 py-2">
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-forest-600">Core fit · Cryo sword</p>
+              <div class="flex gap-2">
+                {bestOn.map((c) => (
+                  <a href="/characters/" class="flex items-center gap-1" title={c.pending ? `${c.name} (pre-release)` : c.name}>
+                    <span class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-xs font-semibold text-forest-700 ring-1 ring-forest-300">
+                      {c.pending ? c.name.charAt(0) : (
+                        <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-full w-full object-cover" />
+                      )}
+                    </span>
+                    <span class="text-[0.62rem] font-medium text-forest-800">{c.short}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- text (right) -->
+        <div class="max-w-[46ch]">
+          <p class="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-forest-700">
+            <img src="/images/weapons/silver-light.webp" alt="" width="128" height="128" class="h-4 w-4 rounded bg-white/90 object-contain p-0.5 shadow-sm ring-1 ring-black/5" aria-hidden="true" />
+            Free 4&#9733; Event Sword · Version 7.1
+          </p>
+
+          <h1 class="mt-2 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-forest-900 md:text-6xl">Silver Light</h1>
+
+          <p class="mt-3 text-[0.95rem] leading-relaxed text-[var(--muted)] md:text-base">
+            An <strong class="font-semibold text-[var(--text)]">ATK% sub-stat</strong> plus a <strong class="font-semibold text-[var(--text)]">stacking Elemental Mastery</strong> passive &mdash; strongest on <strong class="font-semibold text-[var(--text)]">Cryo sword carries</strong> whose Stellar reactions scale with both stats.
+          </p>
+
+          <p class="mt-3 text-xs leading-relaxed text-[var(--muted)]">
+            <span class="font-semibold text-[var(--text)]">Passive &middot; {passive.name}:</span> {passive.effect}
+          </p>
+
+          <div class="mt-4 flex flex-wrap gap-2.5">
+            <a href="/#calculator" class="rounded-xl bg-forest-300 px-4 py-2 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Open the calculator</a>
+            <a href="#recommended" class="rounded-xl border border-forest-300 px-4 py-2 text-sm font-semibold text-forest-700 transition-colors hover:bg-forest-50">See recommended characters</a>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -152,26 +277,57 @@ const schema = [
       <strong class="text-[var(--text)]">Elemental Mastery</strong> each time the wielder&rsquo;s Elemental Skill hits an
       opponent, stacking up to two times; the amount roughly doubles from R0 to R5, reaching about
       <strong class="text-[var(--text)]">208 EM at R5</strong> with both stacks up. That combination &mdash; ATK% for the base
-      hit plus EM for the reaction &mdash; is what makes it a standout free option, but only on characters who actually
-      scale with EM.
+      hit plus EM for the reaction &mdash; is what makes it a standout free option, but only on characters whose reactions
+      actually consume EM: the new Cryo <strong class="text-[var(--text)]">Stellar</strong> reactions scale with both stats,
+      which is why the Cryo sword carries below are its core users.
     </p>
 
-    <div class="mt-8 grid gap-4 sm:grid-cols-2">
-      <div class="panel p-6">
-        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">Great on</h3>
-        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Aggravate / Quicken sword DPS who scale with ATK and want EM &mdash; <strong class="text-[var(--text)]">Keqing</strong> and
-          <strong class="text-[var(--text)]">Clorinde</strong> get full value from every stat on it. Best free alternative to their
-          5-star signatures.
-        </p>
-      </div>
-      <div class="panel p-6">
-        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">Wasted on</h3>
-        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Pure ATK/Crit DPS with no EM-scaling reaction &mdash; on <strong class="text-[var(--text)]">Odette</strong> (Cryo) the EM
-          passive does nothing outside a Melt team, so the weapon is just a 510-base ATK% sword. Prefer a Crit weapon there.
-        </p>
-      </div>
+    <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm leading-relaxed text-[var(--muted)]">
+      <strong class="text-[var(--text)]">Heads up:</strong> this tier list is qualitative and drawn from the version 7.1 weapon
+      guides, so it may reflect subjective ranking. Our damage calculator does not model the 7.x <em>Stellar</em> reactions yet,
+      so the Cryo carries cannot be reproduced as a computed number the way an Aggravate carry (Keqing) can.
+    </p>
+  </section>
+
+  <!-- ============ Recommended characters (tiered) ============ -->
+  <section id="recommended" class="page-shell section-pad scroll-mt-24 border-t border-[var(--line)]">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Recommended characters</p>
+    <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Who should run Silver Light</h2>
+
+    <div class="mt-8 space-y-8">
+      {tiers.map((tier) => (
+        <div>
+          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h3 class="font-display text-xl font-semibold text-forest-800">{tier.title}</h3>
+            <p class="text-sm text-[var(--muted)]">{tier.subtitle}</p>
+          </div>
+
+          {tier.chars && (
+            <ul class="mt-4 space-y-4">
+              {tier.chars.map((c) => (
+                <li class="panel flex gap-4 p-5">
+                  <span class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-2xl font-semibold text-forest-700 ring-2 ring-forest-300">
+                    {c.pending ? c.name.charAt(0) : (
+                      <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-full w-full object-cover" />
+                    )}
+                  </span>
+                  <div class="min-w-0">
+                    <p class="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-[var(--text)]">
+                      {c.name}
+                      {c.pending && (
+                        <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-amber-700">Pre-release</span>
+                      )}
+                    </p>
+                    <p class="mt-1 text-sm leading-relaxed text-[var(--muted)]">{c.reason}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {tier.prose && <p class="mt-3 max-w-[72ch] text-sm leading-relaxed text-[var(--muted)]">{tier.prose}</p>}
+        </div>
+      ))}
     </div>
   </section>
 
