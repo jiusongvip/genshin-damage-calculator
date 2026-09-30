@@ -4,9 +4,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 const siteURL = 'https://www.genshindamagecalculator.com';
 const canonicalURL = `${siteURL}/silver-light/`;
 
-const title = 'Silver Light — Genshin Impact Event Sword: Stats, Best Characters & Comparisons';
+const title = 'Silver Light — Genshin Impact Event Sword: Stats, Best Characters & How to Get';
 const description =
-  'Silver Light is the free 4-star event sword in Genshin Impact: 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. Its best users are the Stellar-reaction sword characters — Vesna, Odette and Cryo Traveler — whose damage scales with ATK and EM — see the full tier list and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
+  'Silver Light is the free 4-star event sword in Genshin Impact (Version 7.1): 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. Get it from the Silverwing in Pursuit of the Moon event and refine it with Tea-Scented Tassel. Its best users are the Stellar-reaction sword characters — Vesna, Odette and Cryo Traveler — plus EM-scaling carries like Alhaitham and Keqing; see the full tier list and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
 
 const passive = {
   name: 'Radiance on the Water',
@@ -22,6 +22,32 @@ const stats = [
   { label: 'Sub-stat', value: 'ATK 41.3%', note: 'Lv. 90' },
   { label: 'Max EM', value: '+104', note: 'R1 · +208 at R5' },
   { label: 'Uptime', value: '2 stacks', note: '12s each, on Skill' },
+];
+
+// Acquisition facts for the "How to get" section — taken from the version 7.1
+// event guides. Silver Light is an event drop, not a banner weapon, so
+// availability and the refinement material are what readers search for.
+const howToGet = [
+  {
+    label: 'Where to get it',
+    value: 'Silverwing in Pursuit of the Moon',
+    note: 'Version 7.1 event reward — claimed, not gacha',
+  },
+  {
+    label: 'Refinement material',
+    value: 'Tea-Scented Tassel',
+    note: 'From the same event · R5 doubles the EM',
+  },
+  {
+    label: 'Obtainable now?',
+    value: 'No',
+    note: 'Event-exclusive — on no banner once the event closes',
+  },
+  {
+    label: 'Ascension (domain)',
+    value: 'Aerosiderite line',
+    note: 'Grain ×3 · Piece ×9 · Bit ×9 · Chunk ×4',
+  },
 ];
 
 // Recommended characters — from the 7.1 weapon guides. This is qualitative
@@ -73,6 +99,13 @@ const tiers: Tier[] = [
         team: 'Aggravate',
         reason:
           'Her Elemental Skill cooldown is shorter than the EM-stack duration, so she holds both stacks up permanently \u2014 but this only pays off in an Aggravate team with a Dendro ally keeping Electro aura alive. The weapon gives no CRIT, so it demands strong CRIT substats from artifacts. Physical and pure-Electro builds get little from it.',
+      },
+      {
+        id: 'alhaitham',
+        name: 'Alhaitham',
+        team: 'Spread / Aggravate',
+        reason:
+          'A Dendro sword DPS whose Spread and Aggravate damage scales with EM, so both halves of the weapon apply — the ATK% sub raises his mirror-projection hits and the stacking EM raises the reaction add. It is a solid stat-stick option, but with no CRIT on the weapon his Light of Foliar Incision or another CRIT sword still has the higher ceiling.',
       },
     ],
   },
@@ -151,6 +184,22 @@ const faqs = [
   {
     q: 'Is Silver Light in this calculator\u2019s weapon list yet?',
     a: 'Silver Light is a recent event weapon, so if it is not in the weapon dropdown yet it will arrive with the next data refresh \u2014 roster data is updated within 48 hours of each patch. In the meantime you can approximate it: pick any 510-base, ATK%-sub sword (Lion\u2019s Roar and Kagotsurube Isshin share that exact frame) and manually add the EM its passive grants to your Elemental Mastery total, up to about 208 at R5. If a weapon or character you own is missing, report it on the contact page and it will be added.',
+  },
+  {
+    q: 'How do you get Silver Light in Genshin Impact?',
+    a: 'Silver Light is a free, event-exclusive 4\u2605 sword: you get it by completing the version 7.1 event "Silverwing in Pursuit of the Moon", which awards it directly \u2014 there is no gacha or banner pull involved. The same event also gives its refinement material, Tea-Scented Tassel. Because the event window has closed, it is not obtainable right now and would only return if the event is rerun. To raise it to level 90 you still need the standard weapon-ascension materials \u2014 the Aerosiderite line (Grain \u00d73, Piece \u00d79, Bit \u00d79, Chunk \u00d74) \u2014 plus weapon EXP and Mora.',
+  },
+  {
+    q: 'Is Silver Light still obtainable?',
+    a: 'Not at the moment. Silver Light is exclusive to the version 7.1 "Silverwing in Pursuit of the Moon" event; with that event over it is on no banner and cannot be farmed, so there is currently no way to get a fresh copy. It is not a standard or weapon-banner item either. It would only come back if Hoyoverse reruns the event. If you already claimed one during 7.1, you keep it permanently and can still refine it with any leftover Tea-Scented Tassel.',
+  },
+  {
+    q: 'What are Silver Light\u2019s ascension materials?',
+    a: 'Silver Light uses the Aerosiderite line of weapon-ascension materials: Grain of Aerosiderite \u00d73, Piece of Aerosiderite \u00d79, Bit of Aerosiderite \u00d79 and Chunk of Aerosiderite \u00d74 to reach level 90, on top of the usual weapon EXP and Mora. Like other 4\u2605 swords it follows the standard four-tier ascension curve, so expect a separate tier of the Aerosiderite material at each ascension breakpoint before the final one.',
+  },
+  {
+    q: 'Is Silver Light good on Alhaitham?',
+    a: 'It is a decent option, but not his best-in-slot. Alhaitham is a Dendro sword DPS who triggers Spread and Aggravate, reactions that scale with Elemental Mastery, so Silver Light\u2019s ATK% sub-stat and stacking EM both apply instead of one half sitting idle \u2014 which is why it works on him at all. What it lacks is CRIT: Alhaitham\u2019s ascension supplies CRIT DMG, and his top swords (Light of Foliar Incision, Mistsplitter Reforged) add the CRIT Rate his artifacts would otherwise need. So treat Silver Light as a solid free stat-stick while you wait for a CRIT sword, not a true replacement. Run it against Light of Foliar Incision in the calculator with your own artifacts to see the gap.',
   },
 ];
 
@@ -284,6 +333,27 @@ const schema = [
       guides, so it may reflect subjective ranking. Our damage calculator does not model the 7.x <em>Stellar</em> reactions yet,
       so the Stellar users cannot be reproduced as a computed number the way an Aggravate carry (Keqing) can.
     </p>
+  </section>
+
+  <!-- ============ How to get ============ -->
+  <section id="how-to-get" class="page-shell section-pad scroll-mt-24 border-t border-[var(--line)]">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Acquisition</p>
+    <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">How to get Silver Light</h2>
+    <p class="mt-3 max-w-[70ch] text-[var(--muted)]">
+      Silver Light is a <strong class="text-[var(--text)]">free event reward</strong>, not a banner pull: finish the
+      version 7.1 &ldquo;Silverwing in Pursuit of the Moon&rdquo; event and it is awarded directly, along with its
+      refinement material, Tea-Scented Tassel. The event has ended, so it cannot be obtained right now.
+    </p>
+
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {howToGet.map((h) => (
+        <div class="panel p-5">
+          <p class="text-xs font-semibold uppercase tracking-[0.08em] text-forest-600">{h.label}</p>
+          <p class="mt-1.5 font-display text-base font-semibold text-[var(--text)]">{h.value}</p>
+          <p class="mt-1 text-xs leading-relaxed text-[var(--muted)]">{h.note}</p>
+        </div>
+      ))}
+    </div>
   </section>
 
   <!-- ============ Recommended characters (tiered) ============ -->
