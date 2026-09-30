@@ -1,5 +1,6 @@
 ---
 import { sectionHref } from '../lib/section-links';
+import { WEAPON_PAGES } from '../data/weaponPages';
 
 const currentYear = new Date().getFullYear();
 
@@ -10,7 +11,7 @@ const pathname = Astro.url.pathname;
 ---
 
 <footer class="mt-auto border-t border-[var(--line)] bg-[#FFFBE7]">
-  <div class="page-shell grid grid-cols-1 gap-10 py-12 md:grid-cols-2 lg:grid-cols-4">
+  <div class="page-shell grid grid-cols-1 gap-10 py-12 md:grid-cols-2 lg:grid-cols-5">
     <div class="lg:col-span-1">
       <a href="/" class="text-lg font-semibold tracking-[-0.02em] text-[var(--text)]">
         Genshin Damage Calculator
@@ -40,6 +41,20 @@ const pathname = Astro.url.pathname;
         <li><a href="/guides/damage-formula/#reactions" class="text-sm text-[var(--muted)] hover:text-forest-600">Elemental Reactions</a></li>
         <li><a href={sectionHref('#faq', pathname)} class="text-sm text-[var(--muted)] hover:text-forest-600">FAQ</a></li>
         <li><a href="https://www.youtube.com/@GenshinImpact" target="_blank" rel="noopener" class="text-sm text-[var(--muted)] hover:text-forest-600">Official YouTube</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-semibold text-[var(--text)]">Weapons</h3>
+      <ul class="mt-3 space-y-2">
+        {WEAPON_PAGES.map((w) => (
+          <li>
+            <a href={w.href} class="flex items-center gap-2 text-sm text-[var(--muted)] hover:text-forest-600">
+              <img src={w.icon} alt="" width="128" height="128" class="h-4 w-4 rounded bg-white object-contain p-px shadow-sm ring-1 ring-black/5" loading="lazy" decoding="async" aria-hidden="true" />
+              {w.name}
+            </a>
+          </li>
+        ))}
       </ul>
     </div>
 

@@ -1,0 +1,238 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const siteURL = 'https://www.genshindamagecalculator.com';
+const canonicalURL = `${siteURL}/silver-light/`;
+
+const title = 'Silver Light — Genshin Impact Event Sword: Stats, Best Characters & Comparisons';
+const description =
+  'Silver Light is the free 4-star event sword in Genshin Impact: 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. See which characters it is best on and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
+
+const stats = [
+  { label: 'Rarity', value: '4\u2605 Event' },
+  { label: 'Weapon type', value: 'Sword' },
+  { label: 'Base ATK (Lv. 90)', value: '510' },
+  { label: 'Sub-stat', value: 'ATK%' },
+];
+
+const comparisons = [
+  {
+    name: 'Aquila Favonia',
+    meta: '5\u2605 · 674 Base ATK · Physical DMG%',
+    verdict: 'Silver Light wins on reaction DPS',
+    body: 'Aquila\u2019s huge base ATK is its only useful stat here \u2014 the Physical sub does nothing for elemental damage. On Aggravate carries Silver Light\u2019s ATK% + EM beats it; on a pure ATK/Crit DPS like Odette, Aquila\u2019s base ATK is equal or better.',
+  },
+  {
+    name: 'Lion\u2019s Roar',
+    meta: '4\u2605 · 510 Base ATK · ATK%',
+    verdict: 'Very close \u2014 test both',
+    body: 'Same 510/ATK% frame. Lion\u2019s Roar adds a flat DMG bonus vs Pyro/Electro-affected enemies (~20% at R1 to 36% at R5) that stays online in Aggravate; Silver Light stacks EM instead. Lion\u2019s Roar edges ahead when the aura is up and you already have EM; Silver Light R5 wins if you are EM-starved.',
+  },
+  {
+    name: 'Emberwell',
+    meta: '4\u2605 · 510 Base ATK · 165 EM',
+    verdict: 'Silver Light for Aggravate',
+    body: 'Emberwell is a pure EM stick. Silver Light keeps comparable EM at R5 while also giving ATK%, so on an Aggravate or Quicken carry it pulls ahead \u2014 unless you cannot trigger both stacks reliably.',
+  },
+  {
+    name: 'Finale of the Deep',
+    meta: '4\u2605 · 565 Base ATK · ATK% 27.6%',
+    verdict: 'Depends on the reaction',
+    body: 'Finale is a clean ATK stick with a higher base but no EM. For a character with no EM-scaling reaction it is the better pick; for Aggravate/Quicken, Silver Light\u2019s EM is worth more than Finale\u2019s small base-ATK edge.',
+  },
+];
+
+const faqs = [
+  {
+    q: 'Is Silver Light a good weapon (the new event sword)?',
+    a: 'Silver Light is the free 4-star event sword: 510 base ATK, an ATK% secondary (about 41% at level 90), and a passive that stacks Elemental Mastery each time your Elemental Skill hits \u2014 up to two stacks, roughly doubling from R0 to R5 for about 208 EM at R5. Pairing ATK% with stacking EM makes it an outstanding free option for ATK-scaling sword DPS who trigger Aggravate or Quicken: Keqing and Clorinde get value from every stat on it. On a character who triggers no EM-scaling reaction, the EM half is wasted and it becomes a plain, merely solid ATK% stick. As always, the deciding factor is your character\u2019s reaction, not the weapon\u2019s rarity \u2014 drop it next to your current sword in the calculator and compare expected damage.',
+  },
+  {
+    q: 'Is Silver Light BiS for Keqing?',
+    a: 'Keqing is an Electro sword DPS who scales with ATK and Crit DMG and plays Aggravate in most modern teams \u2014 exactly what Silver Light is built for. The ATK% sub feeds her base damage while the stacking EM boosts her Aggravate flat bonus, so at R5 it is one of her best free weapons and sits close to Mistsplitter Reforged (her signature) for Aggravate builds. A fully refined 5-star Crit weapon still has the higher ceiling, but Silver Light is the best no-pull option. Set Keqing in the calculator, switch between Silver Light, Lion\u2019s Roar and Mistsplitter, and compare \u2014 the winner depends on how much EM your artifacts already provide.',
+  },
+  {
+    q: 'Is Silver Light good on Clorinde?',
+    a: 'Yes. Clorinde is an Aggravate sword DPS with a Crit Rate ascension, so she wants ATK% plus EM and gets full value from both halves of Silver Light\u2019s kit. It is a strong free alternative to her signature Absolution, especially at R5 where the roughly 208 EM meaningfully raises her Quicken damage. Because her kit already supplies heavy self-buffs, the ATK% is never wasted. Compare Silver Light against Absolution and Lion\u2019s Roar in the calculator using your real Crit ratio to see the actual gap.',
+  },
+  {
+    q: 'Does Silver Light\u2019s EM passive matter on Odette?',
+    a: 'Barely \u2014 and this is the mistake players keep making. Odette is a Cryo sword DPS who scales with ATK and Crit DMG; unless you run her in a Melt team, Elemental Mastery does nothing for her damage, so Silver Light\u2019s signature passive is wasted and the weapon reduces to a 510-base ATK% sword. That is why Aquila Favonia can look just as good or better on her: its higher 674 base ATK feeds her ATK% multipliers directly, and its equally useless Physical sub costs her nothing. For Odette, prioritize a Crit or ATK% weapon \u2014 Mistsplitter Reforged is her best \u2014 and treat Silver Light as filler, not an upgrade.',
+  },
+  {
+    q: 'Silver Light or Aquila Favonia \u2014 which is better?',
+    a: 'It depends entirely on whether your character benefits from Elemental Mastery. Aquila Favonia is a 5-star with a very high 674 base ATK but a Physical DMG% secondary that contributes nothing to elemental damage, so on most elemental sword DPS its only real value is that big base ATK. Silver Light trades base ATK (510) for an ATK% sub plus stacking EM. On an Aggravate character like Keqing or Clorinde, Silver Light usually wins because both the EM and the ATK% apply; on a pure ATK/Crit elemental DPS like Odette, Aquila\u2019s base ATK is often equal or better. Run both through the calculator on your specific character and build \u2014 the higher number is the answer.',
+  },
+  {
+    q: 'Silver Light vs Lion\u2019s Roar for Aggravate?',
+    a: 'Both are 510-base, ATK%-sub swords, so it comes down to the passives. Lion\u2019s Roar adds a flat DMG bonus against enemies affected by Pyro or Electro (about 20% at R1 up to 36% at R5); in an Aggravate team the enemy is almost always Electro-affected, so that bonus is reliably active and lands in the separate DMG-bonus multiplier. Silver Light instead stacks EM, which raises the Aggravate flat add. At equal refinement they are very close \u2014 Lion\u2019s Roar tends to win when you keep the aura up and already have EM elsewhere, while Silver Light at R5 wins if your build is EM-starved. Test both on Keqing or Clorinde in the calculator with your actual artifacts.',
+  },
+  {
+    q: 'Silver Light, Emberwell, or Finale of the Deep?',
+    a: 'They cover different needs. Emberwell (510 base, 165 flat EM) is a pure EM sword for reaction carries; Finale of the Deep (565 base, ATK% 27.6%) is a plain ATK stick; Silver Light (510 base, ATK% plus up to about 208 EM at R5) blends both. For an Aggravate or Quicken character, Silver Light generally beats Emberwell because it keeps the EM while adding ATK%, and beats Finale because the EM is worth more than Finale\u2019s small base-ATK edge. For a character with no EM-scaling reaction, Finale\u2019s clean ATK% is the better pick. Best free all-rounder for reaction sword DPS: Silver Light. Pure ATK with a healer already covering survivability: Finale.',
+  },
+  {
+    q: 'Is Silver Light in this calculator\u2019s weapon list yet?',
+    a: 'Silver Light is a recent event weapon, so if it is not in the weapon dropdown yet it will arrive with the next data refresh \u2014 roster data is updated within 48 hours of each patch. In the meantime you can approximate it: pick any 510-base, ATK%-sub sword (Lion\u2019s Roar and Kagotsurube Isshin share that exact frame) and manually add the EM its passive grants to your Elemental Mastery total, up to about 208 at R5. If a weapon or character you own is missing, report it on the contact page and it will be added.',
+  },
+];
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: `${siteURL}/` },
+      { '@type': 'ListItem', position: 2, name: 'Silver Light', item: canonicalURL },
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  },
+];
+---
+
+<BaseLayout title={title} description={description} canonicalURL={canonicalURL} schema={schema}>
+  <!-- ============ Hero (typographic — no bitmap) ============ -->
+  <section class="page-shell pt-8 md:pt-12">
+    <div
+      class="relative overflow-hidden rounded-3xl border border-forest-500/40 bg-linear-to-br from-forest-800 via-forest-700 to-forest-600 px-6 py-12 text-forest-50 shadow-sm md:px-14 md:py-16"
+    >
+      <!-- official weapon art -->
+      <img
+        src="/images/weapons/silver-light-hero.webp"
+        alt="Official Silver Light sword art"
+        width="512"
+        height="1024"
+        fetchpriority="high"
+        decoding="async"
+        class="pointer-events-none absolute -right-4 top-1/2 h-[112%] w-auto max-w-none -translate-y-1/2 rotate-6 opacity-90 drop-shadow-2xl md:right-6 md:h-[130%] md:rotate-12"
+      />
+      <!-- soft glow behind the blade -->
+      <div class="pointer-events-none absolute right-10 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-cryo/20 blur-3xl" aria-hidden="true"></div>
+
+      <div class="relative max-w-[62ch]">
+        <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-forest-200">
+          <img src="/images/weapons/silver-light.webp" alt="" width="128" height="128" class="h-5 w-5 rounded bg-white/90 object-contain p-0.5 shadow-sm ring-1 ring-black/5" aria-hidden="true" />
+          Weapon Guide · Free Event Sword
+        </p>
+
+        <h1 class="mt-4 font-display text-5xl font-semibold tracking-tight md:text-7xl">Silver Light</h1>
+
+        <p class="mt-5 text-lg leading-relaxed text-forest-100 md:text-xl">
+          A free <strong class="font-semibold text-forest-50">4&#9733; event sword</strong> that pairs an ATK% sub-stat with a
+          stacking Elemental Mastery passive &mdash; built for ATK-scaling sword DPS who trigger Aggravate or Quicken.
+        </p>
+
+        <dl class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {stats.map((s) => (
+            <div class="rounded-xl border border-forest-50/15 bg-forest-50/10 px-4 py-3 backdrop-blur-sm">
+              <dt class="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-forest-200">{s.label}</dt>
+              <dd class="mt-1 font-display text-xl font-semibold text-forest-50">{s.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ What it is ============ -->
+  <section class="page-shell section-pad">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">The weapon</p>
+    <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">What Silver Light does</h2>
+    <p class="mt-4 max-w-[70ch] leading-relaxed text-[var(--muted)]">
+      At level 90 Silver Light provides <strong class="text-[var(--text)]">510 Base ATK</strong> and an
+      <strong class="text-[var(--text)]">ATK% secondary</strong> (about 41%). Its passive grants
+      <strong class="text-[var(--text)]">Elemental Mastery</strong> each time the wielder&rsquo;s Elemental Skill hits an
+      opponent, stacking up to two times; the amount roughly doubles from R0 to R5, reaching about
+      <strong class="text-[var(--text)]">208 EM at R5</strong> with both stacks up. That combination &mdash; ATK% for the base
+      hit plus EM for the reaction &mdash; is what makes it a standout free option, but only on characters who actually
+      scale with EM.
+    </p>
+
+    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+      <div class="panel p-6">
+        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">Great on</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Aggravate / Quicken sword DPS who scale with ATK and want EM &mdash; <strong class="text-[var(--text)]">Keqing</strong> and
+          <strong class="text-[var(--text)]">Clorinde</strong> get full value from every stat on it. Best free alternative to their
+          5-star signatures.
+        </p>
+      </div>
+      <div class="panel p-6">
+        <h3 class="text-sm font-semibold uppercase tracking-[0.14em] text-forest-600">Wasted on</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Pure ATK/Crit DPS with no EM-scaling reaction &mdash; on <strong class="text-[var(--text)]">Odette</strong> (Cryo) the EM
+          passive does nothing outside a Melt team, so the weapon is just a 510-base ATK% sword. Prefer a Crit weapon there.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Comparisons ============ -->
+  <section class="page-shell section-pad border-t border-[var(--line)]">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Head-to-head</p>
+    <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Silver Light vs the alternatives</h2>
+    <p class="mt-3 max-w-[70ch] text-[var(--muted)]">
+      Every matchup below is reproducible: load the character in the <a href="/#calculator"
+      class="text-forest-600 underline underline-offset-4">damage calculator</a>, swap only the weapon, and compare the
+      expected damage number.
+    </p>
+
+    <div class="mt-8 grid gap-4 md:grid-cols-2">
+      {comparisons.map((c) => (
+        <div class="panel p-6">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="font-display text-lg font-semibold text-[var(--text)]">{c.name}</h3>
+              <p class="mt-0.5 text-xs text-[var(--muted)]">{c.meta}</p>
+            </div>
+            <span class="shrink-0 rounded-full bg-forest-100 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-forest-700">
+              {c.verdict}
+            </span>
+          </div>
+          <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">{c.body}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section class="page-shell section-pad border-t border-[var(--line)]">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-semibold tracking-tight text-[var(--text)]">Check it on your own build</h2>
+        <p class="mt-2 max-w-[65ch] text-[var(--muted)]">
+          Rarity never decides a weapon &mdash; the computed number does. Set your character, artifacts and buffs, then swap
+          Silver Light in and out to see the exact gain.
+        </p>
+      </div>
+      <a href="/#calculator"
+        class="rounded-xl bg-forest-300 px-5 py-2.5 text-center text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">
+        Open the damage calculator
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq" class="page-shell section-pad scroll-mt-20 border-t border-[var(--line)]">
+    <h2 class="text-3xl font-semibold tracking-tight text-[var(--text)]">Silver Light FAQ</h2>
+    <div class="mt-8 divide-y divide-[var(--line)] border-t border-[var(--line)]">
+      {faqs.map((f) => (
+        <details class="group">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-medium text-[var(--text)]">
+            {f.q}
+            <svg class="h-5 w-5 shrink-0 text-[var(--muted)] transition-transform group-open:rotate-45" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+          </summary>
+          <p class="max-w-[75ch] pb-4 leading-relaxed text-[var(--muted)]">{f.a}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
