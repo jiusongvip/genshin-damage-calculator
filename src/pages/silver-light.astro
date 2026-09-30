@@ -9,16 +9,18 @@ const description =
   'Silver Light is the free 4-star event sword in Genshin Impact: 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. Its best users are Cryo sword carries whose Stellar reactions scale with ATK and EM — see the full tier list and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
 
 const passive = {
-  name: '霜星照水',
   effect:
     'After using an Elemental Skill, the wielder gains 52 Elemental Mastery for 12s (R1). Stacks up to 2 times; each stack has its own timer.',
 };
 
+// Headline numbers for the hero. Max EM is the total with both stacks up
+// (2 × 52 at R1; the per-stack value doubles by R5), so readers don't have to
+// multiply a per-stack figure themselves.
 const stats = [
-  { label: 'Base ATK · Lv.90', value: '510' },
-  { label: 'Sub-stat', value: 'ATK 41.3%' },
-  { label: 'Passive / stack', value: 'EM +52' },
-  { label: 'Max stacks', value: '2 × 12s' },
+  { label: 'Base ATK', value: '510', note: 'Lv. 90' },
+  { label: 'Sub-stat', value: 'ATK 41.3%', note: 'Lv. 90' },
+  { label: 'Max EM', value: '+104', note: 'R1 · +208 at R5' },
+  { label: 'Uptime', value: '2 stacks', note: '12s each, on Skill' },
 ];
 
 // Recommended characters — from the 7.1 weapon guides. This is qualitative
@@ -84,19 +86,12 @@ const tiers: Tier[] = [
   },
 ];
 
-// Core-fit characters shown as avatars under the hero art.
-const bestOn: { id: string; name: string; short: string; pending?: boolean }[] = tiers[0].chars!.map((c) => ({
+// Core-fit characters shown as the hero's "Best on" row.
+const bestOn: { id: string; name: string; pending?: boolean }[] = tiers[0].chars!.map((c) => ({
   id: c.id,
   name: c.name,
-  short: c.id === 'aether' ? 'Traveler' : c.name,
   pending: c.pending,
 }));
-
-const ratings = [
-  { label: 'Strength', stars: 4 },
-  { label: 'Long-term', stars: 3 },
-  { label: 'Versatility', stars: 3 },
-].map((r) => ({ ...r, display: '\u2605'.repeat(r.stars) + '\u2606'.repeat(5 - r.stars) }));
 
 const comparisons = [
   {
@@ -128,7 +123,7 @@ const comparisons = [
 const faqs = [
   {
     q: 'Is Silver Light a good weapon (the new event sword)?',
-    a: 'Silver Light is the free 4-star event sword: 510 base ATK, an ATK% secondary (about 41% at level 90), and a passive that stacks Elemental Mastery each time your Elemental Skill hits — up to two stacks, roughly doubling from R0 to R5 for about 208 EM at R5. Its standout users are Cryo sword carries whose Stellar reactions scale off both ATK and EM, so both halves of the kit apply at once; Aggravate sword DPS such as Keqing are the main conditional fit, where the EM feeds the reaction only if a Dendro ally keeps the aura up. On a character who triggers no EM-scaling reaction, the EM half is wasted and it becomes a plain, merely solid ATK% stick. As always the deciding factor is your character’s reaction, not the weapon’s rarity. One caveat: our calculator does not model the 7.x Stellar reactions yet, so Cryo/Stellar pairings are not directly comparable in the tool the way an Aggravate build is.',
+    a: 'Silver Light is the free 4-star event sword: 510 base ATK, an ATK% secondary (about 41% at level 90), and a passive that stacks Elemental Mastery each time your Elemental Skill hits — up to two stacks, roughly doubling from R1 to R5 for about 208 EM at R5. Its standout users are Cryo sword carries whose Stellar reactions scale off both ATK and EM, so both halves of the kit apply at once; Aggravate sword DPS such as Keqing are the main conditional fit, where the EM feeds the reaction only if a Dendro ally keeps the aura up. On a character who triggers no EM-scaling reaction, the EM half is wasted and it becomes a plain, merely solid ATK% stick. As always the deciding factor is your character’s reaction, not the weapon’s rarity. One caveat: our calculator does not model the 7.x Stellar reactions yet, so Cryo/Stellar pairings are not directly comparable in the tool the way an Aggravate build is.',
   },
   {
     q: 'Is Silver Light good for Keqing?',
@@ -182,67 +177,14 @@ const schema = [
 ---
 
 <BaseLayout title={title} description={description} canonicalURL={canonicalURL} schema={schema}>
-  <!-- ============ Hero (image left · text right, compact above-the-fold) ============ -->
+  <!-- ============ Hero (text first · weapon art + numbers beside it) ============ -->
   <section class="page-shell pt-6 md:pt-8">
     <div
-      class="relative overflow-hidden rounded-3xl border border-forest-200 bg-linear-to-br from-cryo/10 via-[#F3FBFF] to-forest-50 px-5 py-6 shadow-sm md:px-8 md:py-8"
+      class="relative overflow-hidden rounded-3xl border border-forest-200 bg-linear-to-br from-cryo/10 via-[#F3FBFF] to-forest-50 px-5 py-6 shadow-sm md:px-10 md:py-9"
     >
-      <div class="grid items-center gap-5 md:grid-cols-[minmax(0,280px)_1fr] md:gap-8">
-        <!-- weapon art + spec card (left) -->
-        <div class="flex flex-col items-center">
-          <div class="relative flex w-full justify-center">
-            <div class="pointer-events-none absolute inset-0 m-auto h-40 w-40 rounded-full bg-cryo/25 blur-3xl" aria-hidden="true"></div>
-            <img
-              src="/images/weapons/silver-light-hero.webp"
-              alt="Official Silver Light sword art"
-              width="512"
-              height="1024"
-              fetchpriority="high"
-              decoding="async"
-              class="relative h-52 w-auto max-w-none -rotate-3 drop-shadow-xl md:h-[18rem]"
-            />
-          </div>
-
-          <div class="mt-3 w-full rounded-2xl border border-forest-200 bg-white/70 px-3.5 py-3 backdrop-blur-sm">
-            <dl class="grid grid-cols-2 gap-x-3 gap-y-2.5">
-              {stats.map((s) => (
-                <div class="min-w-0">
-                  <dt class="text-[0.58rem] font-semibold uppercase tracking-[0.08em] text-forest-600">{s.label}</dt>
-                  <dd class="mt-0.5 font-display text-[0.95rem] font-semibold leading-tight text-forest-900">{s.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <div class="mt-2.5 grid grid-cols-3 gap-1 border-t border-forest-200/70 pt-2">
-              {ratings.map((r) => (
-                <div class="text-center">
-                  <div class="text-[0.58rem] font-medium leading-tight text-forest-600">{r.label}</div>
-                  <div class="font-display text-xs leading-tight tracking-[0.06em] text-amber-600" aria-label={`${r.stars} of 5`}>{r.display}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div class="mt-2.5 w-full rounded-xl border border-forest-200 bg-white/60 px-3 py-2">
-            <div class="flex items-center justify-between gap-2">
-              <p class="text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-forest-600">Core fit · Cryo sword</p>
-              <div class="flex gap-2">
-                {bestOn.map((c) => (
-                  <a href="/characters/" class="flex items-center gap-1" title={c.pending ? `${c.name} (pre-release)` : c.name}>
-                    <span class="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-xs font-semibold text-forest-700 ring-1 ring-forest-300">
-                      {c.pending ? c.name.charAt(0) : (
-                        <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-full w-full object-cover" />
-                      )}
-                    </span>
-                    <span class="text-[0.62rem] font-medium text-forest-800">{c.short}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- text (right) -->
-        <div class="max-w-[46ch]">
+      <div class="grid items-center gap-6 md:grid-cols-[1fr_minmax(0,320px)] md:gap-10">
+        <!-- text (left on desktop, first on mobile) -->
+        <div class="min-w-0">
           <p class="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-forest-700">
             <img src="/images/weapons/silver-light.webp" alt="" width="128" height="128" class="h-4 w-4 rounded bg-white/90 object-contain p-0.5 shadow-sm ring-1 ring-black/5" aria-hidden="true" />
             Free 4&#9733; Event Sword · Version 7.1
@@ -250,17 +192,63 @@ const schema = [
 
           <h1 class="mt-2 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-forest-900 md:text-6xl">Silver Light</h1>
 
-          <p class="mt-3 text-[0.95rem] leading-relaxed text-[var(--muted)] md:text-base">
+          <p class="mt-3 max-w-[48ch] text-[0.95rem] leading-relaxed text-[var(--muted)] md:text-lg">
             An <strong class="font-semibold text-[var(--text)]">ATK% sub-stat</strong> plus a <strong class="font-semibold text-[var(--text)]">stacking Elemental Mastery</strong> passive &mdash; strongest on <strong class="font-semibold text-[var(--text)]">Cryo sword carries</strong> whose Stellar reactions scale with both stats.
           </p>
 
-          <p class="mt-3 text-xs leading-relaxed text-[var(--muted)]">
-            <span class="font-semibold text-[var(--text)]">Passive &middot; {passive.name}:</span> {passive.effect}
-          </p>
+          <div class="mt-5">
+            <p class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-forest-600">Best on &middot; Cryo sword carries</p>
+            <ul class="mt-2 flex flex-wrap gap-2">
+              {bestOn.map((c) => (
+                <li>
+                  <a href="#recommended" class="flex items-center gap-2 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-sm font-semibold text-forest-700 ring-1 ring-forest-300">
+                      {c.pending ? c.name.charAt(0) : (
+                        <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" decoding="async" class="h-full w-full object-cover" />
+                      )}
+                    </span>
+                    <span class="text-sm font-medium text-forest-900">{c.name}</span>
+                    {c.pending && <span class="text-[0.6rem] font-semibold uppercase tracking-wide text-amber-700">Pre-release</span>}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          <div class="mt-4 flex flex-wrap gap-2.5">
+          <div class="mt-6 flex flex-wrap gap-2.5">
             <a href="/#calculator" class="rounded-xl bg-forest-300 px-4 py-2 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Open the calculator</a>
-            <a href="#recommended" class="rounded-xl border border-forest-300 px-4 py-2 text-sm font-semibold text-forest-700 transition-colors hover:bg-forest-50">See recommended characters</a>
+            <a href="#recommended" class="rounded-xl border border-forest-300 px-4 py-2 text-sm font-semibold text-forest-700 transition-colors hover:bg-forest-50">Who should use it</a>
+          </div>
+        </div>
+
+        <!-- weapon art + numbers (right on desktop, below the pitch on mobile) -->
+        <div class="flex items-center gap-3 md:flex-col md:gap-3">
+          <div class="relative flex w-14 shrink-0 justify-center md:w-full">
+            <div class="pointer-events-none absolute inset-0 m-auto h-24 w-24 rounded-full bg-cryo/25 blur-2xl md:h-40 md:w-40 md:blur-3xl" aria-hidden="true"></div>
+            <img
+              src="/images/weapons/silver-light-hero.webp"
+              alt="Official Silver Light sword art"
+              width="512"
+              height="1024"
+              fetchpriority="high"
+              decoding="async"
+              class="relative h-36 w-auto max-w-none -rotate-3 drop-shadow-xl md:h-[15rem]"
+            />
+          </div>
+
+          <div class="min-w-0 flex-1 rounded-2xl border border-forest-200 bg-white/75 px-3.5 py-3 backdrop-blur-sm md:w-full md:px-4 md:py-3.5">
+            <dl class="grid grid-cols-2 gap-x-3 gap-y-3 md:gap-x-4">
+              {stats.map((s) => (
+                <div class="min-w-0">
+                  <dt class="text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-forest-600">{s.label}</dt>
+                  <dd class="mt-0.5 text-lg font-semibold leading-tight tabular-nums text-forest-900">{s.value}</dd>
+                  <dd class="text-[0.7rem] leading-tight text-[var(--muted)]">{s.note}</dd>
+                </div>
+              ))}
+            </dl>
+            <p class="mt-3 border-t border-forest-200/70 pt-2.5 text-xs leading-relaxed text-[var(--muted)]">
+              <span class="font-semibold text-[var(--text)]">Passive:</span> {passive.effect}
+            </p>
           </div>
         </div>
       </div>
@@ -275,7 +263,7 @@ const schema = [
       At level 90 Silver Light provides <strong class="text-[var(--text)]">510 Base ATK</strong> and an
       <strong class="text-[var(--text)]">ATK% secondary</strong> (about 41%). Its passive grants
       <strong class="text-[var(--text)]">Elemental Mastery</strong> each time the wielder&rsquo;s Elemental Skill hits an
-      opponent, stacking up to two times; the amount roughly doubles from R0 to R5, reaching about
+      opponent, stacking up to two times; the amount roughly doubles from R1 to R5, reaching about
       <strong class="text-[var(--text)]">208 EM at R5</strong> with both stacks up. That combination &mdash; ATK% for the base
       hit plus EM for the reaction &mdash; is what makes it a standout free option, but only on characters whose reactions
       actually consume EM: the new Cryo <strong class="text-[var(--text)]">Stellar</strong> reactions scale with both stats,
