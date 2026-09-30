@@ -33,7 +33,7 @@ type Tier = {
   key: string;
   title: string;
   subtitle: string;
-  chars?: { id: string; name: string; reason: string; pending?: boolean }[];
+  chars?: { id: string; name: string; reason: string; pending?: boolean; team?: string }[];
   prose?: string;
 };
 
@@ -44,23 +44,23 @@ const tiers: Tier[] = [
     subtitle: 'Uses every part of the weapon and is one of its better 4\u2605 choices.',
     chars: [
       {
+        id: 'vesna',
+        name: 'Vesna',
+        pending: true,
+        reason:
+          'Listed by guides as a core Cryo sword user, but she is pre-release, so her kit and numbers are unverified and cannot be computed in our calculator yet.',
+      },
+      {
         id: 'odette',
         name: 'Odette',
         reason:
-          'A Cryo sword carry whose Stellar reactions scale off both ATK and Elemental Mastery, so the ATK% sub-stat and the stacking EM passive land together. Early testing places it just behind her two strongest Cryo swords (a refined 5\u2605 and one other 4\u2605), not above them.',
+          'A Cryo sword carry whose Stellar reactions scale off both ATK and Elemental Mastery, so the ATK% sub-stat and the stacking EM passive land together. In early testing it ranks just behind her two strongest swords (one of them at R2), not above them.',
       },
       {
         id: 'aether',
         name: 'Cryo Traveler',
         reason:
           'The free Cryo sword option runs the same EM-scaling Stellar reactions, and Silver Light is a no-pull upgrade over their usual craftable swords.',
-      },
-      {
-        id: 'vesna',
-        name: 'Vesna',
-        pending: true,
-        reason:
-          'Listed by guides as a core Cryo sword user, but she is pre-release, so her kit and numbers are unverified and cannot be computed in our calculator yet.',
       },
     ],
   },
@@ -72,6 +72,7 @@ const tiers: Tier[] = [
       {
         id: 'keqing',
         name: 'Keqing',
+        team: 'Aggravate',
         reason:
           'Her Elemental Skill cooldown is shorter than the EM-stack duration, so she holds both stacks up permanently \u2014 but this only pays off in an Aggravate team with a Dendro ally keeping Electro aura alive. The weapon gives no CRIT, so it demands strong CRIT substats from artifacts. Physical and pure-Electro builds get little from it.',
       },
@@ -86,12 +87,12 @@ const tiers: Tier[] = [
   },
 ];
 
-// Core-fit characters shown as the hero's "Best on" row.
-const bestOn: { id: string; name: string; pending?: boolean }[] = tiers[0].chars!.map((c) => ({
-  id: c.id,
-  name: c.name,
-  pending: c.pending,
-}));
+// Hero "who is it for" rows, taken straight from the tiers above: core fits
+// work in any team, conditional fits only in the team named by `team`.
+const fitRows = [
+  { label: 'Any team', chars: tiers[0].chars! },
+  { label: 'Team-specific', chars: tiers[1].chars! },
+];
 
 const comparisons = [
   {
@@ -210,20 +211,27 @@ const schema = [
             An <strong class="font-semibold text-[var(--text)]">ATK% sub-stat</strong> plus a <strong class="font-semibold text-[var(--text)]">stacking Elemental Mastery</strong> passive &mdash; strongest on <strong class="font-semibold text-[var(--text)]">Cryo sword carries</strong> whose Stellar reactions scale with both stats.
           </p>
 
-          <div class="mt-4 flex flex-wrap items-center gap-2">
-            <span class="mr-1 text-xs font-semibold uppercase tracking-[0.12em] text-forest-600">Best on</span>
-            {bestOn.map((c) => (
-              <a href="#recommended" class="flex items-center gap-2 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
-                <span class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-sm font-semibold text-forest-700 ring-1 ring-forest-300">
-                  {c.pending ? c.name.charAt(0) : (
-                    <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" decoding="async" class="h-full w-full object-cover" />
-                  )}
-                </span>
-                <span class="text-sm font-medium text-forest-900">{c.name}</span>
-                {c.pending && <span class="text-[0.6rem] font-semibold uppercase tracking-wide text-amber-700">Pre-release</span>}
-              </a>
+          <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
+            {fitRows.map((row) => (
+              <>
+                <dt class="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.1em] text-forest-600">{row.label}</dt>
+                <dd class="flex flex-wrap gap-2">
+                  {row.chars.map((c) => (
+                    <a href="#recommended" class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white" title={c.pending ? `${c.name} (pre-release)` : c.name}>
+                      <span class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-sm font-semibold text-forest-700 ring-1 ring-forest-300">
+                        {c.pending ? c.name.charAt(0) : (
+                          <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" decoding="async" class="h-full w-full object-cover" />
+                        )}
+                      </span>
+                      <span class="text-sm font-medium text-forest-900">{c.name}</span>
+                      {c.team && <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[0.65rem] font-semibold text-violet-700">{c.team} only</span>}
+                      {c.pending && <span class="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label="pre-release"></span>}
+                    </a>
+                  ))}
+                </dd>
+              </>
             ))}
-          </div>
+          </dl>
 
           <div class="mt-5 flex flex-wrap gap-2.5">
             <a href="/#calculator" class="rounded-xl bg-forest-300 px-4 py-2 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Open the calculator</a>
@@ -308,6 +316,9 @@ const schema = [
                   <div class="min-w-0">
                     <p class="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-[var(--text)]">
                       {c.name}
+                      {c.team && (
+                        <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-violet-700">{c.team} team</span>
+                      )}
                       {c.pending && (
                         <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-amber-700">Pre-release</span>
                       )}
