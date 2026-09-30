@@ -6,7 +6,7 @@ const canonicalURL = `${siteURL}/silver-light/`;
 
 const title = 'Silver Light — Genshin Impact Event Sword: Stats, Best Characters & How to Get';
 const description =
-  'Silver Light is the free 4-star event sword in Genshin Impact (Version 7.1): 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. Get it from the Silverwing in Pursuit of the Moon event and refine it with Tea-Scented Tassel. Its best users are the Stellar-reaction sword characters — Vesna, Odette and Cryo Traveler — plus EM-scaling carries like Alhaitham and Keqing; see the full tier list and how it compares to Aquila Favonia, Lion\u2019s Roar, Emberwell and Finale of the Deep.';
+  'Silver Light is the free 4-star event sword in Genshin Impact (Version 7.1): 510 Base ATK, an ATK% sub-stat and a stacking Elemental Mastery passive. Get it from the Silverwing in Pursuit of the Moon event and refine it with Tea-Scented Tassel. Its best users are the Stellar-reaction sword characters — Vesna, Odette and Cryo Traveler — plus EM-scaling carries such as Alhaitham and Keqing; see its tier, the character list and how it compares to New Bough, Emberwell, Finale of the Deep and Lion\u2019s Roar.';
 
 const passive = {
   name: 'Radiance on the Water',
@@ -78,7 +78,7 @@ const tiers: Tier[] = [
         id: 'odette',
         name: 'Odette',
         reason:
-          'A Cryo sword off-field Stellar Glimmer damage dealer and support: her Skill clone deals Stellar damage that scales with ATK and EM, so both halves of the weapon apply. In testing it ranks just behind her two strongest swords (one of them at R2), not above them.',
+          'A Cryo sword off-field Stellar Glimmer damage dealer and support: her Skill clone deals Stellar damage that scales with ATK and EM, so both halves of the weapon apply. In testing it ranks just behind an R2 New Bough and one other sword, not above them.',
       },
       {
         id: 'aether',
@@ -125,32 +125,79 @@ const fitRows = [
   { label: 'Team-specific', chars: tiers[1].chars! },
 ];
 
-const comparisons = [
+// Where Silver Light sits among 4★ swords for its core users (Stellar
+// sword characters). Stats and passives are from HoYoWiki; the order and
+// verdicts summarise the 7.1 guide comparisons (Vesna / Odette testing) —
+// qualitative, not computed by our engine (it does not model Stellar yet).
+// `vs` is relative to Silver Light: up = stronger, even = about the same,
+// self = this weapon, off = a different use case.
+const tier = {
+  grade: 'A',
+  label: 'A top free 4★ for Stellar sword users',
+  summary:
+    'A refined New Bough or an R5 Emberwell edges it out, Finale of the Deep is roughly level, and generic ATK sticks fall behind. Its real edge is how easy it is to run: it only needs a Skill cast — no reaction ownership and no healer.',
+};
+
+type Vs = 'up' | 'even' | 'self' | 'off';
+const swords: { id: string; name: string; source: string; atk: number; sub: string; passive: string; vs: Vs; verdict: string }[] = [
   {
-    name: 'Aquila Favonia',
-    meta: '5\u2605 · 674 Base ATK · Physical DMG%',
-    verdict: 'Silver Light wins on EM-scaling carries',
-    body: 'Aquila\u2019s huge base ATK is its only useful stat here \u2014 the Physical sub does nothing for elemental damage. On a Stellar-reaction user such as Vesna, or an Aggravate carry, Silver Light\u2019s ATK% + EM beats it; Aquila\u2019s base ATK only wins on a pure ATK/CRIT sword DPS who triggers no EM-scaling reaction at all.',
+    id: 'new-bough',
+    name: 'New Bough',
+    source: 'Event wish · 7.1',
+    atk: 510,
+    sub: 'CRIT DMG 55.1%',
+    passive: 'Hitting within 12s of a Skill: ATK +4% and EM +20 per stack, up to 3',
+    vs: 'up',
+    verdict: 'Best 4★ for Stellar users, but gacha-only',
   },
   {
-    name: 'Lion\u2019s Roar',
-    meta: '4\u2605 · 510 Base ATK · ATK%',
-    verdict: 'Very close \u2014 test both',
-    body: 'Same 510/ATK% frame. Lion\u2019s Roar adds a flat DMG bonus vs Pyro/Electro-affected enemies (~20% at R1 to 36% at R5) that stays online in Aggravate; Silver Light stacks EM instead. Lion\u2019s Roar edges ahead when the aura is up and you already have EM; Silver Light R5 wins if you are EM-starved.',
-  },
-  {
+    id: 'emberwell',
     name: 'Emberwell',
-    meta: '4\u2605 · 510 Base ATK · 165 EM',
-    verdict: 'Silver Light for Aggravate',
-    body: 'Emberwell is a pure EM stick. Silver Light keeps comparable EM at R5 while also giving ATK%, so on an Aggravate or Quicken carry it pulls ahead \u2014 unless you cannot trigger both stacks reliably.',
+    source: 'Forged · 7.0',
+    atk: 510,
+    sub: 'EM 165',
+    passive: 'Any reaction: ATK +16%; Stellar Glimmer DMG +16%',
+    vs: 'up',
+    verdict: 'Slightly ahead at R5 — if the wielder triggers the reactions',
   },
   {
+    id: 'silver-light',
+    name: 'Silver Light',
+    source: 'Free event · 7.1',
+    atk: 510,
+    sub: 'ATK 41.3%',
+    passive: 'After Skill use: EM +52 per stack, up to 2',
+    vs: 'self',
+    verdict: 'Only needs a Skill cast to stay online',
+  },
+  {
+    id: 'finale-of-the-deep',
     name: 'Finale of the Deep',
-    meta: '4\u2605 · 565 Base ATK · ATK% 27.6%',
-    verdict: 'Depends on the reaction',
-    body: 'Finale is a clean ATK stick with a higher base but no EM. For a character with no EM-scaling reaction it is the better pick; for Aggravate/Quicken, Silver Light\u2019s EM is worth more than Finale\u2019s small base-ATK edge.',
+    source: 'Forged · Fontaine',
+    atk: 565,
+    sub: 'ATK 27.6%',
+    passive: 'ATK buff that needs a healer to clear its Bond of Life',
+    vs: 'even',
+    verdict: 'Ahead only with a healer clearing its Bond of Life',
+  },
+  {
+    id: 'lions-roar',
+    name: 'Lion\u2019s Roar',
+    source: 'Forged · Liyue',
+    atk: 510,
+    sub: 'ATK 41.3%',
+    passive: 'DMG +20% vs Pyro/Electro-affected enemies',
+    vs: 'off',
+    verdict: 'Aggravate pick (Keqing); nothing for Stellar teams',
   },
 ];
+
+const vsBadge: Record<Vs, { text: string; cls: string }> = {
+  up: { text: 'Stronger', cls: 'bg-amber-100 text-amber-800' },
+  even: { text: 'About even', cls: 'bg-sky-100 text-sky-800' },
+  self: { text: 'This weapon', cls: 'bg-forest-300 text-forest-900' },
+  off: { text: 'Different use', cls: 'bg-violet-100 text-violet-700' },
+};
 
 const faqs = [
   {
@@ -167,7 +214,7 @@ const faqs = [
   },
   {
     q: 'Is Silver Light good on Odette?',
-    a: 'Yes — she is one of its core users, and this is where the old "EM is wasted on a Cryo character" reasoning breaks down. Odette is a 5-star Cryo sword character who deals Stellar Glimmer damage off-field through her Skill clone, and that damage scales off both ATK and Elemental Mastery, so Silver Light\u2019s ATK% sub and stacking EM both count rather than one half sitting idle. In testing it ranks just behind her two strongest swords (one of them at R2), so it is a top free option rather than an outright BiS. The honest caveat: our calculator does not yet model the Stellar reactions, so you cannot reproduce those exact numbers in the tool the way you can for an Aggravate carry — treat this recommendation as guide-based, not a computed figure.',
+    a: 'Yes — she is one of its core users, and this is where the old "EM is wasted on a Cryo character" reasoning breaks down. Odette is a 5-star Cryo sword character who deals Stellar Glimmer damage off-field through her Skill clone, and that damage scales off both ATK and Elemental Mastery, so Silver Light\u2019s ATK% sub and stacking EM both count rather than one half sitting idle. In testing it ranks just behind an R2 New Bough and one other sword, so it is a top free option rather than an outright BiS. The honest caveat: our calculator does not yet model the Stellar reactions, so you cannot reproduce those exact numbers in the tool the way you can for an Aggravate carry — treat this recommendation as guide-based, not a computed figure.',
   },
   {
     q: 'Silver Light or Aquila Favonia \u2014 which is better?',
@@ -179,7 +226,7 @@ const faqs = [
   },
   {
     q: 'Silver Light, Emberwell, or Finale of the Deep?',
-    a: 'They cover different needs. Emberwell (510 base, 165 flat EM) is a pure EM sword for reaction carries; Finale of the Deep (565 base, ATK% 27.6%) is a plain ATK stick; Silver Light (510 base, ATK% plus up to about 208 EM at R5) blends both. For an Aggravate or Quicken character, Silver Light generally beats Emberwell because it keeps the EM while adding ATK%, and beats Finale because the EM is worth more than Finale\u2019s small base-ATK edge. For a character with no EM-scaling reaction, Finale\u2019s clean ATK% is the better pick. Best free all-rounder for reaction sword DPS: Silver Light. Pure ATK with a healer already covering survivability: Finale.',
+    a: 'For Stellar sword users the three are close. Emberwell (forged, 510 base, 165 EM) adds 16% ATK after any reaction plus 16% Stellar Glimmer DMG, and at R5 it edges out an R5 Silver Light \u2014 but only when the wielder triggers those reactions herself. Finale of the Deep (forged, 565 base, ATK 27.6%) is about level, pulling ahead only when a healer clears its Bond of Life. Silver Light (free event, 510 base, ATK 41.3%, up to 104 EM at R1 and 208 at R5) is the easiest to run: one Skill cast keeps it online. The strongest 4-star of the group is the gacha-only New Bough. On an Aggravate carry such as Keqing, Silver Light\u2019s ATK% plus EM generally beats both Emberwell and Finale.',
   },
   {
     q: 'Is Silver Light in this calculator\u2019s weapon list yet?',
@@ -228,9 +275,9 @@ const schema = [
   <!-- ============ Hero (sword · pitch · numbers — one compact band) ============ -->
   <section class="page-shell pt-6 md:pt-8">
     <div
-      class="relative overflow-hidden rounded-3xl border border-forest-200 bg-linear-to-br from-cryo/10 via-[#F3FBFF] to-forest-50 px-5 py-6 shadow-sm md:px-8 md:py-7"
+      class="relative mx-auto max-w-[900px] overflow-hidden rounded-3xl border border-forest-200 bg-linear-to-br from-cryo/10 via-[#F3FBFF] to-forest-50 px-5 py-6 shadow-sm md:px-8 md:py-7"
     >
-      <div class="grid items-center gap-6 md:grid-cols-[64px_minmax(0,1fr)_300px] md:gap-6">
+      <div class="grid items-center gap-6 md:grid-cols-[56px_minmax(0,1fr)_280px] md:gap-6">
         <!-- sword art (desktop only; mobile shows it inside the numbers card) -->
         <div class="relative hidden justify-center md:flex">
           <div class="pointer-events-none absolute inset-0 m-auto h-32 w-32 rounded-full bg-cryo/25 blur-3xl" aria-hidden="true"></div>
@@ -250,6 +297,7 @@ const schema = [
           <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-forest-700">
             <img src="/images/weapons/silver-light.webp" alt="" width="128" height="128" class="h-4 w-4 rounded bg-white/90 object-contain p-0.5 shadow-sm ring-1 ring-black/5" aria-hidden="true" />
             Free 4&#9733; Event Sword · Version 7.1
+            <a href="#compare" class="ml-1 rounded-full bg-forest-300 px-2 py-0.5 text-[0.65rem] tracking-[0.08em] text-forest-900 hover:bg-forest-200">Tier {tier.grade}</a>
           </p>
 
           <h1 class="mt-1.5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-forest-900 md:text-5xl">Silver Light</h1>
@@ -258,11 +306,11 @@ const schema = [
             An <strong class="font-semibold text-[var(--text)]">ATK% sub-stat</strong> plus a <strong class="font-semibold text-[var(--text)]">stacking Elemental Mastery</strong> passive &mdash; strongest on <strong class="font-semibold text-[var(--text)]">Stellar-reaction</strong> sword users, whose damage scales with both stats.
           </p>
 
-          <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
+          <dl class="mt-4 space-y-2.5">
             {fitRows.map((row) => (
-              <>
-                <dt class="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.1em] text-forest-600">{row.label}</dt>
-                <dd class="flex flex-wrap gap-2">
+              <div>
+                <dt class="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-forest-600">{row.label}</dt>
+                <dd class="mt-1 flex flex-wrap gap-2">
                   {row.chars.map((c) => (
                     <a href="#recommended" class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
                       <span class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-sm font-semibold text-forest-700 ring-1 ring-forest-300">
@@ -273,7 +321,7 @@ const schema = [
                     </a>
                   ))}
                 </dd>
-              </>
+              </div>
             ))}
           </dl>
 
@@ -299,7 +347,7 @@ const schema = [
               {stats.map((s) => (
                 <div class="min-w-0">
                   <dt class="text-xs font-semibold uppercase tracking-[0.06em] text-forest-600">{s.label}</dt>
-                  <dd class="mt-0.5 whitespace-nowrap text-xl font-semibold leading-tight tabular-nums text-forest-900 md:text-[1.4rem]">{s.value}</dd>
+                  <dd class="mt-0.5 whitespace-nowrap text-xl font-semibold leading-tight tabular-nums text-forest-900">{s.value}</dd>
                   <dd class="mt-0.5 text-xs leading-tight text-[var(--muted)]">{s.note}</dd>
                 </div>
               ))}
@@ -310,6 +358,59 @@ const schema = [
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ Rating + 4-star comparison ============ -->
+  <section id="compare" class="page-shell pt-10 md:pt-12 scroll-mt-24">
+    <div class="mx-auto max-w-[900px]">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">How good is it?</p>
+      <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Silver Light vs other 4&#9733; swords</h2>
+
+      <div class="mt-5 flex items-start gap-4 rounded-2xl border border-forest-200 bg-white/70 p-4 md:p-5">
+        <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-forest-300 font-display text-3xl font-semibold text-forest-900" aria-label={`Tier ${tier.grade}`}>{tier.grade}</span>
+        <div class="min-w-0">
+          <p class="font-semibold text-[var(--text)]">{tier.label}</p>
+          <p class="mt-1 text-sm leading-relaxed text-[var(--muted)]">{tier.summary}</p>
+        </div>
+      </div>
+
+      <div class="mt-4 overflow-x-auto rounded-2xl border border-forest-200">
+        <table class="w-full min-w-[720px] border-collapse text-left text-sm">
+          <thead class="bg-forest-50 text-xs font-semibold uppercase tracking-[0.06em] text-forest-600">
+            <tr>
+              <th scope="col" class="w-[190px] px-4 py-2.5">Sword</th>
+              <th scope="col" class="whitespace-nowrap px-3 py-2.5">Base ATK</th>
+              <th scope="col" class="px-3 py-2.5">Sub-stat</th>
+              <th scope="col" class="px-3 py-2.5">Passive (R1)</th>
+              <th scope="col" class="px-4 py-2.5">vs Silver Light</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-forest-200/70">
+            {swords.map((w) => (
+              <tr class={w.vs === 'self' ? 'bg-cryo/10' : 'bg-white/60'}>
+                <th scope="row" class="px-4 py-3 font-normal">
+                  <div class="flex items-center gap-2.5">
+                    <img src={`/images/weapons/${w.id}.webp`} alt="" width="128" height="128" loading="lazy" decoding="async" class="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-0.5 ring-1 ring-forest-200" />
+                    <div class="min-w-0">
+                      <p class="whitespace-nowrap font-semibold text-[var(--text)]">{w.name}</p>
+                      <p class="whitespace-nowrap text-xs text-[var(--muted)]">{w.source}</p>
+                    </div>
+                  </div>
+                </th>
+                <td class="px-3 py-3 tabular-nums text-[var(--text)]">{w.atk}</td>
+                <td class="whitespace-nowrap px-3 py-3 text-[var(--text)]">{w.sub}</td>
+                <td class="px-3 py-3 text-[var(--muted)]">{w.passive}</td>
+                <td class="px-4 py-3">
+                  <span class={`inline-block rounded-full px-2 py-0.5 text-[0.7rem] font-semibold ${vsBadge[w.vs].cls}`}>{vsBadge[w.vs].text}</span>
+                  <p class="mt-1 text-xs leading-snug text-[var(--muted)]">{w.verdict}</p>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-2 text-xs text-[var(--muted)]">Order and verdicts summarise the 7.1 guide tests on Vesna and Odette; stats and passives are from HoYoWiki. Swap weapons in the <a href="/#calculator" class="text-forest-600 underline underline-offset-4">calculator</a> for your own build.</p>
     </div>
   </section>
 
@@ -391,34 +492,6 @@ const schema = [
           )}
 
           {tier.prose && <p class="mt-3 max-w-[72ch] text-sm leading-relaxed text-[var(--muted)]">{tier.prose}</p>}
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <!-- ============ Comparisons ============ -->
-  <section class="page-shell section-pad border-t border-[var(--line)]">
-    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Head-to-head</p>
-    <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Silver Light vs the alternatives</h2>
-    <p class="mt-3 max-w-[70ch] text-[var(--muted)]">
-      Every matchup below is reproducible: load the character in the <a href="/#calculator"
-      class="text-forest-600 underline underline-offset-4">damage calculator</a>, swap only the weapon, and compare the
-      expected damage number.
-    </p>
-
-    <div class="mt-8 grid gap-4 md:grid-cols-2">
-      {comparisons.map((c) => (
-        <div class="panel p-6">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <h3 class="font-display text-lg font-semibold text-[var(--text)]">{c.name}</h3>
-              <p class="mt-0.5 text-xs text-[var(--muted)]">{c.meta}</p>
-            </div>
-            <span class="shrink-0 rounded-full bg-forest-100 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-forest-700">
-              {c.verdict}
-            </span>
-          </div>
-          <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">{c.body}</p>
         </div>
       ))}
     </div>
