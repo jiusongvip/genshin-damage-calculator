@@ -27,14 +27,12 @@ const stats = [
 // Recommended characters — from the 7.1 weapon guides. This is qualitative
 // tiering, not a computed score: our calculator does not yet model the 7.x
 // Stellar reactions, so the Stellar users below cannot be reproduced in the
-// damage engine the way an Aggravate carry (Keqing) can. `noPortrait` shows a
-// monogram for a character whose icon is not in the repo yet (Vesna) — drop it
-// at public/images/portraits/vesna.webp and clear the flag.
+// damage engine the way an Aggravate carry (Keqing) can.
 type Tier = {
   key: string;
   title: string;
   subtitle: string;
-  chars?: { id: string; name: string; reason: string; noPortrait?: boolean; team?: string }[];
+  chars?: { id: string; name: string; reason: string; team?: string }[];
   prose?: string;
 };
 
@@ -47,7 +45,6 @@ const tiers: Tier[] = [
       {
         id: 'vesna',
         name: 'Vesna',
-        noPortrait: true,
         reason:
           'An Anemo sword on-field DPS whose damage runs through Stellar Swirl, which scales with both ATK and Elemental Mastery — so the ATK% sub-stat and the stacking EM passive both count. Her signature Beyond the Chrysalis is still well ahead; Silver Light is a free stand-in.',
       },
@@ -220,9 +217,7 @@ const schema = [
                   {row.chars.map((c) => (
                     <a href="#recommended" class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
                       <span class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-sm font-semibold text-forest-700 ring-1 ring-forest-300">
-                        {c.noPortrait ? c.name.charAt(0) : (
-                          <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" decoding="async" class="h-full w-full object-cover" />
-                        )}
+                        <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" decoding="async" class="h-full w-full object-cover" />
                       </span>
                       <span class="text-sm font-medium text-forest-900">{c.name}</span>
                       {c.team && <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[0.65rem] font-semibold text-violet-700">{c.team} only</span>}
@@ -309,9 +304,7 @@ const schema = [
               {tier.chars.map((c) => (
                 <li class="panel flex gap-4 p-5">
                   <span class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-2xl font-semibold text-forest-700 ring-2 ring-forest-300">
-                    {c.noPortrait ? c.name.charAt(0) : (
-                      <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-full w-full object-cover" />
-                    )}
+                    <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-full w-full object-cover" />
                   </span>
                   <div class="min-w-0">
                     <p class="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-[var(--text)]">
