@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SwordCompare from '../components/SwordCompare';
+import SilverLightFitPicker from '../components/SilverLightFitPicker';
 import { SILVER_LIGHT_FITS } from '../data/silverLightFits';
 import { SWORDS, SILVER_LIGHT_ID, VERDICT_IDS } from '../data/swordCompare';
 
@@ -69,7 +70,6 @@ const fitRows = [
   { label: 'Team-specific', chars: goodFits.filter((f) => f.team) },
 ];
 
-const plural = (n: number) => (n === 1 ? 'character' : 'characters');
 
 // Where Silver Light sits among 4★ swords for its core users (Stellar
 // sword characters). Stats and passives are from HoYoWiki; the order and
@@ -197,7 +197,7 @@ const schema = [
                 <dt class="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-forest-600">{row.label}</dt>
                 <dd class="mt-1 flex flex-wrap gap-2">
                   {row.chars.map((c) => (
-                    <a href="#recommended" class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
+                    <a href={`#fit-${c.id}`} class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
                       <span class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-sm font-semibold text-forest-700 ring-1 ring-forest-300">
                         <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" decoding="async" class="h-full w-full object-cover" />
                       </span>
@@ -247,46 +247,15 @@ const schema = [
 
   <!-- ============ Who should use Silver Light ============ -->
   <section id="recommended" class="page-shell section-pad scroll-mt-24 border-t border-[var(--line)]">
+    <div class="mx-auto max-w-[900px]">
     <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Recommended characters</p>
     <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Who should use Silver Light</h2>
     <p class="mt-4 max-w-[70ch] leading-relaxed text-[var(--muted)]">
-      Of the {allFits.length} sword characters, {goodFits.length} get real value from Silver Light and {badFits.length} are better off with another sword.
+      Of the {allFits.length} sword characters, {goodFits.length} get real value from Silver Light and {badFits.length} are better off with another sword. Tap a portrait to see which is which.
     </p>
 
-    <h3 class="mt-8 font-display text-xl font-semibold text-forest-800">Good with Silver Light &mdash; {goodFits.length} {plural(goodFits.length)}</h3>
-    <p class="mt-1 text-sm text-[var(--muted)]">These characters use both the ATK% sub-stat and the Elemental Mastery from the passive.</p>
-    <ul class="mt-4 grid gap-4 md:grid-cols-2">
-      {goodFits.map((c) => (
-        <li class="panel flex gap-4 p-5">
-          <span class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-2xl font-semibold text-forest-700 ring-2 ring-forest-300">
-            <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-full w-full object-cover" />
-          </span>
-          <div class="min-w-0">
-            <p class="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-[var(--text)]">
-              {c.name}
-              {c.team && (
-                <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-violet-700">{c.team} team</span>
-              )}
-            </p>
-            <p class="mt-1 text-sm leading-relaxed text-[var(--muted)]">{c.reason}</p>
-          </div>
-        </li>
-      ))}
-    </ul>
-
-    <h3 class="mt-10 font-display text-xl font-semibold text-forest-800">Not a good fit &mdash; {badFits.length} {plural(badFits.length)}</h3>
-    <p class="mt-1 text-sm text-[var(--muted)]">These characters get little from ATK% or Elemental Mastery, so another sword does more for them.</p>
-    <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {badFits.map((c) => (
-        <li class="flex items-start gap-3 rounded-xl border border-forest-200 bg-white/60 p-3">
-          <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-forest-200" />
-          <div class="min-w-0">
-            <p class="text-sm font-semibold text-[var(--text)]">{c.name}</p>
-            <p class="mt-0.5 text-xs leading-relaxed text-[var(--muted)]">{c.reason}</p>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <SilverLightFitPicker client:load fits={allFits} />
+    </div>
   </section>
 
   <!-- ============ Compare Silver Light with other 4-star swords ============ -->
