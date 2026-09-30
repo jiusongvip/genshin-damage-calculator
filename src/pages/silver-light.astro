@@ -1,5 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import SwordCompare from '../components/SwordCompare';
+import SilverLightFitPicker from '../components/SilverLightFitPicker';
+import { SILVER_LIGHT_FITS } from '../data/silverLightFits';
+import { SWORDS, SILVER_LIGHT_ID, VERDICT_IDS } from '../data/swordCompare';
 
 const siteURL = 'https://www.genshindamagecalculator.com';
 const canonicalURL = `${siteURL}/silver-light/`;
@@ -50,80 +54,22 @@ const howToGet = [
   },
 ];
 
-// Recommended characters — from the 7.1 weapon guides. This is qualitative
-// tiering, not a computed score: our calculator does not yet model the 7.x
-// Stellar reactions, so the Stellar users below cannot be reproduced in the
-// damage engine the way an Aggravate carry (Keqing) can.
-type Tier = {
-  key: string;
-  title: string;
-  subtitle: string;
-  chars?: { id: string; name: string; reason: string; team?: string }[];
-  prose?: string;
-};
+// Recommended characters — from SILVER_LIGHT_FITS (qualitative tiering; our
+// calculator does not yet model the 7.x Stellar reactions, so the Stellar users
+// cannot be reproduced as a computed number the way an Aggravate carry can).
+const allFits = SILVER_LIGHT_FITS;
+const goodFits = allFits
+  .filter((f) => f.rating === 'good')
+  .sort((a, b) => (a.team ? 1 : 0) - (b.team ? 1 : 0) || a.name.localeCompare(b.name));
+const badFits = allFits.filter((f) => f.rating === 'bad').sort((a, b) => a.name.localeCompare(b.name));
 
-const tiers: Tier[] = [
-  {
-    key: 'core',
-    title: 'Core fit',
-    subtitle: 'Uses every part of the weapon and is one of its better 4\u2605 choices.',
-    chars: [
-      {
-        id: 'vesna',
-        name: 'Vesna',
-        reason:
-          'An Anemo sword on-field DPS whose damage runs through Stellar Swirl, which scales with both ATK and Elemental Mastery — so the ATK% sub-stat and the stacking EM passive both count. Her signature Beyond the Chrysalis is still well ahead; Silver Light is a free stand-in.',
-      },
-      {
-        id: 'odette',
-        name: 'Odette',
-        reason:
-          'A Cryo sword off-field Stellar Glimmer damage dealer and support: her Skill clone deals Stellar damage that scales with ATK and EM, so both halves of the weapon apply. In testing it ranks just behind an R2 New Bough and one other sword, not above them.',
-      },
-      {
-        id: 'aether',
-        name: 'Cryo Traveler',
-        reason:
-          'Deals Stellar Swirl damage through their Enhanced Charged Attack and Burst, so the ATK% and EM both apply — and Silver Light is a no-pull upgrade over their usual craftable swords.',
-      },
-    ],
-  },
-  {
-    key: 'conditional',
-    title: 'Conditional fit',
-    subtitle: 'The effect applies, but only in specific teams or play patterns.',
-    chars: [
-      {
-        id: 'keqing',
-        name: 'Keqing',
-        team: 'Aggravate',
-        reason:
-          'Her Elemental Skill cooldown is shorter than the EM-stack duration, so she holds both stacks up permanently \u2014 but this only pays off in an Aggravate team with a Dendro ally keeping Electro aura alive. The weapon gives no CRIT, so it demands strong CRIT substats from artifacts. Physical and pure-Electro builds get little from it.',
-      },
-      {
-        id: 'alhaitham',
-        name: 'Alhaitham',
-        team: 'Spread / Aggravate',
-        reason:
-          'A Dendro sword DPS whose Spread and Aggravate damage scales with EM, so both halves of the weapon apply — the ATK% sub raises his mirror-projection hits and the stacking EM raises the reaction add. It is a solid stat-stick option, but with no CRIT on the weapon his Light of Foliar Incision or another CRIT sword still has the higher ceiling.',
-      },
-    ],
-  },
-  {
-    key: 'stopgap',
-    title: 'Stopgap',
-    subtitle: 'Better than nothing until you have a tuned weapon.',
-    prose:
-      'Other sword DPS who cast their Elemental Skill a lot still gain the ATK% sub-stat and some of the stacking EM, so Silver Light is a reasonable stand-in when there is no better 4\u2605 on hand. It is not, however, the intended best-in-slot for these carries.',
-  },
-];
-
-// Hero "who is it for" rows, taken straight from the tiers above: core fits
-// work in any team, conditional fits only in the team named by `team`.
+// Hero "who is it for" rows: unteammed good fits work in any team, team-restricted
+// good fits only in the team named by `team`.
 const fitRows = [
-  { label: 'Any team', chars: tiers[0].chars! },
-  { label: 'Team-specific', chars: tiers[1].chars! },
+  { label: 'Any team', chars: goodFits.filter((f) => !f.team) },
+  { label: 'Team-specific', chars: goodFits.filter((f) => f.team) },
 ];
+
 
 // Where Silver Light sits among 4★ swords for its core users (Stellar
 // sword characters). Stats and passives are from HoYoWiki; the order and
@@ -135,68 +81,7 @@ const tier = {
   grade: 'A',
   label: 'A top free 4★ for Stellar sword users',
   summary:
-    'A refined New Bough or an R5 Emberwell edges it out, Finale of the Deep is roughly level, and generic ATK sticks fall behind. Its real edge is how easy it is to run: it only needs a Skill cast — no reaction ownership and no healer.',
-};
-
-type Vs = 'up' | 'even' | 'self' | 'off';
-const swords: { id: string; name: string; source: string; atk: number; sub: string; passive: string; vs: Vs; verdict: string }[] = [
-  {
-    id: 'new-bough',
-    name: 'New Bough',
-    source: 'Event wish · 7.1',
-    atk: 510,
-    sub: 'CRIT DMG 55.1%',
-    passive: 'Hitting within 12s of a Skill: ATK +4% and EM +20 per stack, up to 3',
-    vs: 'up',
-    verdict: 'Best 4★ for Stellar users, but gacha-only',
-  },
-  {
-    id: 'emberwell',
-    name: 'Emberwell',
-    source: 'Forged · 7.0',
-    atk: 510,
-    sub: 'EM 165',
-    passive: 'Any reaction: ATK +16%; Stellar Glimmer DMG +16%',
-    vs: 'up',
-    verdict: 'Slightly ahead at R5 — if the wielder triggers the reactions',
-  },
-  {
-    id: 'silver-light',
-    name: 'Silver Light',
-    source: 'Free event · 7.1',
-    atk: 510,
-    sub: 'ATK 41.3%',
-    passive: 'After Skill use: EM +52 per stack, up to 2',
-    vs: 'self',
-    verdict: 'Only needs a Skill cast to stay online',
-  },
-  {
-    id: 'finale-of-the-deep',
-    name: 'Finale of the Deep',
-    source: 'Forged · Fontaine',
-    atk: 565,
-    sub: 'ATK 27.6%',
-    passive: 'ATK buff that needs a healer to clear its Bond of Life',
-    vs: 'even',
-    verdict: 'Ahead only with a healer clearing its Bond of Life',
-  },
-  {
-    id: 'lions-roar',
-    name: 'Lion\u2019s Roar',
-    source: 'Forged · Liyue',
-    atk: 510,
-    sub: 'ATK 41.3%',
-    passive: 'DMG +20% vs Pyro/Electro-affected enemies',
-    vs: 'off',
-    verdict: 'Aggravate pick (Keqing); nothing for Stellar teams',
-  },
-];
-
-const vsBadge: Record<Vs, { text: string; cls: string }> = {
-  up: { text: 'Stronger', cls: 'bg-amber-100 text-amber-800' },
-  even: { text: 'About even', cls: 'bg-sky-100 text-sky-800' },
-  self: { text: 'This weapon', cls: 'bg-forest-300 text-forest-900' },
-  off: { text: 'Different use', cls: 'bg-violet-100 text-violet-700' },
+    'A refined New Bough or an R5 Emberwell edges it out, Finale of the Deep is roughly level, and generic ATK sticks fall behind. Its real edge is how easy it is to use: it only needs a Skill cast — no reaction ownership and no healer.',
 };
 
 const faqs = [
@@ -312,7 +197,7 @@ const schema = [
                 <dt class="text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-forest-600">{row.label}</dt>
                 <dd class="mt-1 flex flex-wrap gap-2">
                   {row.chars.map((c) => (
-                    <a href="#recommended" class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
+                    <a href={`#fit-${c.id}`} class="flex items-center gap-1.5 rounded-full border border-forest-200 bg-white/70 py-1 pl-1 pr-3 transition-colors hover:border-forest-300 hover:bg-white">
                       <span class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-sm font-semibold text-forest-700 ring-1 ring-forest-300">
                         <img src={`/images/portraits/${c.id}.webp`} alt="" width="256" height="256" decoding="async" class="h-full w-full object-cover" />
                       </span>
@@ -326,7 +211,6 @@ const schema = [
           </dl>
 
           <div class="mt-5 flex flex-wrap gap-2.5">
-            <a href="/#calculator" class="rounded-xl bg-forest-300 px-4 py-2 text-sm font-semibold text-forest-900 transition-colors hover:bg-forest-200">Open the calculator</a>
             <a href="#recommended" class="rounded-xl border border-forest-300 px-4 py-2 text-sm font-semibold text-forest-700 transition-colors hover:bg-forest-50">Who should use it</a>
           </div>
         </div>
@@ -361,11 +245,24 @@ const schema = [
     </div>
   </section>
 
-  <!-- ============ Rating + 4-star comparison ============ -->
-  <section id="compare" class="page-shell pt-10 md:pt-12 scroll-mt-24">
+  <!-- ============ Who should use Silver Light ============ -->
+  <section id="recommended" class="page-shell section-pad scroll-mt-24 border-t border-[var(--line)]">
+    <div class="mx-auto max-w-[900px]">
+    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Recommended characters</p>
+    <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Who should use Silver Light</h2>
+    <p class="mt-4 max-w-[70ch] leading-relaxed text-[var(--muted)]">
+      Of the {allFits.length} sword characters, {goodFits.length} get real value from Silver Light and {badFits.length} are better off with another sword. Tap a portrait to see which is which.
+    </p>
+
+    <SilverLightFitPicker client:load fits={allFits} />
+    </div>
+  </section>
+
+  <!-- ============ Compare Silver Light with other 4-star swords ============ -->
+  <section id="compare" class="page-shell section-pad scroll-mt-24 border-t border-[var(--line)]">
     <div class="mx-auto max-w-[900px]">
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">How good is it?</p>
-      <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Silver Light vs other 4&#9733; swords</h2>
+      <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Compare Silver Light with other 4&#9733; swords</h2>
 
       <div class="mt-5 flex items-start gap-4 rounded-2xl border border-forest-200 bg-white/70 p-4 md:p-5">
         <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-forest-300 font-display text-3xl font-semibold text-forest-900" aria-label={`Tier ${tier.grade}`}>{tier.grade}</span>
@@ -375,47 +272,18 @@ const schema = [
         </div>
       </div>
 
-      <div class="mt-4 overflow-x-auto rounded-2xl border border-forest-200">
-        <table class="w-full min-w-[720px] border-collapse text-left text-sm">
-          <thead class="bg-forest-50 text-xs font-semibold uppercase tracking-[0.06em] text-forest-600">
-            <tr>
-              <th scope="col" class="w-[190px] px-4 py-2.5">Sword</th>
-              <th scope="col" class="whitespace-nowrap px-3 py-2.5">Base ATK</th>
-              <th scope="col" class="px-3 py-2.5">Sub-stat</th>
-              <th scope="col" class="px-3 py-2.5">Passive (R1)</th>
-              <th scope="col" class="px-4 py-2.5">vs Silver Light</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-forest-200/70">
-            {swords.map((w) => (
-              <tr class={w.vs === 'self' ? 'bg-cryo/10' : 'bg-white/60'}>
-                <th scope="row" class="px-4 py-3 font-normal">
-                  <div class="flex items-center gap-2.5">
-                    <img src={`/images/weapons/${w.id}.webp`} alt="" width="128" height="128" loading="lazy" decoding="async" class="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-0.5 ring-1 ring-forest-200" />
-                    <div class="min-w-0">
-                      <p class="whitespace-nowrap font-semibold text-[var(--text)]">{w.name}</p>
-                      <p class="whitespace-nowrap text-xs text-[var(--muted)]">{w.source}</p>
-                    </div>
-                  </div>
-                </th>
-                <td class="px-3 py-3 tabular-nums text-[var(--text)]">{w.atk}</td>
-                <td class="whitespace-nowrap px-3 py-3 text-[var(--text)]">{w.sub}</td>
-                <td class="px-3 py-3 text-[var(--muted)]">{w.passive}</td>
-                <td class="px-4 py-3">
-                  <span class={`inline-block rounded-full px-2 py-0.5 text-[0.7rem] font-semibold ${vsBadge[w.vs].cls}`}>{vsBadge[w.vs].text}</span>
-                  <p class="mt-1 text-xs leading-snug text-[var(--muted)]">{w.verdict}</p>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p class="mt-2 text-xs text-[var(--muted)]">Order and verdicts summarise the 7.1 guide tests on Vesna and Odette; stats and passives are from HoYoWiki. Swap weapons in the <a href="/#calculator" class="text-forest-600 underline underline-offset-4">calculator</a> for your own build.</p>
+      <SwordCompare
+        client:visible
+        swords={SWORDS}
+        silverLightId={SILVER_LIGHT_ID}
+        verdictIds={VERDICT_IDS}
+        defaultSelected={['new-bough', 'emberwell', 'finale-of-the-deep', 'lions-roar']}
+      />
     </div>
   </section>
 
   <!-- ============ What it is ============ -->
-  <section class="page-shell section-pad">
+  <section class="page-shell section-pad border-t border-[var(--line)]">
     <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">The weapon</p>
     <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">What Silver Light does</h2>
     <p class="mt-4 max-w-[70ch] leading-relaxed text-[var(--muted)]">
@@ -426,7 +294,7 @@ const schema = [
       <strong class="text-[var(--text)]">208 EM at R5</strong> with both stacks up. That combination &mdash; ATK% for the base
       hit plus EM for the reaction &mdash; is what makes it a standout free option, but only on characters whose reactions
       actually consume EM: the new <strong class="text-[var(--text)]">Stellar</strong> reactions scale with both stats,
-      which is why the Stellar sword users below are its core fits.
+      which is why the Stellar sword users are its core fits.
     </p>
 
     <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm leading-relaxed text-[var(--muted)]">
@@ -435,7 +303,6 @@ const schema = [
       so the Stellar users cannot be reproduced as a computed number the way an Aggravate carry (Keqing) can.
     </p>
   </section>
-
   <!-- ============ How to get ============ -->
   <section id="how-to-get" class="page-shell section-pad scroll-mt-24 border-t border-[var(--line)]">
     <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Acquisition</p>
@@ -452,46 +319,6 @@ const schema = [
           <p class="text-xs font-semibold uppercase tracking-[0.08em] text-forest-600">{h.label}</p>
           <p class="mt-1.5 font-display text-base font-semibold text-[var(--text)]">{h.value}</p>
           <p class="mt-1 text-xs leading-relaxed text-[var(--muted)]">{h.note}</p>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <!-- ============ Recommended characters (tiered) ============ -->
-  <section id="recommended" class="page-shell section-pad scroll-mt-24 border-t border-[var(--line)]">
-    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-forest-600">Recommended characters</p>
-    <h2 class="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)]">Who should run Silver Light</h2>
-
-    <div class="mt-8 space-y-8">
-      {tiers.map((tier) => (
-        <div>
-          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h3 class="font-display text-xl font-semibold text-forest-800">{tier.title}</h3>
-            <p class="text-sm text-[var(--muted)]">{tier.subtitle}</p>
-          </div>
-
-          {tier.chars && (
-            <ul class="mt-4 space-y-4">
-              {tier.chars.map((c) => (
-                <li class="panel flex gap-4 p-5">
-                  <span class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-forest-100 font-display text-2xl font-semibold text-forest-700 ring-2 ring-forest-300">
-                    <img src={`/images/portraits/${c.id}.webp`} alt={`${c.name} portrait`} width="256" height="256" loading="lazy" decoding="async" class="h-full w-full object-cover" />
-                  </span>
-                  <div class="min-w-0">
-                    <p class="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-[var(--text)]">
-                      {c.name}
-                      {c.team && (
-                        <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-violet-700">{c.team} team</span>
-                      )}
-                    </p>
-                    <p class="mt-1 text-sm leading-relaxed text-[var(--muted)]">{c.reason}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {tier.prose && <p class="mt-3 max-w-[72ch] text-sm leading-relaxed text-[var(--muted)]">{tier.prose}</p>}
         </div>
       ))}
     </div>
