@@ -57,7 +57,9 @@ export default function SwordCompare({ swords, silverLightId, verdictIds, defaul
 
   return (
     <div className="mt-4">
-      {/* selector */}
+      {/* selector — icon-first tiles: players recognise a sword by its silhouette and
+          colour long before they read its name, so the art is the primary target and
+          the name is demoted to a small caption underneath it. */}
       <div className="rounded-2xl border border-forest-200 bg-white/70 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-display text-lg font-semibold text-forest-800">Add swords to compare</h3>
@@ -71,7 +73,7 @@ export default function SwordCompare({ swords, silverLightId, verdictIds, defaul
           />
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+        <div className="mt-3 grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-8">
           {visible.map((s) => {
             const on = selected.includes(s.id);
             const disabled = !on && atMax;
@@ -82,29 +84,38 @@ export default function SwordCompare({ swords, silverLightId, verdictIds, defaul
                 onClick={() => toggle(s.id)}
                 disabled={disabled}
                 aria-pressed={on}
-                title={disabled ? 'Compare up to 5 swords' : undefined}
-                className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left text-sm transition-colors ${
+                aria-label={`${on ? 'Remove' : 'Add'} ${s.name}${disabled ? ' — comparison is full' : ''}`}
+                title={disabled ? 'Compare up to 5 swords' : s.name}
+                className={`group relative flex flex-col items-center gap-1 rounded-2xl border px-1 pb-1.5 pt-2.5 transition-colors ${
                   on
-                    ? 'border-forest-400 bg-forest-100 text-forest-900'
+                    ? 'border-forest-500 bg-forest-100'
                     : disabled
-                      ? 'cursor-not-allowed border-forest-100 bg-white text-forest-300'
-                      : 'border-forest-200 bg-white text-forest-700 hover:border-forest-300 hover:bg-forest-50'
+                      ? 'cursor-not-allowed border-forest-100 bg-white opacity-40'
+                      : 'border-forest-200 bg-white hover:border-forest-300 hover:bg-forest-50'
                 }`}
               >
                 <img
                   src={s.icon}
                   alt=""
-                  width="32"
-                  height="32"
+                  width="128"
+                  height="128"
                   loading="lazy"
                   decoding="async"
-                  className="h-7 w-7 shrink-0 rounded bg-white object-contain ring-1 ring-forest-200"
+                  className="h-16 w-16 object-contain transition-transform duration-150 group-hover:scale-105"
                 />
-                <span className="min-w-0 flex-1 truncate font-medium">{s.name}</span>
+                <span
+                  className={`line-clamp-2 text-center text-[0.7rem] leading-tight ${
+                    on ? 'font-semibold text-forest-900' : 'text-forest-600'
+                  }`}
+                >
+                  {s.name}
+                </span>
                 <span
                   aria-hidden="true"
-                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[0.6rem] ${
-                    on ? 'border-forest-500 bg-forest-500 text-white' : 'border-forest-300 bg-white text-transparent'
+                  className={`absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border text-[0.65rem] transition-opacity ${
+                    on
+                      ? 'border-forest-500 bg-forest-500 text-white'
+                      : 'border-forest-200 bg-white text-transparent group-hover:border-forest-300'
                   }`}
                 >
                   ✓
@@ -121,7 +132,8 @@ export default function SwordCompare({ swords, silverLightId, verdictIds, defaul
         )}
       </div>
 
-      {/* comparison table (vertical: one column per sword) */}
+      {/* comparison table (vertical: one column per sword) — the column header leads
+          with a large icon so a column can be identified by the weapon's own art. */}
       <div className="mt-4 overflow-x-auto rounded-2xl border border-forest-200">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
@@ -133,17 +145,17 @@ export default function SwordCompare({ swords, silverLightId, verdictIds, defaul
                 <th
                   key={c.id}
                   scope="col"
-                  className={`min-w-[10rem] px-3 py-3 align-bottom font-normal ${i === 0 ? 'bg-cryo/10' : 'bg-white/60'}`}
+                  className={`min-w-[10rem] px-3 py-3 align-top font-normal ${i === 0 ? 'bg-cryo/10' : 'bg-white/60'}`}
                 >
-                  <div className="flex items-start justify-center gap-1">
+                  <div className="relative flex justify-center">
                     <img
                       src={c.icon}
                       alt=""
-                      width="48"
-                      height="48"
+                      width="128"
+                      height="128"
                       loading="lazy"
                       decoding="async"
-                      className="mx-auto h-12 w-12 rounded-lg bg-white object-contain p-0.5 ring-1 ring-forest-200"
+                      className="h-16 w-16 object-contain"
                     />
                     {i > 0 && (
                       <button
@@ -151,7 +163,7 @@ export default function SwordCompare({ swords, silverLightId, verdictIds, defaul
                         onClick={() => toggle(c.id)}
                         disabled={atMin}
                         title={atMin ? 'Keep at least one sword to compare' : 'Remove from comparison'}
-                        className={`-ml-1 -mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${
+                        className={`absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full text-xs ${
                           atMin ? 'cursor-not-allowed text-forest-200' : 'text-forest-500 hover:bg-forest-100 hover:text-forest-800'
                         }`}
                         aria-label={`Remove ${c.name}`}
@@ -160,7 +172,9 @@ export default function SwordCompare({ swords, silverLightId, verdictIds, defaul
                       </button>
                     )}
                   </div>
-                  <p className="mt-1.5 text-center text-sm font-semibold text-[var(--text)]">{c.name}</p>
+                  <p className={`mt-1.5 text-center text-xs leading-tight ${i === 0 ? 'font-semibold text-forest-900' : 'text-[var(--muted)]'}`}>
+                    {c.name}
+                  </p>
                 </th>
               ))}
             </tr>
