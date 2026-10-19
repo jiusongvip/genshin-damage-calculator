@@ -3,9 +3,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import FormulaSection from '../../components/FormulaSection.astro';
 import ReactionsSection from '../../components/ReactionsSection.astro';
 
-const title = 'Genshin Damage Formula: The 5 Multipliers, With Numbers';
+const title = 'Genshin Damage Formula: The 6 Multipliers, With Numbers';
 const description =
-  'The exact five-multiplier chain: Base ATK × Skill Multiplier × DMG Bonus × CRIT × Reaction, plus the DEF and RES coefficients our calculator applies.';
+  'The exact six-multiplier chain — base damage, DMG Bonus, CRIT, Reaction, DEF, RES — with the coefficients our calculator applies to each one.';
 ---
 
 <BaseLayout title={title} description={description}>
@@ -15,9 +15,11 @@ const description =
       The Genshin Impact damage formula, explained
     </h1>
     <p class="mt-5 max-w-[65ch] text-lg leading-relaxed text-[var(--muted)]">
-      Every damage instance in Genshin Impact follows one multiplicative chain: Total ATK × Skill Multiplier ×
-      (1 + DMG Bonus) × CRIT × Reaction, then scaled by enemy DEF and elemental RES. This guide walks through each
-      multiplier with the exact coefficients the <a href="/"
+      Every damage instance in Genshin Impact follows one multiplicative chain of six terms: <strong
+      class="text-[var(--text)]">base damage</strong> (scaling stat × talent %) × <strong
+      class="text-[var(--text)]">(1 + DMG Bonus)</strong> × <strong class="text-[var(--text)]">CRIT</strong> × <strong
+      class="text-[var(--text)]">Reaction</strong> × <strong class="text-[var(--text)]">DEF</strong> × <strong
+      class="text-[var(--text)]">RES</strong>. This guide walks through each multiplier with the exact coefficients the <a href="/"
       class="text-forest-600 underline underline-offset-4">damage calculator</a> uses.
     </p>
     <blockquote class="panel mt-8 max-w-[65ch] border-l-4 border-forest-500 p-6">

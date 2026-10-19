@@ -4,6 +4,7 @@ import { RELEASED_CHARACTERS } from '../../data/characters';
 import { buildCharacterPageData, hasPublishableData } from '../../lib/character-pages';
 import type { CharacterPageData } from '../../lib/character-pages';
 import { formatNumber } from '../../lib/damage';
+import { SCALING_LABEL, SECONDARY_LABEL } from '../../components/calculator/constants';
 import { ELEMENT_DOT, ELEMENT_LABEL } from '../../data/elements';
 
 /** Data-viz bar tints — same hues as the row dots, washed way back. */
@@ -25,9 +26,10 @@ export function getStaticPaths() {
   }));
 }
 
-const { character: c, groups, constellations, passives, weapons, calcHref, title, description, weaponName } =
+const { character: c, groups, constellations, passives, weapons, calcHref, title, description, weaponName, signatureLabel, faqs } =
   Astro.props as CharacterPageData;
 const element = ELEMENT_LABEL[c.element] ?? c.element;
+const bestWeapon = weapons[0];
 // One shared bar scale per table, exactly like the interactive DamageTable.
 const maxExpected = Math.max(
   1,
@@ -45,6 +47,15 @@ const schema = [
       { '@type': 'ListItem', position: 3, name: c.name, item: canonicalURL },
     ],
   },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.question,
+      acceptedAnswer: { '@type': 'Answer', text: f.answer },
+    })),
+  },
 ];
 ---
 
@@ -60,7 +71,7 @@ const schema = [
       {c.name} damage calculator
     </h1>
     <p class="mt-2 text-sm text-[var(--muted)]">
-      {element} · {c.weaponType} · {c.rarity}★
+      {element} · {c.weaponType} · {c.rarity}★ · scales off {SCALING_LABEL[c.scaling ?? 'atk']}
     </p>
     <p class="mt-5 max-w-[68ch] text-lg leading-relaxed text-[var(--muted)]">
       Every damage number below is computed for a Level-90 {c.name} at talent level 10,
@@ -157,42 +168,57 @@ const schema = [
   {
     weapons.length > 0 && (
       <section class="page-shell section-pad border-t border-[var(--line)]">
-        <h2 class="font-display text-2xl font-semibold text-[var(--text)]">Weapon comparison</h2>
+        <h2 class="font-display text-2xl font-semibold text-[var(--text)]">Best weapon for {c.name}, calculated</h2>
+        {
+          bestWeapon && (
+            <p class="mt-2 max-w-[68ch] text-sm leading-relaxed text-[var(--text)]">
+              <strong>{bestWeapon.weapon.name}</strong> tops the weapon calc for {c.name} at{' '}
+              <span class="tnum">{formatNumber(bestWeapon.expected)}</span> average damage on {signatureLabel}. Every
+              row below is the same hit with only the weapon swapped, at Level 90, talent 10 and refinement 1 — the
+              right-hand column is the damage you give up by running it instead.
+            </p>
+          )
+        }
         <p class="mt-2 max-w-[68ch] text-sm leading-relaxed text-[var(--muted)]">
           Each {c.weaponType} equipped on a Lv90 {c.name} at talent 10 — base ATK, substat and any modelled
           passive. Weapons whose passive is not modelled show only their raw stats; better a missing buff than a
-          wrong one.
+          wrong one. Swap any of them in the <a href={calcHref} class="text-forest-600 underline underline-offset-4">{c.name} calculator</a> to re-run the whole chain on your own panel.
         </p>
         <div class="panel @container mt-5 overflow-hidden">
           <div class="overflow-x-auto">
-            {/* Below 520px of panel, Base ATK / Substat fold under the weapon name so Average stays on screen. */}
-            <table class="w-full text-left text-sm @min-[520px]:min-w-[520px]">
+            {/* Below 600px of panel, Base ATK / Substat fold under the weapon name so Average and vs-best stay on screen. */}
+            <table class="w-full text-left text-sm @min-[600px]:min-w-[600px]">
               <thead>
                 <tr class="border-b border-[var(--line)] text-xs uppercase tracking-wide text-[var(--muted)]">
                   <th class="px-5 py-2.5 font-medium">Weapon</th>
-                  <th class="hidden @min-[520px]:table-cell px-3 py-2.5 text-right font-medium">Base ATK</th>
-                  <th class="hidden @min-[520px]:table-cell px-3 py-2.5 font-medium">Substat</th>
+                  <th class="hidden @min-[600px]:table-cell px-3 py-2.5 text-right font-medium">Base ATK</th>
+                  <th class="hidden @min-[600px]:table-cell px-3 py-2.5 font-medium">Substat</th>
                   <th class="px-5 py-2.5 text-right font-medium">Average</th>
+                  <th class="px-3 py-2.5 text-right font-medium">vs best</th>
                 </tr>
               </thead>
               <tbody>
-                {weapons.map((w) => (
+                {weapons.map((w, i) => (
                   <tr class="border-t border-[var(--line)]/60 first:border-t-0">
                     <td class="px-5 py-2 text-[var(--text)]">
                       {w.weapon.name}
                       <span class="ml-2 text-xs text-[var(--muted)]">{w.weapon.rarity}★</span>
+                      {i === 0 && <span class="ml-2 text-[10px] font-semibold uppercase tracking-wide text-forest-600">best</span>}
                       {w.equipped && <span class="ml-2 text-[10px] font-semibold uppercase tracking-wide text-forest-600">preset</span>}
-                      <span class="block @min-[520px]:hidden tnum mt-0.5 text-[11px] text-[var(--muted)]">
-                        base ATK {formatNumber(w.weapon.baseATK)} · {w.weapon.secondary.type}
+                      <span class="block @min-[600px]:hidden tnum mt-0.5 text-[11px] text-[var(--muted)]">
+                        base ATK {formatNumber(w.weapon.baseATK)} · {SECONDARY_LABEL[w.weapon.secondary.type]}
                         {!w.passiveModelled && ' · passive not modelled'}
                       </span>
                     </td>
-                    <td class="hidden @min-[520px]:table-cell px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(w.weapon.baseATK)}</td>
-                    <td class="hidden @min-[520px]:table-cell px-3 py-2 text-[var(--muted)]">
-                      {w.weapon.secondary.type}
+                    <td class="hidden @min-[600px]:table-cell px-3 py-2 text-right tnum text-[var(--text)]">{formatNumber(w.weapon.baseATK)}</td>
+                    <td class="hidden @min-[600px]:table-cell px-3 py-2 text-[var(--muted)]">
+                      {SECONDARY_LABEL[w.weapon.secondary.type]}
                       {!w.passiveModelled && <span class="ml-2 text-[10px] text-[var(--muted)]">passive not modelled</span>}
                     </td>
                     <td class="px-5 py-2 text-right tnum font-semibold text-[var(--text)]">{formatNumber(w.expected)}</td>
+                    <td class={`tnum px-3 py-2.5 text-right font-semibold ${i === 0 ? 'text-forest-600' : 'text-[var(--muted)]'}`}>
+                      {i === 0 ? '100%' : `${(w.pctOfBest * 100).toFixed(1)}%`}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -255,6 +281,27 @@ const schema = [
       </section>
     )
   }
+
+  <section class="page-shell section-pad border-t border-[var(--line)]">
+    <h2 class="font-display text-2xl font-semibold text-[var(--text)]">{c.name} build questions, answered</h2>
+    <div class="mt-5 space-y-3">
+      {faqs.map((f) => (
+        <details class="panel p-5">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-[var(--text)]">
+            <span>{f.question}</span>
+            <svg class="h-4 w-4 shrink-0 text-[var(--muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          </summary>
+          <p class="mt-3 text-sm leading-relaxed text-[var(--muted)]">{f.answer}</p>
+        </details>
+      ))}
+    </div>
+    <p class="mt-5 max-w-[68ch] text-sm text-[var(--muted)]">
+      How those numbers are produced: the <a href="/guides/damage-formula/" class="text-forest-600 underline underline-offset-4">damage formula, term by term</a>,
+      and the <a href="/guides/builds/" class="text-forest-600 underline underline-offset-4">weapon &amp; artifact build guide</a>.
+      If {c.name} still hits soft, <a href="/guides/improve-damage/" class="text-forest-600 underline underline-offset-4">the six levers ranked by damage added</a>
+      shows which multiplier is holding a build back.
+    </p>
+  </section>
 
   <section class="page-shell section-pad border-t border-[var(--line)]">
     <a href="/characters/" class="text-sm text-forest-600 underline underline-offset-4">← Back to all characters</a>

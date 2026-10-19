@@ -1,5 +1,5 @@
 ---
-// "How Genshin damage is actually calculated" — the exact seven-factor model
+// "How Genshin damage is actually calculated" — the exact six-factor model
 // this calculator runs (KQM general damage formula). Rendered statically so
 // every word is crawlable, and kept scannable with a single accordion.
 ---
@@ -77,9 +77,9 @@
       </p>
     </div>
 
-    <!-- 2. Talent multiplier -->
+    <!-- Talent levels, part of factor 1 -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">2. Talent multiplier <span class="text-forest-600">— your talent level</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">Talent levels <span class="text-forest-600">— the multiplier you already own</span></h3>
       <p class="mt-3 text-[var(--muted)]">
         Every talent level is a guaranteed <strong class="text-[var(--text)]">~6–7% increase</strong> on that skill, with no
         RNG and no resin lottery. Going from talent 8 to 10 is often worth more than weeks of artifact farming. The
@@ -88,9 +88,9 @@
       </p>
     </div>
 
-    <!-- 3. DMG bonus -->
+    <!-- 2. DMG bonus -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">3. DMG Bonus <span class="text-hydro">— the additive multiplier</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">2. DMG Bonus <span class="text-hydro">— the additive multiplier</span></h3>
       <p class="mt-3 text-[var(--muted)]">
         Goblet, weapon passives, set bonuses and supports (Kazuha, Furina, Yelan) all add into <strong class="text-[var(--text)]">one
         single multiplier</strong>: (1 + total DMG Bonus). Because they stack additively, the more you already have, the less each
@@ -98,9 +98,9 @@
       </p>
     </div>
 
-    <!-- 4. CRIT -->
+    <!-- 3. CRIT -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">4. CRIT <span class="text-cryo">— the 1:2 balance</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">3. CRIT <span class="text-cryo">— the 1:2 balance</span></h3>
       <p class="mt-3 text-[var(--muted)]">
         A crit multiplies the hit by (1 + CRIT DMG). Averaged over many hits, expected damage uses the multiplier
         <strong class="text-[var(--text)]">(1 + CRIT Rate × CRIT DMG)</strong>. Because a CRIT Rate roll is worth exactly half a
@@ -109,9 +109,9 @@
       </p>
     </div>
 
-    <!-- 5. Reaction -->
+    <!-- 4. Reaction -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">5. Reaction <span class="text-pyro">— three families</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">4. Reaction <span class="text-pyro">— three families</span></h3>
       <p class="mt-3 text-[var(--muted)]">
         <strong class="text-[var(--text)]">Amplifying</strong> (Vaporize ×1.5/×2.0, Melt ×2.0/×1.5, depending on which element
         triggers) multiply the whole hit and scale with EM through
@@ -130,9 +130,9 @@
       </p>
     </div>
 
-    <!-- 6. DEF -->
+    <!-- 5. DEF -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">6. DEF multiplier <span class="text-dendro">— why level matters</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">5. DEF multiplier <span class="text-dendro">— why level matters</span></h3>
       <p class="tnum mt-3 rounded-[10px] bg-[var(--surface-2)] p-4 text-center text-sm text-[var(--text)]">
         (Lv + 100) ÷ ((Lv + 100) + (Enemy Lv + 100) × (1 − DEF reduction) × (1 − DEF ignore))
       </p>
@@ -143,9 +143,9 @@
       </p>
     </div>
 
-    <!-- 7. RES -->
+    <!-- 6. RES -->
     <div class="panel p-6">
-      <h3 class="text-xl font-semibold text-[var(--text)]">7. RES multiplier <span class="text-electro">— shred beats stats</span></h3>
+      <h3 class="text-xl font-semibold text-[var(--text)]">6. RES multiplier <span class="text-electro">— shred beats stats</span></h3>
       <p class="mt-3 text-[var(--muted)]">
         Resistance = enemy RES − shred:
         <span class="tnum text-[var(--text)]">below 0 → 1 − RES/2, 0–75% → 1 − RES, 75%+ → 1 ÷ (1 + 4 × RES)</span>.
